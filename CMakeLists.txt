@@ -4,10 +4,10 @@ project(sparrow-ipc CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-#set(CMAKE_CXX_SCAN_FOR_MODULES OFF) # We don't use modules?
+set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
 
-set(SCHEMA_DIR ${CMAKE_SOURCE_DIR}/format)
-set(FLATBUFFERS_GENERATED_DIR ${CMAKE_SOURCE_DIR}/src/generated)
+set(SCHEMA_DIR ${CMAKE_BINARY_DIR}/format)
+set(FLATBUFFERS_GENERATED_DIR ${CMAKE_BINARY_DIR}/generated)
 
 find_program(FLATC_EXECUTABLE flatc)
 
@@ -16,7 +16,6 @@ if(NOT FLATC_EXECUTABLE)
 endif()
 
 # Fetch schemas from apache arrow
-# TODO Automate this? or use our own?
 set(SCHEMA_URLS
     "https://raw.githubusercontent.com/apache/arrow/refs/heads/main/format/File.fbs"
     "https://raw.githubusercontent.com/apache/arrow/refs/heads/main/format/Message.fbs"
