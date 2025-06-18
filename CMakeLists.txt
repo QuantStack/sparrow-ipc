@@ -6,6 +6,11 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
 
+# Build options
+# =============
+OPTION(BUILD_TESTS "Build sparrow-ipc test suite" OFF)
+MESSAGE(STATUS "🔧 Build tests: ${BUILD_TESTS}")
+
 set(SCHEMA_DIR ${CMAKE_BINARY_DIR}/format)
 set(FLATBUFFERS_GENERATED_DIR ${CMAKE_BINARY_DIR}/generated)
 
@@ -68,10 +73,14 @@ add_dependencies(flatbuffers_interface generate_flatbuffers_headers)
 find_package(FlatBuffers CONFIG REQUIRED)
 find_package(sparrow CONFIG REQUIRED)
 
-# Main executable target
-# TODO change to example later
-add_executable(sparrow-ipc src/main.cpp)
+# TODO Handle shared/static build later (after more code is available)
+add_library(sparrow-ipc STATIC src/sparrow-ipc.cpp)
 target_link_libraries(sparrow-ipc PRIVATE flatbuffers_interface flatbuffers::flatbuffers sparrow)
 
 add_dependencies(sparrow-ipc generate_flatbuffers_headers)
 
+if(BUILD_TESTS)
+    message(STATUS "🧪 Create tests targets")
+    enable_testing()
+    add_subdirectory(tests)
+endif()

@@ -9,3 +9,5 @@ dependencies:
   # Libraries dependencies
   - flatbuffers
   - sparrow
+  # Tests
+  - doctest
