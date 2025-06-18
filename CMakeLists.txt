@@ -66,14 +66,13 @@ add_library(flatbuffers_interface INTERFACE)
 target_include_directories(flatbuffers_interface INTERFACE ${FLATBUFFERS_GENERATED_DIR})
 add_dependencies(flatbuffers_interface generate_flatbuffers_headers)
 
+find_package(FlatBuffers CONFIG REQUIRED)
+find_package(sparrow CONFIG REQUIRED)
+
 # Main executable target
 # TODO change to example later
 add_executable(sparrow-ipc src/main.cpp)
-target_link_libraries(sparrow-ipc PRIVATE flatbuffers_interface)
-
-# Find and link FlatBuffers library
-find_package(FlatBuffers REQUIRED)
-target_link_libraries(sparrow-ipc PRIVATE flatbuffers::flatbuffers)
+target_link_libraries(sparrow-ipc PRIVATE flatbuffers_interface flatbuffers::flatbuffers sparrow)
 
 add_dependencies(sparrow-ipc generate_flatbuffers_headers)
 
