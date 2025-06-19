@@ -1,0 +1,38 @@
+name: Build and test sparrow-ipc
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+defaults:
+  run:
+    shell: bash -l -eo pipefail {0}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Create build environment
+        uses: mamba-org/setup-micromamba@v2
+        with:
+          environment-file: ./environment-dev.yml
+          environment-name: build_env
+          cache-environment: true
+      - name: Build sparrow-ipc
+        run: |
+          cmake -B build/ -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX \
+            -DCMAKE_PREFIX_PATH=$CONDA_PREFIX \
+            -DBUILD_TESTS=ON
+          cmake --build build/ --parallel
+      - name: Run tests
+        run: |
+          cd build
+          ctest --output-on-failure
