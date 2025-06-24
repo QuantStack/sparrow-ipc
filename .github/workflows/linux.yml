@@ -11,7 +11,7 @@ defaults:
     shell: bash -l -eo pipefail {0}
 
 jobs:
-  build:
+  build_linux:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
