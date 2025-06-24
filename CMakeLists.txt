@@ -102,7 +102,7 @@ find_package(sparrow CONFIG REQUIRED)
 add_library(sparrow-ipc ${SPARROW_IPC_LIBRARY_TYPE}  ${SPARROW_IPC_SRC} ${SPARROW_IPC_HEADERS})
 target_compile_definitions(sparrow-ipc PUBLIC ${SPARROW_IPC_COMPILE_DEFINITIONS})
 target_include_directories(sparrow-ipc PUBLIC ${SPARROW_IPC_INCLUDE_DIR} PRIVATE ${SPARROW_IPC_SOURCE_DIR} )
-target_link_libraries(sparrow-ipc PRIVATE flatbuffers_interface PUBLIC flatbuffers::flatbuffers sparrow)
+target_link_libraries(sparrow-ipc PRIVATE flatbuffers_interface PUBLIC flatbuffers::flatbuffers sparrow::sparrow)
 
 add_dependencies(sparrow-ipc generate_flatbuffers_headers)
 
