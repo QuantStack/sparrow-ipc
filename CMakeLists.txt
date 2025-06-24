@@ -31,6 +31,7 @@ set(SPARROW_IPC_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
 set(SPARROW_IPC_HEADERS
     # config
     ${SPARROW_IPC_INCLUDE_DIR}/config/config.hpp
+    ${SPARROW_IPC_INCLUDE_DIR}/sparrow-ipc.hpp
 )
 
 set(SPARROW_IPC_SRC
@@ -99,7 +100,7 @@ add_dependencies(flatbuffers_interface generate_flatbuffers_headers)
 find_package(FlatBuffers CONFIG REQUIRED)
 find_package(sparrow CONFIG REQUIRED)
 
-add_library(sparrow-ipc ${SPARROW_IPC_LIBRARY_TYPE}  ${SPARROW_IPC_SRC} ${SPARROW_IPC_HEADERS})
+add_library(sparrow-ipc ${SPARROW_IPC_LIBRARY_TYPE} ${SPARROW_IPC_SRC} ${SPARROW_IPC_HEADERS})
 target_compile_definitions(sparrow-ipc PUBLIC ${SPARROW_IPC_COMPILE_DEFINITIONS})
 target_include_directories(sparrow-ipc PUBLIC ${SPARROW_IPC_INCLUDE_DIR} PRIVATE ${SPARROW_IPC_SOURCE_DIR} )
 target_link_libraries(sparrow-ipc PRIVATE flatbuffers_interface PUBLIC flatbuffers::flatbuffers sparrow::sparrow)
