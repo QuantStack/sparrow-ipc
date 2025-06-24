@@ -30,6 +30,7 @@ jobs:
             -DCMAKE_BUILD_TYPE=Release ^
             -DCMAKE_INSTALL_PREFIX=%CONDA_PREFIX% ^
             -DCMAKE_PREFIX_PATH=%CONDA_PREFIX% ^
+            -DSPARROW_IPC_BUILD_SHARED=OFF ^
             -DBUILD_TESTS=ON
           if %errorlevel% neq 0 exit /b %errorlevel%
           cmake --build build/ --parallel
