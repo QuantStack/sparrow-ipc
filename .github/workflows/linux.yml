@@ -1,4 +1,4 @@
-name: Build and test sparrow-ipc
+name: Linux build and test
 
 on:
   workflow_dispatch:
@@ -12,7 +12,7 @@ defaults:
 
 jobs:
   build_linux:
-    runs-on: ubuntu-latest # TODO merge with osx in the same file?
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         build_type: [Release, Debug]

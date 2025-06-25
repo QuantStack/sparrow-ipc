@@ -1,4 +1,4 @@
-name: Build and test sparrow-ipc
+name: OSX build and test
 
 on:
   workflow_dispatch:

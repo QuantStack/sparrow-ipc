@@ -1,4 +1,4 @@
-name: Build and test sparrow-ipc
+name: Windows build and test
 
 on:
   workflow_dispatch:
