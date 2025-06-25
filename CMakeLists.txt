@@ -7,6 +7,11 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
 include(CMakeDependentOption)
 
+list(PREPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
+message(DEBUG "CMake module path: ${CMAKE_MODULE_PATH}")
+
+include(external_dependencies)
+
 set(SPARROW_IPC_COMPILE_DEFINITIONS "" CACHE STRING "List of public compile definitions of the sparrow-ipc target")
 
 # Linter options
@@ -111,7 +116,6 @@ target_include_directories(flatbuffers_interface INTERFACE ${FLATBUFFERS_GENERAT
 add_dependencies(flatbuffers_interface generate_flatbuffers_headers)
 
 find_package(FlatBuffers CONFIG REQUIRED)
-find_package(sparrow CONFIG REQUIRED)
 
 add_library(sparrow-ipc ${SPARROW_IPC_LIBRARY_TYPE} ${SPARROW_IPC_SRC} ${SPARROW_IPC_HEADERS})
 target_compile_definitions(sparrow-ipc PUBLIC ${SPARROW_IPC_COMPILE_DEFINITIONS})
