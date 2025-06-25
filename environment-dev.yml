@@ -7,8 +7,6 @@ dependencies:
   - make
   - ninja
   - cxx-compiler
+  # TODO remove to environment-dev-external-deps.yml after handling fetch
   # Libraries dependencies
   - flatbuffers
-  - sparrow
-  # Tests
-  - doctest
