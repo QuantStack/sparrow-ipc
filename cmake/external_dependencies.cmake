@@ -15,19 +15,21 @@ endif()
 
 if(FETCH_DEPENDENCIES_WITH_CMAKE STREQUAL "ON" OR FETCH_DEPENDENCIES_WITH_CMAKE STREQUAL "MISSING")
     if(NOT sparrow_FOUND)
-        set(SPARROW_VERSION "0.9.0")
-        message(STATUS "📦 Fetching sparrow ${SPARROW_VERSION}")
+        # Fetching from `main` while waiting for a new tag
+        # (https://github.com/man-group/sparrow/pull/463 needed)
+        # TODO Fetch last version when available
+        set(SPARROW_TAG main)
+        message(STATUS "📦 Fetching sparrow ${SPARROW_TAG}")
         FetchContent_Declare(
             sparrow
             GIT_SHALLOW TRUE
             GIT_REPOSITORY https://github.com/man-group/sparrow.git
-            GIT_TAG ${SPARROW_VERSION}
+            GIT_TAG ${SPARROW_TAG}
             GIT_PROGRESS TRUE
             SYSTEM
             EXCLUDE_FROM_ALL)
         FetchContent_MakeAvailable(sparrow)
-        list(PREPEND CMAKE_MODULE_PATH "${sparrow_SOURCE_DIR}/cmake")
-        message(STATUS "\t✅ Fetched sparrow ${SPARROW_VERSION}")
+        message(STATUS "\t✅ Fetched sparrow ${SPARROW_TAG}")
     else()
         message(STATUS "📦 sparrow found here: ${sparrow_DIR}")
     endif()
