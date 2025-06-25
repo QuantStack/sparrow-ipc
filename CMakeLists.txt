@@ -7,7 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
 include(CMakeDependentOption)
 
-list(PREPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
+list(PREPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
 message(DEBUG "CMake module path: ${CMAKE_MODULE_PATH}")
 
 include(external_dependencies)
@@ -132,8 +132,18 @@ target_compile_options(sparrow-ipc
 )
 
 target_include_directories(sparrow-ipc PUBLIC ${SPARROW_IPC_INCLUDE_DIR} PRIVATE ${SPARROW_IPC_SOURCE_DIR} )
+
 target_link_libraries(sparrow-ipc PRIVATE flatbuffers_interface)
-target_link_libraries(sparrow-ipc PUBLIC flatbuffers::flatbuffers sparrow::sparrow)
+target_link_libraries(sparrow-ipc PUBLIC flatbuffers::flatbuffers)
+
+# Link sparrow depending on how it was found or fetched
+if(TARGET sparrow)
+    target_link_libraries(sparrow-ipc PUBLIC sparrow)
+elseif(TARGET sparrow::sparrow)
+    target_link_libraries(sparrow-ipc PUBLIC sparrow::sparrow)
+else()
+    message(FATAL_ERROR "Could not find the sparrow target to link with.")
+endif()
 
 add_dependencies(sparrow-ipc generate_flatbuffers_headers)
 
