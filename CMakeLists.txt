@@ -6,10 +6,37 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
 
+set(SPARROW_IPC_COMPILE_DEFINITIONS "" CACHE STRING "List of public compile definitions of the sparrow-ipc target")
+
 # Build options
 # =============
+
+OPTION(SPARROW_IPC_BUILD_SHARED "Build sparrow-ipc as a shared library" ON)
+
+if(SPARROW_IPC_BUILD_SHARED)
+    message(STATUS "🔧 Build shared library")
+    set(SPARROW_IPC_LIBRARY_TYPE SHARED)
+else()
+    message(STATUS "🔧 Build static library")
+    set(SPARROW_IPC_LIBRARY_TYPE STATIC)
+    list(APPEND SPARROW_IPC_COMPILE_DEFINITIONS SPARROW_IPC_STATIC_LIB)
+endif()
+
 OPTION(BUILD_TESTS "Build sparrow-ipc test suite" OFF)
 MESSAGE(STATUS "🔧 Build tests: ${BUILD_TESTS}")
+
+set(SPARROW_IPC_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
+set(SPARROW_IPC_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
+
+set(SPARROW_IPC_HEADERS
+    # config
+    ${SPARROW_IPC_INCLUDE_DIR}/config/config.hpp
+    ${SPARROW_IPC_INCLUDE_DIR}/sparrow-ipc.hpp
+)
+
+set(SPARROW_IPC_SRC
+    ${SPARROW_IPC_SOURCE_DIR}/sparrow-ipc.cpp
+)
 
 set(SCHEMA_DIR ${CMAKE_BINARY_DIR}/format)
 set(FLATBUFFERS_GENERATED_DIR ${CMAKE_BINARY_DIR}/generated)
@@ -73,9 +100,11 @@ add_dependencies(flatbuffers_interface generate_flatbuffers_headers)
 find_package(FlatBuffers CONFIG REQUIRED)
 find_package(sparrow CONFIG REQUIRED)
 
-# TODO Handle shared/static build later (after more code is available)
-add_library(sparrow-ipc STATIC src/sparrow-ipc.cpp)
-target_link_libraries(sparrow-ipc PRIVATE flatbuffers_interface flatbuffers::flatbuffers sparrow)
+add_library(sparrow-ipc ${SPARROW_IPC_LIBRARY_TYPE} ${SPARROW_IPC_SRC} ${SPARROW_IPC_HEADERS})
+target_compile_definitions(sparrow-ipc PUBLIC ${SPARROW_IPC_COMPILE_DEFINITIONS})
+target_include_directories(sparrow-ipc PUBLIC ${SPARROW_IPC_INCLUDE_DIR} PRIVATE ${SPARROW_IPC_SOURCE_DIR} )
+target_link_libraries(sparrow-ipc PRIVATE flatbuffers_interface)
+target_link_libraries(sparrow-ipc PUBLIC flatbuffers::flatbuffers sparrow::sparrow)
 
 add_dependencies(sparrow-ipc generate_flatbuffers_headers)
 

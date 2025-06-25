@@ -1,4 +1,4 @@
-name: Linux build and test
+name: OSX build and test
 
 on:
   workflow_dispatch:
@@ -11,8 +11,8 @@ defaults:
     shell: bash -l -eo pipefail {0}
 
 jobs:
-  build_linux:
-    runs-on: ubuntu-latest
+  build_osx:
+    runs-on: macos-latest
     strategy:
       matrix:
         build_type: [Release, Debug]
