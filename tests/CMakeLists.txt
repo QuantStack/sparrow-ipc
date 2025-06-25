@@ -1,7 +1,5 @@
 cmake_minimum_required(VERSION 3.28)
 
-find_package(doctest CONFIG REQUIRED)
-
 set(test_target "test_sparrow_ipc_lib")
 
 add_executable(${test_target} test.cpp)
