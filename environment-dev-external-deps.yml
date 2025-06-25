@@ -1,0 +1,9 @@
+name: sparrow-ipc
+channels:
+  - conda-forge
+dependencies:
+  # Libraries dependencies
+  #- flatbuffers
+  - sparrow
+  # Tests
+  - doctest
