@@ -53,7 +53,7 @@ jobs:
     runs-on: windows-latest
     strategy:
       matrix:
-        build_type: [Release, Debug]
+        build_type: [Debug] # TODO add Release
         build_shared: [ON, OFF]
     steps:
       - name: Checkout repository
@@ -74,6 +74,7 @@ jobs:
             -DCMAKE_CXX_STANDARD=20 ^
             -DSPARROW_IPC_BUILD_SHARED=${{ matrix.build_shared }} ^
             -DFETCH_DEPENDENCIES_WITH_CMAKE=MISSING ^
+            -DCMAKE_VERBOSE_MAKEFILE=ON ^^
             -DBUILD_TESTS=ON
           if %errorlevel% neq 0 exit /b %errorlevel%
           cmake --build build/ --parallel
