@@ -30,6 +30,8 @@ void compare_arrow_schemas(const ArrowSchema& s1, const ArrowSchema& s2)
     CHECK_EQ(s1_name, s2_name);
 
     // Compare metadata
+    // TODO if not using iterators because of end bug on key_value_view_iterator:
+    // modify after getting sparrow's next release containing the fix
     if (s1.metadata == nullptr)
     {
         CHECK_EQ(s2.metadata, nullptr);
