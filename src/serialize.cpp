@@ -2,7 +2,6 @@
 #include <cstring>
 #include <vector>
 
-
 #include "Message_generated.h"
 #include "Schema_generated.h"
 
@@ -31,36 +30,30 @@ std::vector<uint8_t> serialize_primitive_array(const sparrow::primitive_array<T>
     // - 8-byte padding and alignment for the message body.
     // - Correctly populating the Flatbuffer-defined metadata for both messages.
 
-    // Create a mutable copy of the input array to allow moving its internal structures.
+    // Create a mutable copy of the input array to allow moving its internal structures
     sparrow::primitive_array<T> mutable_arr = arr;
-
-    // Use the public API to extract the Arrow C data interface structures.
-    // This gives us access to the raw layout needed for serialization.
-    // TODO use get instead and avoid release?
-    // Was using extract_arrow_structures(std::move(mutable_arr)) and releasing after
     auto [arrow_arr, arrow_schema] = sparrow::extract_arrow_structures(std::move(mutable_arr));
 
     // This will be the final buffer holding the complete IPC stream.
     std::vector<uint8_t> final_buffer;
 
-    // --- Part 1: Serialize the Schema message ---
-    // An Arrow IPC stream must start with a Schema message.
+    // I - Serialize the Schema message
+    // An Arrow IPC stream must start with a Schema message
     {
-        // Create a new builder for the Schema message's metadata.
+        // Create a new builder for the Schema message's metadata
         flatbuffers::FlatBufferBuilder schema_builder;
 
-        // Create the Field metadata, which describes a single column (or array).
+        // Create the Field metadata, which describes a single column (or array)
         flatbuffers::Offset<flatbuffers::String> fb_name_offset = 0;
         if (arrow_schema.name)
         {
             fb_name_offset = schema_builder.CreateString(arrow_schema.name);
         }
 
-        // Determine the Flatbuffer type information from the C schema's format string.
+        // Determine the Flatbuffer type information from the C schema's format string
         org::apache::arrow::flatbuf::Type type_enum = org::apache::arrow::flatbuf::Type::NONE;
         flatbuffers::Offset<void> type_offset;
-        // TODO check to be null terminated, check tests "c" and then smthng else
-        // TODO not sure about these values...
+        // TODO not sure about the way we should handle this, maybe use some utility fct from sparrow or define one to handle all possible formats? 
         if (strcmp(arrow_schema.format, "i") == 0)
         {
             type_enum = org::apache::arrow::flatbuf::Type::Int;
@@ -84,8 +77,7 @@ std::vector<uint8_t> serialize_primitive_array(const sparrow::primitive_array<T>
         flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<org::apache::arrow::flatbuf::KeyValue>>>
             fb_metadata_offset = 0;
 
-        //if (arrow_schema.metadata)
-        if (arr.metadata()) // Use arr.metadata() directly
+        if (arr.metadata())
         {
             sparrow::key_value_view metadata_view = *(arr.metadata());
             std::vector<flatbuffers::Offset<org::apache::arrow::flatbuf::KeyValue>> kv_offsets;
@@ -93,15 +85,15 @@ std::vector<uint8_t> serialize_primitive_array(const sparrow::primitive_array<T>
             auto mv_it = metadata_view.cbegin();
             for (auto i = 0; i < metadata_view.size(); ++i, ++mv_it)
             {
-                auto key_offset = schema_builder.CreateString(std::string((*mv_it).first)); // Convert string_view to string
-                auto value_offset = schema_builder.CreateString(std::string((*mv_it).second)); // Convert string_view to string
+                auto key_offset = schema_builder.CreateString(std::string((*mv_it).first));
+                auto value_offset = schema_builder.CreateString(std::string((*mv_it).second));
                 kv_offsets.push_back(
                     org::apache::arrow::flatbuf::CreateKeyValue(schema_builder, key_offset, value_offset));
             }
             fb_metadata_offset = schema_builder.CreateVector(kv_offsets);
         }
 
-        // Build the Field object.
+        // Build the Field object
         auto fb_field = org::apache::arrow::flatbuf::CreateField(
             schema_builder,
             fb_name_offset,
@@ -112,14 +104,14 @@ std::vector<uint8_t> serialize_primitive_array(const sparrow::primitive_array<T>
             0,  // children
             fb_metadata_offset);
 
-        // A Schema contains a vector of fields. For this primitive array, there is only one.
+        // A Schema contains a vector of fields. For this primitive array, there is only one
         std::vector<flatbuffers::Offset<org::apache::arrow::flatbuf::Field>> fields_vec = {fb_field};
         auto fb_fields = schema_builder.CreateVector(fields_vec);
 
-        // Build the Schema object from the vector of fields.
+        // Build the Schema object from the vector of fields
         auto schema_offset = org::apache::arrow::flatbuf::CreateSchema(schema_builder, org::apache::arrow::flatbuf::Endianness::Little, fb_fields);
 
-        // Wrap the Schema in a top-level Message, which is the standard IPC envelope.
+        // Wrap the Schema in a top-level Message, which is the standard IPC envelope
         auto schema_message_offset = org::apache::arrow::flatbuf::CreateMessage(
             schema_builder,
             org::apache::arrow::flatbuf::MetadataVersion::V5,
@@ -129,47 +121,46 @@ std::vector<uint8_t> serialize_primitive_array(const sparrow::primitive_array<T>
         );
         schema_builder.Finish(schema_message_offset);
 
-        // --- Assemble the Schema message bytes ---
-        uint32_t schema_len = schema_builder.GetSize(); // Get the size of the serialized metadata.
-        final_buffer.resize(sizeof(uint32_t) + schema_len); // Resize the buffer to hold the message.
-        // Copy the metadata into the buffer, after the 4-byte length prefix.
+        // Assemble the Schema message bytes
+        uint32_t schema_len = schema_builder.GetSize(); // Get the size of the serialized metadata
+        final_buffer.resize(sizeof(uint32_t) + schema_len); // Resize the buffer to hold the message
+        // Copy the metadata into the buffer, after the 4-byte length prefix
         memcpy(final_buffer.data() + sizeof(uint32_t), schema_builder.GetBufferPointer(), schema_len);
-        // Write the 4-byte metadata length at the beginning of the message.
+        // Write the 4-byte metadata length at the beginning of the message
         *(reinterpret_cast<uint32_t*>(final_buffer.data())) = schema_len;
     }
 
-    // --- Part 2: Serialize the RecordBatch message ---
-    // After the Schema, we send the RecordBatch containing the actual data.
+    // II - Serialize the RecordBatch message
+    // After the Schema, we send the RecordBatch containing the actual data
     {
-        // Create a new builder for the RecordBatch message's metadata.
+        // Create a new builder for the RecordBatch message's metadata
         flatbuffers::FlatBufferBuilder batch_builder;
 
-        // Now use arrow_arr for serialization.
         // arrow_arr.buffers[0] is the validity bitmap
         // arrow_arr.buffers[1] is the data buffer
         const uint8_t* validity_bitmap = reinterpret_cast<const uint8_t*>(arrow_arr.buffers[0]);
         const uint8_t* data_buffer = reinterpret_cast<const uint8_t*>(arrow_arr.buffers[1]);
 
-        // Calculate the size of the validity and data buffers.
+        // Calculate the size of the validity and data buffers
         int64_t validity_size = (arrow_arr.length + 7) / 8;
         int64_t data_size = arrow_arr.length * sizeof(T);
-        int64_t body_len = validity_size + data_size; // The total size of the message body.
+        int64_t body_len = validity_size + data_size; // The total size of the message body
 
-        // Create Flatbuffer descriptions for the data buffers.
+        // Create Flatbuffer descriptions for the data buffers
         org::apache::arrow::flatbuf::Buffer validity_buffer_struct(0, validity_size);
         org::apache::arrow::flatbuf::Buffer data_buffer_struct(validity_size, data_size);
-        // Create the FieldNode, which describes the layout of the array data.
+        // Create the FieldNode, which describes the layout of the array data
         org::apache::arrow::flatbuf::FieldNode field_node_struct(arrow_arr.length, arrow_arr.null_count);
 
-        // A RecordBatch contains a vector of nodes and a vector of buffers.
+        // A RecordBatch contains a vector of nodes and a vector of buffers
         auto fb_nodes_vector = batch_builder.CreateVectorOfStructs(&field_node_struct, 1);
         std::vector<org::apache::arrow::flatbuf::Buffer> buffers_vec = {validity_buffer_struct, data_buffer_struct};
         auto fb_buffers_vector = batch_builder.CreateVectorOfStructs(buffers_vec);
 
-        // Build the RecordBatch metadata object.
+        // Build the RecordBatch metadata object
         auto record_batch_offset = org::apache::arrow::flatbuf::CreateRecordBatch(batch_builder, arrow_arr.length, fb_nodes_vector, fb_buffers_vector);
 
-        // Wrap the RecordBatch in a top-level Message.
+        // Wrap the RecordBatch in a top-level Message
         auto batch_message_offset = org::apache::arrow::flatbuf::CreateMessage(
             batch_builder,
             org::apache::arrow::flatbuf::MetadataVersion::V5,
@@ -179,32 +170,32 @@ std::vector<uint8_t> serialize_primitive_array(const sparrow::primitive_array<T>
         );
         batch_builder.Finish(batch_message_offset);
 
-        // --- Part 3: Append the RecordBatch message to the final buffer ---
-        uint32_t batch_meta_len = batch_builder.GetSize(); // Get the size of the batch metadata.
-        int64_t aligned_batch_meta_len = align_to_8(batch_meta_len); // Calculate the padded length.
+        // III - Append the RecordBatch message to the final buffer
+        uint32_t batch_meta_len = batch_builder.GetSize(); // Get the size of the batch metadata
+        int64_t aligned_batch_meta_len = align_to_8(batch_meta_len); // Calculate the padded length
 
-        size_t current_size = final_buffer.size(); // Get the current size (which is the end of the Schema message).
-        // Resize the buffer to append the new message.
+        size_t current_size = final_buffer.size(); // Get the current size (which is the end of the Schema message)
+        // Resize the buffer to append the new message
         final_buffer.resize(current_size + sizeof(uint32_t) + aligned_batch_meta_len + body_len);
-        uint8_t* dst = final_buffer.data() + current_size; // Get a pointer to where the new message will start.
+        uint8_t* dst = final_buffer.data() + current_size; // Get a pointer to where the new message will start
 
-        // Write the 4-byte metadata length for the RecordBatch message.
+        // Write the 4-byte metadata length for the RecordBatch message
         *(reinterpret_cast<uint32_t*>(dst)) = batch_meta_len;
         dst += sizeof(uint32_t);
-        // Copy the RecordBatch metadata into the buffer.
+        // Copy the RecordBatch metadata into the buffer
         memcpy(dst, batch_builder.GetBufferPointer(), batch_meta_len);
-        // Add padding to align the body to an 8-byte boundary.
+        // Add padding to align the body to an 8-byte boundary
         memset(dst + batch_meta_len, 0, aligned_batch_meta_len - batch_meta_len);
         dst += aligned_batch_meta_len;
-        // Copy the actual data buffers (the message body) into the buffer.
+        // Copy the actual data buffers (the message body) into the buffer
         if (validity_bitmap)
         {
             memcpy(dst, validity_bitmap, validity_size);
         }
         else
         {
-            // If validity_bitmap is null, it means there are no nulls.
-            // The Arrow spec recommends writing a bitmap with all bits set to 1.
+            // If validity_bitmap is null, it means there are no nulls
+            // The Arrow spec recommends writing a bitmap with all bits set to 1
             memset(dst, 0xFF, validity_size);
         }
         dst += validity_size;
@@ -214,11 +205,11 @@ std::vector<uint8_t> serialize_primitive_array(const sparrow::primitive_array<T>
         }
     }
 
-    // Release the memory managed by the C structures, as we have copied the data.
+    // Release the memory managed by the C structures
     arrow_arr.release(&arrow_arr);
     arrow_schema.release(&arrow_schema);
 
-    // Return the final buffer containing the complete IPC stream.
+    // Return the final buffer containing the complete IPC stream
     return final_buffer;
 }
 
@@ -227,26 +218,29 @@ sparrow::primitive_array<T> deserialize_primitive_array(const std::vector<uint8_
     const uint8_t* buf_ptr = buffer.data();
     size_t current_offset = 0;
 
-    // --- Part 1: Deserialize the Schema message ---
+    // I - Deserialize the Schema message
     uint32_t schema_meta_len = *(reinterpret_cast<const uint32_t*>(buf_ptr + current_offset));
     current_offset += sizeof(uint32_t);
     auto schema_message = org::apache::arrow::flatbuf::GetMessage(buf_ptr + current_offset);
-    if (schema_message->header_type() != org::apache::arrow::flatbuf::MessageHeader::Schema) {
+    if (schema_message->header_type() != org::apache::arrow::flatbuf::MessageHeader::Schema)
+    {
         throw std::runtime_error("Expected Schema message at the start of the buffer.");
     }
     auto flatbuffer_schema = static_cast<const org::apache::arrow::flatbuf::Schema*>(schema_message->header());
     auto fields = flatbuffer_schema->fields();
-    if (fields->size() != 1) {
+    if (fields->size() != 1)
+    {
         throw std::runtime_error("Expected schema with exactly one field for primitive_array.");
     }
     bool is_nullable = fields->Get(0)->nullable();
     current_offset += schema_meta_len;
 
-    // --- Part 2: Deserialize the RecordBatch message ---
+    // II - Deserialize the RecordBatch message
     uint32_t batch_meta_len = *(reinterpret_cast<const uint32_t*>(buf_ptr + current_offset));
     current_offset += sizeof(uint32_t);
     auto batch_message = org::apache::arrow::flatbuf::GetMessage(buf_ptr + current_offset);
-    if (batch_message->header_type() != org::apache::arrow::flatbuf::MessageHeader::RecordBatch) {
+    if (batch_message->header_type() != org::apache::arrow::flatbuf::MessageHeader::RecordBatch)
+    {
         throw std::runtime_error("Expected RecordBatch message, but got a different type.");
     }
     auto record_batch = static_cast<const org::apache::arrow::flatbuf::RecordBatch*>(batch_message->header());
@@ -258,8 +252,8 @@ sparrow::primitive_array<T> deserialize_primitive_array(const std::vector<uint8_
     auto nodes_meta = record_batch->nodes();
     auto node_meta = nodes_meta->Get(0);
 
-    // The body contains the validity bitmap and the data buffer concatenated.
-    // We need to copy this data into memory owned by the new ArrowArray.
+    // The body contains the validity bitmap and the data buffer concatenated
+    // We need to copy this data into memory owned by the new ArrowArray
     int64_t validity_len = buffers_meta->Get(0)->length();
     int64_t data_len = buffers_meta->Get(1)->length();
 
@@ -269,105 +263,30 @@ sparrow::primitive_array<T> deserialize_primitive_array(const std::vector<uint8_
     uint8_t* data_buffer_copy = new uint8_t[data_len];
     memcpy(data_buffer_copy, body_ptr + buffers_meta->Get(1)->offset(), data_len);
 
-    // Heap-allocate the ArrowArray and its buffer array so they live as long as the sparrow array
-    auto arr = new ArrowArray();
-    arr->length = node_meta->length();
-    arr->null_count = node_meta->null_count();
-    arr->offset = 0;
-    arr->n_buffers = 2;
-    arr->n_children = 0;
-    arr->children = nullptr;
-    arr->dictionary = nullptr;
-
-    auto buffers_ptr_array = new const void*[2];
-    buffers_ptr_array[0] = validity_buffer_copy;
-    buffers_ptr_array[1] = data_buffer_copy;
-    arr->buffers = buffers_ptr_array;
-
-    // The release callback is responsible for freeing all memory we just allocated
-    arr->release = [](ArrowArray* arr) {
-        if (!arr || !arr->release) return;
-        // Free the buffer data
-        delete[] reinterpret_cast<const uint8_t*>(arr->buffers[0]);
-        delete[] reinterpret_cast<const uint8_t*>(arr->buffers[1]);
-        // Free the buffer pointer array
-        delete[] arr->buffers;
-        // Free the array struct itself
-        delete arr;
-        arr->release = nullptr;
-    };
-
-    // Heap-allocate the ArrowSchema
-    auto schema = new ArrowSchema();
-    // Infer the format string from the template type T
-    const char* format_str = nullptr;
-    if constexpr (std::is_same_v<T, int>) {
-        format_str = "i";
-    } else if constexpr (std::is_same_v<T, float>) {
-        format_str = "f";
-    } else if constexpr (std::is_same_v<T, double>) {
-        format_str = "g";
-    } else {
-        format_str = ""; // Unknown format
-    }
-    schema->format = strdup(format_str);
-
-    // Get name from Flatbuffer schema and duplicate it
+    // Get name
+    std::optional<std::string_view> name;
     const flatbuffers::String* fb_name_flatbuffer = fields->Get(0)->name();
     if (fb_name_flatbuffer)
     {
-        schema->name = strdup(fb_name_flatbuffer->c_str());
-    }
-    else
-    {
-        schema->name = nullptr; // Or strdup("") if an empty string is preferred for null
+        name = std::string_view(fb_name_flatbuffer->c_str(), fb_name_flatbuffer->size());
     }
 
     // Handle metadata
+    std::optional<std::vector<sparrow::metadata_pair>> metadata;
     auto fb_metadata = fields->Get(0)->custom_metadata();
     if (fb_metadata && fb_metadata->size() > 0)
     {
-        std::vector<sparrow::metadata_pair> kvs;
+        metadata = std::vector<sparrow::metadata_pair>();
         for (const auto& kv : *fb_metadata)
         {
-            kvs.emplace_back(kv->key()->c_str(), kv->value()->c_str());
+            metadata->emplace_back(kv->key()->c_str(), kv->value()->c_str());
         }
-        for (auto i : kvs)
-            std::cout << "===========> kv first: " << i.first << " sec: " << i.second << std::endl;
-        std::string metadata_str = sparrow::get_metadata_from_key_values(kvs);
-//         char* metadata_buf = (char*)malloc(metadata_str.size());
-//         if (!metadata_buf)
-//         {
-//             throw std::runtime_error("Failed to allocate memory for metadata");
-//         }
-//         memcpy(metadata_buf, metadata_str.data(), metadata_str.size());
-//         schema->metadata = metadata_buf;
-        schema->metadata = metadata_str.data();
-    }
-    else
-    {
-        schema->metadata = nullptr;
     }
 
-    schema->flags = is_nullable ? static_cast<int64_t>(sparrow::ArrowFlag::NULLABLE) : 0;
-    schema->n_children = 0;
-    schema->children = nullptr;
-    schema->dictionary = nullptr;
-    schema->release = [](ArrowSchema* schema_ptr) {
-        if (!schema_ptr || !schema_ptr->release) return;
-        free((void*)schema_ptr->format);
-        free((void*)schema_ptr->name);
-        if (schema_ptr->metadata)
-        {
-            free((void*)schema_ptr->metadata);
-        }
-        // If metadata was duplicated, free it here too
-        delete schema_ptr;
-        schema_ptr->release = nullptr;
-    };
+    auto data = sparrow::u8_buffer<T>(reinterpret_cast<T*>(data_buffer_copy), node_meta->length());
+    auto bitmap = sparrow::validity_bitmap(validity_buffer_copy, node_meta->length());
 
-    // The sparrow::arrow_proxy will take ownership of the heap-allocated structs
-    return sparrow::primitive_array<T>(sparrow::arrow_proxy(arr, schema));
+    return sparrow::primitive_array<T>(std::move(data), node_meta->length(), std::move(bitmap), name, metadata);
 }
 
 // Explicit template instantiation

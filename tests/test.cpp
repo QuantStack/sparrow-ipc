@@ -5,33 +5,63 @@
 #include <string_view>
 #include <vector>
 
-#include <iostream>
-
 #include "doctest/doctest.h"
 #include "sparrow/sparrow.hpp"
 
 #include "../include/serialize.hpp"
 
-// Helper function to compare ArrowSchema structs
+template <typename T>
+void compare_bitmap(sparrow::primitive_array<T>& pa1, sparrow::primitive_array<T>& pa2)
+{
+    const auto pa1_bitmap = pa1.bitmap();
+    const auto pa2_bitmap = pa2.bitmap();
+
+    CHECK_EQ(pa1_bitmap.size(), pa2_bitmap.size());
+    auto pa1_it = pa1_bitmap.begin();
+    auto pa2_it = pa2_bitmap.begin();
+    for (size_t i = 0; i < pa1_bitmap.size(); ++i)
+    {
+        CHECK_EQ(*pa1_it, *pa2_it);
+        ++pa1_it;
+        ++pa2_it;
+    }
+}
+
+template <typename T>
+void compare_metadata(sparrow::primitive_array<T>& pa1, sparrow::primitive_array<T>& pa2)
+{
+    if (!pa1.metadata().has_value())
+    {
+        CHECK(!pa2.metadata().has_value());
+        return;
+    }
+
+    CHECK(pa2.metadata().has_value());
+    sparrow::key_value_view kvs1_view = *(pa1.metadata());
+    sparrow::key_value_view kvs2_view = *(pa2.metadata());
+
+    CHECK_EQ(kvs1_view.size(), kvs2_view.size());
+    std::vector<std::pair<std::string, std::string>> kvs1, kvs2;
+    auto kvs1_it = kvs1_view.cbegin();
+    auto kvs2_it = kvs2_view.cbegin();
+    for (auto i = 0; i < kvs1_view.size(); ++i)
+    {
+        CHECK_EQ(*kvs1_it, *kvs2_it);
+        ++kvs1_it;
+        ++kvs2_it;
+    }
+}
+
 void compare_arrow_schemas(const ArrowSchema& s1, const ArrowSchema& s2)
 {
-    // Compare format
     std::string_view s1_format = (s1.format != nullptr) ? std::string_view(s1.format) : "";
     std::string_view s2_format = (s2.format != nullptr) ? std::string_view(s2.format) : "";
-
-    std::cout << "s1_format "  << s1_format << " s2_format " << s2_format<< std::endl;
     CHECK_EQ(s1_format, s2_format);
 
-    // Compare name (handle nullptr for name)
     std::string_view s1_name = (s1.name != nullptr) ? std::string_view(s1.name) : "";
     std::string_view s2_name = (s2.name != nullptr) ? std::string_view(s2.name) : "";
-    std::cout << "s1 null ? "  << (s1.name == nullptr) << " s2 null? " << (s2.name == nullptr) << std::endl;
-    std::cout << "s1: "  << s1_name << " s2: " << s2_name<< std::endl;
     CHECK_EQ(s1_name, s2_name);
 
-    // Compare metadata
-    // TODO if not using iterators because of end bug on key_value_view_iterator:
-    // modify after getting sparrow's next release containing the fix
     if (s1.metadata == nullptr)
     {
         CHECK_EQ(s2.metadata, nullptr);
@@ -39,40 +69,9 @@ void compare_arrow_schemas(const ArrowSchema& s1, const ArrowSchema& s2)
     else
     {
         REQUIRE_NE(s2.metadata, nullptr);
-//         CHECK_EQ(s1.metadata, s2.metadata);
-//         sparrow::key_value_view kvs1_view(s1.metadata);
-//         sparrow::key_value_view kvs2_view(s2.metadata);
-//
-//         std::vector<std::pair<std::string, std::string>> kvs1, kvs2;
-//         for (const auto& kv : kvs1_view)
-//         {
-//             kvs1.emplace_back(kv.first, kv.second);
-//         }
-//         for (const auto& kv : kvs2_view)
-//         {
-//             kvs2.emplace_back(kv.first, kv.second);
-//         }
-//
-//         // Sorting to ensure order doesn't matter for comparison
-//         std::sort(kvs1.begin(), kvs1.end());
-//         std::sort(kvs2.begin(), kvs2.end());
-//
-//         CHECK_EQ(kvs1, kvs2);
-//
-//         for (const auto& pair : kvs1)
-//         {
-//             std::cout << "  Key1: \"" << pair.first << "\", Value1: \"" << pair.second << "\"" << std::endl;
-//         }
-//         for (const auto& pair : kvs2)
-//         {
-//             std::cout << "  Key2: \"" << pair.first << "\", Value2: \"" << pair.second << "\"" << std::endl;
-//         }
     }
 
-    // Compare flags
     CHECK_EQ(s1.flags, s2.flags);
-
-    // Compare number of children
     CHECK_EQ(s1.n_children, s2.n_children);
 
     if (s1.n_children > 0)
@@ -112,8 +111,6 @@ TEST_CASE("Serialize and Deserialize primitive_array - int")
 
     std::vector<uint8_t> serialized_data = serialize_primitive_array(ar);
 
-    std::cout << "SER DATA SIZE: " << serialized_data.size() << std::endl;
-
     CHECK(serialized_data.size() > 0);
 
     sp::primitive_array<int> deserialized_ar = deserialize_primitive_array<int>(serialized_data);
@@ -124,7 +121,11 @@ TEST_CASE("Serialize and Deserialize primitive_array - int")
     auto [arrow_array_deserialized_ar, arrow_schema_deserialized_ar] = sp::get_arrow_structures(deserialized_ar);
 
     // Check ArrowSchema equality
+    REQUIRE_NE(arrow_schema_ar, nullptr);
+    REQUIRE_NE(arrow_schema_deserialized_ar, nullptr);
     compare_arrow_schemas(*arrow_schema_ar, *arrow_schema_deserialized_ar);
+    compare_bitmap<int>(ar, deserialized_ar);
+    compare_metadata<int>(ar, deserialized_ar);
 }
 
 TEST_CASE("Serialize and Deserialize primitive_array - float")
@@ -134,8 +135,6 @@ TEST_CASE("Serialize and Deserialize primitive_array - float")
     sp::primitive_array<float> ar = {10.5f, 20.5f, 30.5f, 40.5f, 50.5f};
 
     std::vector<uint8_t> serialized_data = serialize_primitive_array(ar);
-
-    std::cout << "SER DATA SIZE (float): " << serialized_data.size() << std::endl;
 
     CHECK(serialized_data.size() > 0);
 
@@ -147,7 +146,11 @@ TEST_CASE("Serialize and Deserialize primitive_array - float")
     auto [arrow_array_deserialized_ar, arrow_schema_deserialized_ar] = sp::get_arrow_structures(deserialized_ar);
 
     // Check ArrowSchema equality
+    REQUIRE_NE(arrow_schema_ar, nullptr);
+    REQUIRE_NE(arrow_schema_deserialized_ar, nullptr);
     compare_arrow_schemas(*arrow_schema_ar, *arrow_schema_deserialized_ar);
+    compare_bitmap<float>(ar, deserialized_ar);
+    compare_metadata<float>(ar, deserialized_ar);
 }
 
 TEST_CASE("Serialize and Deserialize primitive_array - double")
@@ -157,8 +160,6 @@ TEST_CASE("Serialize and Deserialize primitive_array - double")
     sp::primitive_array<double> ar = {10.1, 20.2, 30.3, 40.4, 50.5};
 
     std::vector<uint8_t> serialized_data = serialize_primitive_array(ar);
-
-    std::cout << "SER DATA SIZE (double): " << serialized_data.size() << std::endl;
 
     CHECK(serialized_data.size() > 0);
 
@@ -170,7 +171,11 @@ TEST_CASE("Serialize and Deserialize primitive_array - double")
     auto [arrow_array_deserialized_ar, arrow_schema_deserialized_ar] = sp::get_arrow_structures(deserialized_ar);
 
     // Check ArrowSchema equality
+    REQUIRE_NE(arrow_schema_ar, nullptr);
+    REQUIRE_NE(arrow_schema_deserialized_ar, nullptr);
     compare_arrow_schemas(*arrow_schema_ar, *arrow_schema_deserialized_ar);
+    compare_bitmap<double>(ar, deserialized_ar);
+    compare_metadata<double>(ar, deserialized_ar);
 }
 
 TEST_CASE("Serialize and Deserialize primitive_array - int with nulls")
@@ -189,8 +194,6 @@ TEST_CASE("Serialize and Deserialize primitive_array - int with nulls")
 
     std::vector<uint8_t> serialized_data = serialize_primitive_array(ar);
 
-    std::cout << "SER DATA SIZE (int with nulls): " << serialized_data.size() << std::endl;
-
     CHECK(serialized_data.size() > 0);
 
     sp::primitive_array<int> deserialized_ar = deserialize_primitive_array<int>(serialized_data);
@@ -201,7 +204,11 @@ TEST_CASE("Serialize and Deserialize primitive_array - int with nulls")
     auto [arrow_array_deserialized_ar, arrow_schema_deserialized_ar] = sp::get_arrow_structures(deserialized_ar);
 
     // Check ArrowSchema equality
+    REQUIRE_NE(arrow_schema_ar, nullptr);
+    REQUIRE_NE(arrow_schema_deserialized_ar, nullptr);
     compare_arrow_schemas(*arrow_schema_ar, *arrow_schema_deserialized_ar);
+    compare_bitmap<int>(ar, deserialized_ar);
+    compare_metadata<int>(ar, deserialized_ar);
 }
 
 TEST_CASE("Serialize and Deserialize primitive_array - with name and metadata")
@@ -223,15 +230,11 @@ TEST_CASE("Serialize and Deserialize primitive_array - with name and metadata")
     sp::primitive_array<int> ar(
         std::move(data_buffer),
         std::move(validity),
-        "my_named_array", // Name
-        //std::make_optional(sp::get_metadata_from_key_values(metadata)) // Metadata
-        //std::make_optional(metadata) // Metadata
+        "my_named_array", // name
         std::make_optional(std::vector<sparrow::metadata_pair>{{"key1", "value1"}, {"key2", "value2"}})
     );
 
     std::vector<uint8_t> serialized_data = serialize_primitive_array(ar);
-
-    std::cout << "SER DATA SIZE (with name and metadata): " << serialized_data.size() << std::endl;
 
     CHECK(serialized_data.size() > 0);
 
@@ -243,19 +246,9 @@ TEST_CASE("Serialize and Deserialize primitive_array - with name and metadata")
     auto [arrow_array_deserialized_ar, arrow_schema_deserialized_ar] = sp::get_arrow_structures(deserialized_ar);
 
     // Check ArrowSchema equality
+    REQUIRE_NE(arrow_schema_ar, nullptr);
+    REQUIRE_NE(arrow_schema_deserialized_ar, nullptr);
     compare_arrow_schemas(*arrow_schema_ar, *arrow_schema_deserialized_ar);
-
-/////////////////////////////////////////////////////////////
-    // TO PUT IN A FCT
-
-        sparrow::key_value_view kvs1_view = *(ar.metadata());
-        sparrow::key_value_view kvs2_view = *(deserialized_ar.metadata());
-
-        std::vector<std::pair<std::string, std::string>> kvs1, kvs2;
-        auto kvs1_it = kvs1_view.cbegin();
-        std::cout << "============> SIZE: " << kvs1_view.size() << " and "  << kvs2_view.size() << std::endl;
-        for (auto i = 0; i < kvs1_view.size(); ++i, ++kvs1_it)
-        {
-            std::cout << "ksv1 first: " << (*kvs1_it).first <<  " ksv1 sec: " << (*kvs1_it).second << std::endl;
-        }
+    compare_bitmap<int>(ar, deserialized_ar);
+    compare_metadata<int>(ar, deserialized_ar);
 }
