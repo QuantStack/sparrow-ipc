@@ -301,9 +301,9 @@ sparrow::primitive_array<T> deserialize_primitive_array(const std::vector<uint8_
 }
 
 // Explicit template instantiation
-template std::vector<uint8_t> serialize_primitive_array<int>(const sparrow::primitive_array<int>& arr);
-template sparrow::primitive_array<int> deserialize_primitive_array<int>(const std::vector<uint8_t>& buffer);
-template std::vector<uint8_t> serialize_primitive_array<float>(const sparrow::primitive_array<float>& arr);
-template sparrow::primitive_array<float> deserialize_primitive_array<float>(const std::vector<uint8_t>& buffer);
-template std::vector<uint8_t> serialize_primitive_array<double>(const sparrow::primitive_array<double>& arr);
-template sparrow::primitive_array<double> deserialize_primitive_array<double>(const std::vector<uint8_t>& buffer);
+template SPARROW_IPC_API std::vector<uint8_t> serialize_primitive_array<int>(const sparrow::primitive_array<int>& arr);
+template SPARROW_IPC_API sparrow::primitive_array<int> deserialize_primitive_array<int>(const std::vector<uint8_t>& buffer);
+template SPARROW_IPC_API std::vector<uint8_t> serialize_primitive_array<float>(const sparrow::primitive_array<float>& arr);
+template SPARROW_IPC_API sparrow::primitive_array<float> deserialize_primitive_array<float>(const std::vector<uint8_t>& buffer);
+template SPARROW_IPC_API std::vector<uint8_t> serialize_primitive_array<double>(const sparrow::primitive_array<double>& arr);
+template SPARROW_IPC_API sparrow::primitive_array<double> deserialize_primitive_array<double>(const std::vector<uint8_t>& buffer);
