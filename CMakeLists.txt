@@ -29,15 +29,14 @@ set(SPARROW_IPC_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
 set(SPARROW_IPC_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
 set(SPARROW_IPC_HEADERS
-    #TODO split serialize/deserialize fcts in two different files or just rename the current one?
     ${SPARROW_IPC_INCLUDE_DIR}/config/config.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/serialize.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow-ipc.hpp
 )
 
 set(SPARROW_IPC_SRC
-    ${SPARROW_IPC_SOURCE_DIR}/sparrow-ipc.cpp
     ${SPARROW_IPC_SOURCE_DIR}/serialize.cpp
+    ${SPARROW_IPC_SOURCE_DIR}/sparrow-ipc.cpp
 )
 
 set(SCHEMA_DIR ${CMAKE_BINARY_DIR}/format)

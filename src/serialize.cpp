@@ -1,5 +1,9 @@
 #include <cstdint>
 #include <cstring>
+#include <optional>
+#include <stdexcept>
+#include <string>
+#include <string_view>
 #include <vector>
 
 #include "Message_generated.h"
@@ -13,6 +17,32 @@ namespace
     int64_t align_to_8(int64_t n)
     {
         return (n + 7) & -8;
+    }
+
+    std::pair<org::apache::arrow::flatbuf::Type, flatbuffers::Offset<void>>
+    get_flatbuffer_type(flatbuffers::FlatBufferBuilder& builder, const char* format_str)
+    {
+        if (strcmp(format_str, "i") == 0)
+        {
+            auto int_type = org::apache::arrow::flatbuf::CreateInt(builder, 32, true);
+            return {org::apache::arrow::flatbuf::Type::Int, int_type.Union()};
+        }
+        else if (strcmp(format_str, "f") == 0)
+        {
+            auto fp_type = org::apache::arrow::flatbuf::CreateFloatingPoint(
+                builder, org::apache::arrow::flatbuf::Precision::SINGLE);
+            return {org::apache::arrow::flatbuf::Type::FloatingPoint, fp_type.Union()};
+        }
+        else if (strcmp(format_str, "g") == 0)
+        {
+            auto fp_type = org::apache::arrow::flatbuf::CreateFloatingPoint(
+                builder, org::apache::arrow::flatbuf::Precision::DOUBLE);
+            return {org::apache::arrow::flatbuf::Type::FloatingPoint, fp_type.Union()};
+        }
+        else
+        {
+            throw std::runtime_error("Unsupported data type for serialization");
+        }
     }
 }
 
@@ -51,27 +81,7 @@ std::vector<uint8_t> serialize_primitive_array(const sparrow::primitive_array<T>
         }
 
         // Determine the Flatbuffer type information from the C schema's format string
-        org::apache::arrow::flatbuf::Type type_enum = org::apache::arrow::flatbuf::Type::NONE;
-        flatbuffers::Offset<void> type_offset;
-        // TODO not sure about the way we should handle this, maybe use some utility fct from sparrow or define one to handle all possible formats? 
-        if (strcmp(arrow_schema.format, "i") == 0)
-        {
-            type_enum = org::apache::arrow::flatbuf::Type::Int;
-            auto int_type = org::apache::arrow::flatbuf::CreateInt(schema_builder, 32, true);
-            type_offset = int_type.Union();
-        }
-        else if (strcmp(arrow_schema.format, "f") == 0)
-        {
-            type_enum = org::apache::arrow::flatbuf::Type::FloatingPoint;
-            auto fp_type = org::apache::arrow::flatbuf::CreateFloatingPoint(schema_builder, org::apache::arrow::flatbuf::Precision::SINGLE);
-            type_offset = fp_type.Union();
-        }
-        else if (strcmp(arrow_schema.format, "g") == 0)
-        {
-            type_enum = org::apache::arrow::flatbuf::Type::FloatingPoint;
-            auto fp_type = org::apache::arrow::flatbuf::CreateFloatingPoint(schema_builder, org::apache::arrow::flatbuf::Precision::DOUBLE);
-            type_offset = fp_type.Union();
-        }
+        auto [type_enum, type_offset] = get_flatbuffer_type(schema_builder, arrow_schema.format);
 
         // Handle metadata
         flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<org::apache::arrow::flatbuf::KeyValue>>>
@@ -274,9 +284,10 @@ sparrow::primitive_array<T> deserialize_primitive_array(const std::vector<uint8_
     // Handle metadata
     std::optional<std::vector<sparrow::metadata_pair>> metadata;
     auto fb_metadata = fields->Get(0)->custom_metadata();
-    if (fb_metadata && fb_metadata->size() > 0)
+    if (fb_metadata && !fb_metadata->empty())
     {
         metadata = std::vector<sparrow::metadata_pair>();
+        metadata->reserve(fb_metadata->size());
         for (const auto& kv : *fb_metadata)
         {
             metadata->emplace_back(kv->key()->c_str(), kv->value()->c_str());
