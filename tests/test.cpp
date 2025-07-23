@@ -6,7 +6,7 @@
 #include <vector>
 
 #include "doctest/doctest.h"
-#include "sparrow/sparrow.hpp"
+#include "sparrow.hpp"
 
 #include "../include/serialize.hpp"
 

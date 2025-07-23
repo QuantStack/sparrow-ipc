@@ -1,7 +1,7 @@
 #pragma once
 
 #include <vector>
-#include "sparrow/sparrow.hpp"
+#include "sparrow.hpp"
 
 //TODO split serialize/deserialize fcts in two different files or just rename the current one?
 template <typename T>
