@@ -4,7 +4,6 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
-#include <vector>
 
 #include "Message_generated.h"
 #include "Schema_generated.h"
@@ -19,6 +18,7 @@ namespace
         return (n + 7) & -8;
     }
 
+    // TODO Complete this with all possible formats?
     std::pair<org::apache::arrow::flatbuf::Type, flatbuffers::Offset<void>>
     get_flatbuffer_type(flatbuffers::FlatBufferBuilder& builder, const char* format_str)
     {
