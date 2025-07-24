@@ -27,7 +27,7 @@ jobs:
           environment-name: build_env
           cache-environment: true
       - name: Install external dependencies
-        run: micromamba install -n build_env -y -f ./environment-dev-external-deps.yml
+        run: micromamba install -n build_env -y -f ./environment-dev.yml
       - name: Build sparrow-ipc
         run: |
           cmake -B build/ -G Ninja \
