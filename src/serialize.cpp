@@ -205,7 +205,6 @@ std::vector<uint8_t> serialize_primitive_array(const sparrow::primitive_array<T>
         else
         {
             // If validity_bitmap is null, it means there are no nulls
-            // The Arrow spec recommends writing a bitmap with all bits set to 1
             memset(dst, 0xFF, validity_size);
         }
         dst += validity_size;
