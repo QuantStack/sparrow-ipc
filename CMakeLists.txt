@@ -29,13 +29,12 @@ set(SPARROW_IPC_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
 set(SPARROW_IPC_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
 set(SPARROW_IPC_HEADERS
-    # config
     ${SPARROW_IPC_INCLUDE_DIR}/config/config.hpp
-    ${SPARROW_IPC_INCLUDE_DIR}/sparrow-ipc.hpp
+    ${SPARROW_IPC_INCLUDE_DIR}/serialize.hpp
 )
 
 set(SPARROW_IPC_SRC
-    ${SPARROW_IPC_SOURCE_DIR}/sparrow-ipc.cpp
+    ${SPARROW_IPC_SOURCE_DIR}/serialize.cpp
 )
 
 set(SCHEMA_DIR ${CMAKE_BINARY_DIR}/format)
@@ -102,6 +101,13 @@ find_package(sparrow CONFIG REQUIRED)
 
 add_library(sparrow-ipc ${SPARROW_IPC_LIBRARY_TYPE} ${SPARROW_IPC_SRC} ${SPARROW_IPC_HEADERS})
 target_compile_definitions(sparrow-ipc PUBLIC ${SPARROW_IPC_COMPILE_DEFINITIONS})
+
+if(UNIX)
+    target_compile_options(sparrow-ipc PRIVATE "-fvisibility=hidden")
+else()
+    target_compile_definitions(sparrow-ipc PRIVATE SPARROW_IPC_EXPORTS)
+endif()
+
 target_include_directories(sparrow-ipc PUBLIC ${SPARROW_IPC_INCLUDE_DIR} PRIVATE ${SPARROW_IPC_SOURCE_DIR} )
 target_link_libraries(sparrow-ipc PRIVATE flatbuffers_interface)
 target_link_libraries(sparrow-ipc PUBLIC flatbuffers::flatbuffers sparrow::sparrow)
