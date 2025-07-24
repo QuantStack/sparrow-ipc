@@ -43,16 +43,14 @@ set(SPARROW_IPC_SRC
     ${SPARROW_IPC_SOURCE_DIR}/serialize.cpp
 )
 
-set(SCHEMA_DIR ${CMAKE_BINARY_DIR}/format)
-set(FLATBUFFERS_GENERATED_DIR ${CMAKE_BINARY_DIR}/generated)
+# find_program(FLATC_EXECUTABLE flatc)
 
-find_program(FLATC_EXECUTABLE flatc)
-
-if(NOT FLATC_EXECUTABLE)
-    message(FATAL_ERROR "flatc not found. Please install Flatbuffers.")
-endif()
+# if(NOT FLATC_EXECUTABLE)
+#     message(FATAL_ERROR "flatc not found. Please install Flatbuffers.")
+# endif()
 
 # Fetch schemas from apache arrow
+set(SCHEMA_DIR ${CMAKE_BINARY_DIR}/format)
 set(SCHEMA_URLS
     "https://raw.githubusercontent.com/apache/arrow/refs/heads/main/format/File.fbs"
     "https://raw.githubusercontent.com/apache/arrow/refs/heads/main/format/Message.fbs"
@@ -68,14 +66,17 @@ file(MAKE_DIRECTORY ${SCHEMA_DIR})
 set(FLATBUFFERS_SCHEMAS "")
 foreach(url IN LISTS SCHEMA_URLS)
     get_filename_component(filename ${url} NAME)
-    message(STATUS "Downloading schema: ${url}")
-    file(DOWNLOAD ${url} ${SCHEMA_DIR}/${filename}
-        STATUS status
-        SHOW_PROGRESS)
+    if(NOT EXISTS ${SCHEMA_DIR}/${filename})
+        message(STATUS "Downloading schema: ${url}")
+        file(DOWNLOAD ${url} ${SCHEMA_DIR}/${filename}
+            STATUS status)
+    endif()
+
     list(APPEND FLATBUFFERS_SCHEMAS ${SCHEMA_DIR}/${filename})
 endforeach()
 
 # Generate Flatbuffers C++ headers from the schemas
+set(FLATBUFFERS_GENERATED_DIR ${CMAKE_BINARY_DIR}/generated)
 file(MAKE_DIRECTORY ${FLATBUFFERS_GENERATED_DIR})
 
 # Generate output files list
@@ -88,7 +89,7 @@ endforeach()
 
 add_custom_command(
     OUTPUT ${FLATBUFFERS_GENERATED_HEADERS}
-    COMMAND ${FLATC_EXECUTABLE} --cpp -o ${FLATBUFFERS_GENERATED_DIR} --cpp-std c++17 --scoped-enums ${FLATBUFFERS_SCHEMAS}
+    COMMAND flatc --cpp -o ${FLATBUFFERS_GENERATED_DIR} --cpp-std c++17 --scoped-enums ${FLATBUFFERS_SCHEMAS}
     DEPENDS ${FLATBUFFERS_SCHEMAS}
     COMMENT "Generating FlatBuffers C++ headers from schemas"
 )
@@ -101,8 +102,6 @@ add_custom_target(generate_flatbuffers_headers
 add_library(flatbuffers_interface INTERFACE)
 target_include_directories(flatbuffers_interface INTERFACE ${FLATBUFFERS_GENERATED_DIR})
 add_dependencies(flatbuffers_interface generate_flatbuffers_headers)
-
-find_package(FlatBuffers CONFIG REQUIRED)
 
 add_library(sparrow-ipc ${SPARROW_IPC_LIBRARY_TYPE} ${SPARROW_IPC_SRC} ${SPARROW_IPC_HEADERS})
 target_compile_definitions(sparrow-ipc PUBLIC ${SPARROW_IPC_COMPILE_DEFINITIONS})
