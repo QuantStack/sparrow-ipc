@@ -22,18 +22,18 @@ namespace
     std::pair<org::apache::arrow::flatbuf::Type, flatbuffers::Offset<void>>
     get_flatbuffer_type(flatbuffers::FlatBufferBuilder& builder, const char* format_str)
     {
-        if (strcmp(format_str, "i") == 0)
+        if (format_str == sparrow::data_type_to_format(sparrow::data_type::INT32))
         {
             auto int_type = org::apache::arrow::flatbuf::CreateInt(builder, 32, true);
             return {org::apache::arrow::flatbuf::Type::Int, int_type.Union()};
         }
-        else if (strcmp(format_str, "f") == 0)
+        else if (format_str == sparrow::data_type_to_format(sparrow::data_type::FLOAT))
         {
             auto fp_type = org::apache::arrow::flatbuf::CreateFloatingPoint(
                 builder, org::apache::arrow::flatbuf::Precision::SINGLE);
             return {org::apache::arrow::flatbuf::Type::FloatingPoint, fp_type.Union()};
         }
-        else if (strcmp(format_str, "g") == 0)
+        else if (format_str == sparrow::data_type_to_format(sparrow::data_type::DOUBLE))
         {
             auto fp_type = org::apache::arrow::flatbuf::CreateFloatingPoint(
                 builder, org::apache::arrow::flatbuf::Precision::DOUBLE);
