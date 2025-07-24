@@ -9,52 +9,57 @@ else()
     set(FIND_PACKAGE_OPTIONS QUIET)
 endif()
 
-if(NOT FETCH_DEPENDENCIES_WITH_CMAKE STREQUAL "ON")
-    find_package(sparrow CONFIG ${FIND_PACKAGE_OPTIONS})
-endif()
-
-if(FETCH_DEPENDENCIES_WITH_CMAKE STREQUAL "ON" OR FETCH_DEPENDENCIES_WITH_CMAKE STREQUAL "MISSING")
-    if(NOT sparrow_FOUND)
-        # Fetching from `main` while waiting for a new tag
-        # (https://github.com/man-group/sparrow/pull/463 needed)
-        # TODO Fetch last version when available
-        set(SPARROW_TAG main)
-        message(STATUS "📦 Fetching sparrow ${SPARROW_TAG}")
-        FetchContent_Declare(
-            sparrow
-            GIT_SHALLOW TRUE
-            GIT_REPOSITORY https://github.com/man-group/sparrow.git
-            GIT_TAG ${SPARROW_TAG}
-            GIT_PROGRESS TRUE
-            SYSTEM
-            EXCLUDE_FROM_ALL)
-        FetchContent_MakeAvailable(sparrow)
-        message(STATUS "\t✅ Fetched sparrow ${SPARROW_TAG}")
-    else()
-        message(STATUS "📦 sparrow found here: ${sparrow_DIR}")
-    endif()
-endif()
-
-if(SPARROW_IPC_BUILD_TESTS)
+function(find_package_or_fetch)
+    set(options)
+    set(oneValueArgs PACKAGE_NAME VERSION GIT_REPOSITORY TAG)
+    set(multiValueArgs)
+    cmake_parse_arguments(PARSE_ARGV 0 arg
+        "${options}" "${oneValueArgs}" "${multiValueArgs}"
+    )
     if(NOT FETCH_DEPENDENCIES_WITH_CMAKE STREQUAL "ON")
-        find_package(doctest CONFIG ${FIND_PACKAGE_OPTIONS})
+        find_package(${arg_PACKAGE_NAME} ${FIND_PACKAGE_OPTIONS})
     endif()
     if(FETCH_DEPENDENCIES_WITH_CMAKE STREQUAL "ON" OR FETCH_DEPENDENCIES_WITH_CMAKE STREQUAL "MISSING")
-        if(NOT doctest_FOUND)
-            set(DOCTEST_VERSION "v2.4.12")
-            message(STATUS "📦 Fetching doctest ${DOCTEST_VERSION}")
+        if(NOT ${arg_PACKAGE_NAME}_FOUND)
+            message(STATUS "📦 Fetching ${arg_PACKAGE_NAME}")
             FetchContent_Declare(
-                doctest
+                ${arg_PACKAGE_NAME}
                 GIT_SHALLOW TRUE
-                GIT_REPOSITORY https://github.com/doctest/doctest.git
-                GIT_TAG ${DOCTEST_VERSION}
+                GIT_REPOSITORY ${arg_GIT_REPOSITORY}
+                GIT_TAG ${arg_TAG}
                 GIT_PROGRESS TRUE
                 SYSTEM
                 EXCLUDE_FROM_ALL)
-            FetchContent_MakeAvailable(doctest)
-            message(STATUS "\t✅ Fetched doctest ${DOCTEST_VERSION}")
+            FetchContent_MakeAvailable(${arg_PACKAGE_NAME})
+            message(STATUS "\t✅ Fetched ${arg_PACKAGE_NAME}")
         else()
-            message(STATUS "📦 doctest found here: ${doctest_DIR}")
+            message(STATUS "📦 ${arg_PACKAGE_NAME} found here: ${arg_PACKAGE_NAME}_DIR")
         endif()
     endif()
+endfunction()
+
+find_package_or_fetch(
+    PACKAGE_NAME sparrow
+    VERSION 1.0.0
+    GIT_REPOSITORY https://github.com/man-group/sparrow.git
+    TAG 1.0.0
+)
+
+set(FLATBUFFERS_BUILD_TESTS OFF)
+find_package_or_fetch(
+    PACKAGE_NAME FlatBuffers
+    VERSION v25.2.10
+    GIT_REPOSITORY https://github.com/google/flatbuffers.git
+    TAG v25.2.10
+)
+add_library(flatbuffers::flatbuffers ALIAS flatbuffers)
+unset(FLATBUFFERS_BUILD_TESTS CACHE)
+
+if(SPARROW_IPC_BUILD_TESTS)
+    find_package_or_fetch(
+        PACKAGE_NAME doctest
+        VERSION v2.4.12
+        GIT_REPOSITORY https://github.com/doctest/doctest.git
+        TAG v2.4.12
+    )
 endif()
