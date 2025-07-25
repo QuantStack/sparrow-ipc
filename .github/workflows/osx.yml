@@ -12,7 +12,7 @@ defaults:
 
 jobs:
   osx_build_from_conda_forge:
-    runs-on: macos-latest
+    runs-on: macos-15
     strategy:
       matrix:
         build_type: [Release, Debug]
