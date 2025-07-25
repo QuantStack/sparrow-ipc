@@ -44,16 +44,15 @@ jobs:
 
       - name: Build sparrow-ipc
         working-directory: build
-        run: cmake --build . --config ${{matrix.build_type}} --target sparrow-ipc
+        run: cmake --build . --target sparrow-ipc
 
       - name: Build tests
         working-directory: build
-        run: cmake --build . --config ${{matrix.config}} --target test_sparrow_ipc_lib
+        run: cmake --build . --target test_sparrow_ipc_lib
 
       - name: Run tests
         working-directory: build
-        run: cmake --build . --config ${{matrix.config}} --target run_tests_with_junit_report
-
+        run: cmake --build . --target run_tests_with_junit_report
 
   linux_build_fetch_from_source:
     runs-on: ubuntu-latest
@@ -76,12 +75,12 @@ jobs:
 
       - name: Build sparrow-ipc
         working-directory: build
-        run: cmake --build . --config ${{matrix.build_type}} --target sparrow-ipc
+        run: cmake --build . --target sparrow-ipc
 
       - name: Build tests
         working-directory: build
-        run: cmake --build . --config ${{matrix.config}} --target test_sparrow_ipc_lib
+        run: cmake --build . --target test_sparrow_ipc_lib
 
       - name: Run tests
         working-directory: build
-        run: cmake --build . --config ${{matrix.config}} --target run_tests_with_junit_report
+        run: cmake --build . --target run_tests_with_junit_report
