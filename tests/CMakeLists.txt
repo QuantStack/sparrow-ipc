@@ -35,3 +35,5 @@ add_custom_target(run_tests_with_junit_report
     COMMENT "Running tests with JUnit reports saved to: ${JUNIT_REPORT_FILE_DOCTEST}"
     USES_TERMINAL
 )
+
+set_target_properties(run_tests_with_junit_report PROPERTIES FOLDER "Tests utilities")
