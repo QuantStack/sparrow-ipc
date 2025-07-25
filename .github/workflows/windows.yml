@@ -8,7 +8,6 @@ on:
 
 defaults:
   run:
-    # micromamba activation
     shell: bash -e -l {0}
 
 jobs:
@@ -27,8 +26,8 @@ jobs:
         with:
           environment-file: ./environment-dev.yml
           environment-name: build_env
+          init-shell: bash
           cache-environment: true
-          init-shell: cmd.exe
 
       - name: Configure using cmake
         run: |
