@@ -5,8 +5,21 @@ project(sparrow-ipc CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
+include(CMakeDependentOption)
 
 set(SPARROW_IPC_COMPILE_DEFINITIONS "" CACHE STRING "List of public compile definitions of the sparrow-ipc target")
+
+# Linter options
+# =============
+OPTION(ACTIVATE_LINTER "Create targets to run clang-format" OFF)
+MESSAGE(STATUS "🔧 Activate linter: ${ACTIVATE_LINTER}")
+cmake_dependent_option(ACTIVATE_LINTER_DURING_COMPILATION "Run linter during the compilation" ON "ACTIVATE_LINTER" OFF)
+
+if(ACTIVATE_LINTER)
+    include(clang-format)
+    include(clang-tidy)
+endif()
+
 
 # Build options
 # =============
@@ -107,6 +120,11 @@ if(UNIX)
 else()
     target_compile_definitions(sparrow-ipc PRIVATE SPARROW_IPC_EXPORTS)
 endif()
+
+target_compile_options(sparrow-ipc
+    PRIVATE
+        ${compile_options}
+)
 
 target_include_directories(sparrow-ipc PUBLIC ${SPARROW_IPC_INCLUDE_DIR} PRIVATE ${SPARROW_IPC_SOURCE_DIR} )
 target_link_libraries(sparrow-ipc PRIVATE flatbuffers_interface)
