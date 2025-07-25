@@ -61,7 +61,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-           - name: Configure using cmake
+      - name: Configure using cmake
         run: |
           cmake -G Ninja \
           -Bbuild \
