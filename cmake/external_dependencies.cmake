@@ -38,6 +38,7 @@ function(find_package_or_fetch)
     endif()
 endfunction()
 
+set(SPARROW_BUILD_SHARED ${SPARROW_IPC_BUILD_SHARED})
 find_package_or_fetch(
     PACKAGE_NAME sparrow
     VERSION 1.0.0
@@ -50,6 +51,7 @@ if(NOT TARGET sparrow::sparrow)
 endif()
 
 set(FLATBUFFERS_BUILD_TESTS OFF)
+set(FLATBUFFERS_BUILD_SHAREDLIB ${SPARROW_IPC_BUILD_SHARED})
 find_package_or_fetch(
     PACKAGE_NAME FlatBuffers
     VERSION v25.2.10
