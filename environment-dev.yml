@@ -4,11 +4,9 @@ channels:
 dependencies:
   # Build dependencies
   - cmake
-  - make
   - ninja
   - cxx-compiler
   # Libraries dependencies
   - flatbuffers
   - sparrow
-  # Tests
   - doctest
