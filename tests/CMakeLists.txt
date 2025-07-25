@@ -15,3 +15,23 @@ target_include_directories(${test_target}
 )
 add_dependencies(${test_target} generate_flatbuffers_headers)
 add_test(NAME sparrow-ipc-tests COMMAND ${test_target})
+
+add_custom_target(run_tests
+    COMMAND ${test_target}
+    DEPENDS 
+        ${test_target}
+    COMMENT "Running tests"
+    USES_TERMINAL
+)
+
+set_target_properties(run_tests PROPERTIES FOLDER "Tests utilities")
+
+set(JUNIT_REPORT_FILE_DOCTEST ${CMAKE_CURRENT_BINARY_DIR}/test_sparrow-ipc_lib_report_doctest.xml)
+
+add_custom_target(run_tests_with_junit_report
+    COMMAND ${test_target} --reporters=junit --out=${JUNIT_REPORT_FILE_DOCTEST} --no-path-filenames=true # TODO: use better junit as in sparrow
+    DEPENDS
+        ${test_target} 
+    COMMENT "Running tests with JUnit reports saved to: ${JUNIT_REPORT_FILE_DOCTEST}"
+    USES_TERMINAL
+)
