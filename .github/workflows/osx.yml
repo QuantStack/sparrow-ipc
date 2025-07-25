@@ -28,7 +28,7 @@ jobs:
           environment-name: build_env
           cache-environment: true
 
-            - name: Configure using cmake
+      - name: Configure using cmake
         run: |
           cmake -G Ninja \
           -Bbuild \
