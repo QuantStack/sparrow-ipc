@@ -32,8 +32,7 @@ jobs:
 
       - name: Configure using cmake
         run: |
-          cmake -G Ninja \
-          -Bbuild \
+          cmake -S ./ -B ./build \
           -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
           -DCMAKE_INSTALL_PREFIX=%CONDA_PREFIX% \
           -DCMAKE_PREFIX_PATH=%CONDA_PREFIX% \
@@ -65,8 +64,7 @@ jobs:
 
       - name: Configure using cmake
         run: |
-          cmake -G Ninja \
-          -Bbuild \
+          cmake -S ./ -B ./build \
           -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
           -DSPARROW_IPC_BUILD_SHARED=${{ matrix.build_shared }} \
           -DSPARROW_IPC_BUILD_TESTS=ON \
