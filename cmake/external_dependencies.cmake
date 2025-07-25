@@ -45,6 +45,10 @@ find_package_or_fetch(
     TAG 1.0.0
 )
 
+if(NOT TARGET sparrow::sparrow)
+    add_library(sparrow::sparrow ALIAS sparrow)
+endif()
+
 set(FLATBUFFERS_BUILD_TESTS OFF)
 find_package_or_fetch(
     PACKAGE_NAME FlatBuffers

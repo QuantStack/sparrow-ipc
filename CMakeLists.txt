@@ -57,12 +57,6 @@ set(SPARROW_IPC_SRC
     ${SPARROW_IPC_SOURCE_DIR}/utils.cpp
 )
 
-# find_program(FLATC_EXECUTABLE flatc)
-
-# if(NOT FLATC_EXECUTABLE)
-#     message(FATAL_ERROR "flatc not found. Please install Flatbuffers.")
-# endif()
-
 # Fetch schemas from apache arrow
 set(SCHEMA_DIR ${CMAKE_BINARY_DIR}/format)
 set(SCHEMA_URLS
@@ -118,7 +112,15 @@ target_include_directories(flatbuffers_interface INTERFACE ${FLATBUFFERS_GENERAT
 add_dependencies(flatbuffers_interface generate_flatbuffers_headers)
 
 add_library(sparrow-ipc ${SPARROW_IPC_LIBRARY_TYPE} ${SPARROW_IPC_SRC} ${SPARROW_IPC_HEADERS})
-target_compile_definitions(sparrow-ipc PUBLIC ${SPARROW_IPC_COMPILE_DEFINITIONS})
+
+target_compile_options(sparrow-ipc
+    PRIVATE
+        ${compile_options}
+)
+
+target_compile_definitions(sparrow-ipc
+    PUBLIC
+        ${SPARROW_IPC_COMPILE_DEFINITIONS})
 
 if(UNIX)
     target_compile_options(sparrow-ipc PRIVATE "-fvisibility=hidden")
@@ -126,24 +128,18 @@ else()
     target_compile_definitions(sparrow-ipc PRIVATE SPARROW_IPC_EXPORTS)
 endif()
 
-target_compile_options(sparrow-ipc
+target_include_directories(sparrow-ipc
+    PUBLIC
+        ${SPARROW_IPC_INCLUDE_DIR}
     PRIVATE
-        ${compile_options}
-)
+        ${SPARROW_IPC_SOURCE_DIR} )
 
-target_include_directories(sparrow-ipc PUBLIC ${SPARROW_IPC_INCLUDE_DIR} PRIVATE ${SPARROW_IPC_SOURCE_DIR} )
-
-target_link_libraries(sparrow-ipc PRIVATE flatbuffers_interface)
-target_link_libraries(sparrow-ipc PUBLIC flatbuffers::flatbuffers)
-
-# Link sparrow depending on how it was found or fetched
-if(TARGET sparrow)
-    target_link_libraries(sparrow-ipc PUBLIC sparrow)
-elseif(TARGET sparrow::sparrow)
-    target_link_libraries(sparrow-ipc PUBLIC sparrow::sparrow)
-else()
-    message(FATAL_ERROR "Could not find the sparrow target to link with.")
-endif()
+target_link_libraries(sparrow-ipc 
+    PUBLIC
+        sparrow::sparrow
+        flatbuffers::flatbuffers
+    PRIVATE
+        flatbuffers_interface)
 
 add_dependencies(sparrow-ipc generate_flatbuffers_headers)
 
