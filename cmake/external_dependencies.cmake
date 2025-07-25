@@ -52,7 +52,10 @@ find_package_or_fetch(
     GIT_REPOSITORY https://github.com/google/flatbuffers.git
     TAG v25.2.10
 )
-add_library(flatbuffers::flatbuffers ALIAS flatbuffers)
+
+if(NOT TARGET flatbuffers::flatbuffers)
+    add_library(flatbuffers::flatbuffers ALIAS flatbuffers)
+endif()
 unset(FLATBUFFERS_BUILD_TESTS CACHE)
 
 if(SPARROW_IPC_BUILD_TESTS)
