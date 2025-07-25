@@ -9,7 +9,7 @@ on:
 defaults:
   run:
     # micromamba activation
-    shell: cmd /C call {0}
+    shell: bash -e -l {0}
 
 jobs:
   windows_build_from_conda_forge:

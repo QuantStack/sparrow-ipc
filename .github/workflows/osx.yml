@@ -65,6 +65,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Select XCode version
+        run: |
+          sudo xcode-select --switch /Applications/Xcode_16.4.app/Contents/Developer
+          xcodebuild -version
+
       - name: Configure using cmake
         run: |
           cmake -G Ninja \
