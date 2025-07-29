@@ -1,5 +1,3 @@
-#define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
-
 #include <cstdint>
 #include <cstring>
 #include <string_view>
@@ -8,7 +6,7 @@
 #include "doctest/doctest.h"
 #include "sparrow.hpp"
 
-#include "../include/serialize.hpp"
+#include "serialize.hpp"
 
 namespace sparrow_ipc
 {

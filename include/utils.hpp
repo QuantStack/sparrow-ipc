@@ -9,8 +9,6 @@
 
 #include "config/config.hpp"
 
-// TODO add tests
-// TODO in that case define #ifdef TESTING for the fcts here to be testable and available in anonymous namespaces
 namespace sparrow_ipc
 {
     namespace utils
