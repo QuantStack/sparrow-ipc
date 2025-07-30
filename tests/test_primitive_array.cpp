@@ -17,6 +17,9 @@ namespace sparrow_ipc
         float,
         double>;
 
+    // TODO We should use comparison functions from sparrow, after making them available if not already
+    // after next release?
+    // Or even better, allow checking directly primitive_array equality in sparrow
     void compare_arrow_schemas(const ArrowSchema& s1, const ArrowSchema& s2)
     {
         std::string_view s1_format = (s1.format != nullptr) ? std::string_view(s1.format) : "";
@@ -90,7 +93,7 @@ namespace sparrow_ipc
     }
 
     template <typename T>
-    void compare_values(sparrow::primitive_array<T>& pa1, sparrow::primitive_array<T>& pa2)
+    void compare_values(sp::primitive_array<T>& pa1, sp::primitive_array<T>& pa2)
     {
         CHECK_EQ(pa1.size(), pa1.size());
         for (size_t i = 0; i < pa1.size(); ++i)
@@ -100,7 +103,7 @@ namespace sparrow_ipc
     }
 
     template <typename T>
-    void compare_bitmap(sparrow::primitive_array<T>& pa1, sparrow::primitive_array<T>& pa2)
+    void compare_bitmap(sp::primitive_array<T>& pa1, sp::primitive_array<T>& pa2)
     {
         const auto pa1_bitmap = pa1.bitmap();
         const auto pa2_bitmap = pa2.bitmap();
@@ -117,7 +120,7 @@ namespace sparrow_ipc
     }
 
     template <typename T>
-    void compare_metadata(sparrow::primitive_array<T>& pa1, sparrow::primitive_array<T>& pa2)
+    void compare_metadata(sp::primitive_array<T>& pa1, sp::primitive_array<T>& pa2)
     {
         if (!pa1.metadata().has_value())
         {
@@ -126,8 +129,8 @@ namespace sparrow_ipc
         }
 
         CHECK(pa2.metadata().has_value());
-        sparrow::key_value_view kvs1_view = *(pa1.metadata());
-        sparrow::key_value_view kvs2_view = *(pa2.metadata());
+        sp::key_value_view kvs1_view = *(pa1.metadata());
+        sp::key_value_view kvs2_view = *(pa2.metadata());
 
         CHECK_EQ(kvs1_view.size(), kvs2_view.size());
         std::vector<std::pair<std::string, std::string>> kvs1, kvs2;
@@ -142,7 +145,7 @@ namespace sparrow_ipc
     }
 
     template <typename T>
-    void compare_primitive_arrays(sparrow::primitive_array<T>& ar, sparrow::primitive_array<T>& deserialized_ar)
+    void compare_primitive_arrays(sp::primitive_array<T>& ar, sp::primitive_array<T>& deserialized_ar)
     {
         auto [arrow_array_ar, arrow_schema_ar] = sp::get_arrow_structures(ar);
         auto [arrow_array_deserialized_ar, arrow_schema_deserialized_ar] = sp::get_arrow_structures(deserialized_ar);
@@ -235,7 +238,7 @@ namespace sparrow_ipc
             std::move(data_buffer),
             std::move(validity),
             "my_named_array", // name
-            std::make_optional(std::vector<sparrow::metadata_pair>{{"key1", "value1"}, {"key2", "value2"}})
+            std::make_optional(std::vector<sp::metadata_pair>{{"key1", "value1"}, {"key2", "value2"}})
         );
 
         std::vector<uint8_t> serialized_data = serialize_primitive_array(ar);
