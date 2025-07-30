@@ -61,6 +61,9 @@ jobs:
         database: 'build'
         style: 'file'  # Use .clang-format config file
         tidy-checks: '' # Use .clang-tidy config file
-        step-summary: true
+        step-summary: false  # Disable summary output for more detailed logs
         ignore: 'build'
         extra-args: '-std=c++20'
+    - name: Fail fast?!
+      if: steps.linter.outputs.checks-failed > 0
+      run: exit 1
