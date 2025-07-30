@@ -214,10 +214,7 @@ namespace sparrow_ipc
 
         sp::primitive_array<int> deserialized_ar = deserialize_primitive_array<int>(serialized_data);
 
-//         CHECK_EQ(ar, deserialized_ar);
-
-        compare_bitmap<int>(ar, deserialized_ar);
-        compare_metadata<int>(ar, deserialized_ar);
+        compare_primitive_arrays<int>(ar, deserialized_ar);
     }
 
     TEST_CASE("Serialize and Deserialize primitive_array - with name and metadata")
@@ -247,9 +244,6 @@ namespace sparrow_ipc
 
         sp::primitive_array<int> deserialized_ar = deserialize_primitive_array<int>(serialized_data);
 
-//         CHECK_EQ(ar, deserialized_ar);
-
-        compare_bitmap<int>(ar, deserialized_ar);
-        compare_metadata<int>(ar, deserialized_ar);
+        compare_primitive_arrays<int>(ar, deserialized_ar);
     }
 }
