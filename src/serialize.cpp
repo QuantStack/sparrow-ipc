@@ -12,10 +12,12 @@
 
 namespace
 {
+    constexpr int64_t arrow_alignment = 8;
+
     // Aligns a value to the next multiple of 8, as required by the Arrow IPC format for message bodies.
     int64_t align_to_8(int64_t n)
     {
-        return (n + 7) & -8;
+        return (n + arrow_alignment - 1) & -arrow_alignment;
     }
 
     // TODO Complete this with all possible formats?
@@ -137,7 +139,7 @@ std::vector<uint8_t> serialize_primitive_array(const sparrow::primitive_array<T>
         // Copy the metadata into the buffer, after the 4-byte length prefix
         memcpy(final_buffer.data() + sizeof(uint32_t), schema_builder.GetBufferPointer(), schema_len);
         // Write the 4-byte metadata length at the beginning of the message
-        *(reinterpret_cast<uint32_t*>(final_buffer.data())) = schema_len;
+        memcpy(final_buffer.data(), &schema_len, sizeof(schema_len));
     }
 
     // II - Serialize the RecordBatch message
@@ -148,11 +150,11 @@ std::vector<uint8_t> serialize_primitive_array(const sparrow::primitive_array<T>
 
         // arrow_arr.buffers[0] is the validity bitmap
         // arrow_arr.buffers[1] is the data buffer
-        const uint8_t* validity_bitmap = reinterpret_cast<const uint8_t*>(arrow_arr.buffers[0]);
-        const uint8_t* data_buffer = reinterpret_cast<const uint8_t*>(arrow_arr.buffers[1]);
+        const auto validity_bitmap = static_cast<const uint8_t*>(arrow_arr.buffers[0]);
+        const auto data_buffer = static_cast<const uint8_t*>(arrow_arr.buffers[1]);
 
         // Calculate the size of the validity and data buffers
-        int64_t validity_size = (arrow_arr.length + 7) / 8;
+        int64_t validity_size = (arrow_arr.length + arrow_alignment - 1) / arrow_alignment;
         int64_t data_size = arrow_arr.length * sizeof(T);
         int64_t body_len = validity_size + data_size; // The total size of the message body
 
@@ -181,21 +183,29 @@ std::vector<uint8_t> serialize_primitive_array(const sparrow::primitive_array<T>
         batch_builder.Finish(batch_message_offset);
 
         // III - Append the RecordBatch message to the final buffer
-        uint32_t batch_meta_len = batch_builder.GetSize(); // Get the size of the batch metadata
-        int64_t aligned_batch_meta_len = align_to_8(batch_meta_len); // Calculate the padded length
+        const uint32_t batch_meta_len = batch_builder.GetSize(); // Get the size of the batch metadata
+        const int64_t aligned_batch_meta_len = align_to_8(batch_meta_len); // Calculate the padded length
 
-        size_t current_size = final_buffer.size(); // Get the current size (which is the end of the Schema message)
+        const size_t current_size = final_buffer.size(); // Get the current size (which is the end of the Schema message)
         // Resize the buffer to append the new message
         final_buffer.resize(current_size + sizeof(uint32_t) + aligned_batch_meta_len + body_len);
         uint8_t* dst = final_buffer.data() + current_size; // Get a pointer to where the new message will start
 
         // Write the 4-byte metadata length for the RecordBatch message
-        *(reinterpret_cast<uint32_t*>(dst)) = batch_meta_len;
+        memcpy(dst, &batch_meta_len, sizeof(batch_meta_len));
         dst += sizeof(uint32_t);
         // Copy the RecordBatch metadata into the buffer
         memcpy(dst, batch_builder.GetBufferPointer(), batch_meta_len);
         // Add padding to align the body to an 8-byte boundary
-        memset(dst + batch_meta_len, 0, aligned_batch_meta_len - batch_meta_len);
+        if (static_cast<size_t>(aligned_batch_meta_len) >= batch_meta_len)
+        {
+            memset(dst + batch_meta_len, 0, aligned_batch_meta_len - batch_meta_len);
+        }
+        else
+        {
+            throw std::runtime_error("aligned_batch_meta_len should be greater than batch_meta_len");
+        }
+
         dst += aligned_batch_meta_len;
         // Copy the actual data buffers (the message body) into the buffer
         if (validity_bitmap)
@@ -205,7 +215,8 @@ std::vector<uint8_t> serialize_primitive_array(const sparrow::primitive_array<T>
         else
         {
             // If validity_bitmap is null, it means there are no nulls
-            memset(dst, 0xFF, validity_size);
+            constexpr uint8_t no_nulls_bitmap = 0xFF;
+            memset(dst, no_nulls_bitmap, validity_size);
         }
         dst += validity_size;
         if (data_buffer)
@@ -228,7 +239,8 @@ sparrow::primitive_array<T> deserialize_primitive_array(const std::vector<uint8_
     size_t current_offset = 0;
 
     // I - Deserialize the Schema message
-    uint32_t schema_meta_len = *(reinterpret_cast<const uint32_t*>(buf_ptr + current_offset));
+    uint32_t schema_meta_len = 0;
+    memcpy(&schema_meta_len, buf_ptr + current_offset, sizeof(schema_meta_len));
     current_offset += sizeof(uint32_t);
     auto schema_message = org::apache::arrow::flatbuf::GetMessage(buf_ptr + current_offset);
     if (schema_message->header_type() != org::apache::arrow::flatbuf::MessageHeader::Schema)
@@ -245,7 +257,8 @@ sparrow::primitive_array<T> deserialize_primitive_array(const std::vector<uint8_
     current_offset += schema_meta_len;
 
     // II - Deserialize the RecordBatch message
-    uint32_t batch_meta_len = *(reinterpret_cast<const uint32_t*>(buf_ptr + current_offset));
+    uint32_t batch_meta_len = 0;
+    memcpy(&batch_meta_len, buf_ptr + current_offset, sizeof(batch_meta_len));
     current_offset += sizeof(uint32_t);
     auto batch_message = org::apache::arrow::flatbuf::GetMessage(buf_ptr + current_offset);
     if (batch_message->header_type() != org::apache::arrow::flatbuf::MessageHeader::RecordBatch)
@@ -266,10 +279,10 @@ sparrow::primitive_array<T> deserialize_primitive_array(const std::vector<uint8_
     int64_t validity_len = buffers_meta->Get(0)->length();
     int64_t data_len = buffers_meta->Get(1)->length();
 
-    uint8_t* validity_buffer_copy = new uint8_t[validity_len];
+    auto validity_buffer_copy = new uint8_t[validity_len];
     memcpy(validity_buffer_copy, body_ptr + buffers_meta->Get(0)->offset(), validity_len);
 
-    uint8_t* data_buffer_copy = new uint8_t[data_len];
+    auto data_buffer_copy = new uint8_t[data_len];
     memcpy(data_buffer_copy, body_ptr + buffers_meta->Get(1)->offset(), data_len);
 
     // Get name
