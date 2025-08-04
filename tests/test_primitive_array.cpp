@@ -133,7 +133,6 @@ namespace sparrow_ipc
         sp::key_value_view kvs2_view = *(pa2.metadata());
 
         CHECK_EQ(kvs1_view.size(), kvs2_view.size());
-        std::vector<std::pair<std::string, std::string>> kvs1, kvs2;
         auto kvs1_it = kvs1_view.cbegin();
         auto kvs2_it = kvs2_view.cbegin();
         for (auto i = 0; i < kvs1_view.size(); ++i)
