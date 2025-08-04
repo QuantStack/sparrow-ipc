@@ -21,13 +21,13 @@ namespace sparrow_ipc
 {
     //TODO split serialize/deserialize fcts in two different files or just rename the current one?
     template <typename T>
-    std::vector<uint8_t> serialize_primitive_array(const sparrow::primitive_array<T>& arr);
+    std::vector<uint8_t> serialize_primitive_array(sparrow::primitive_array<T>& arr);
 
     template <typename T>
     sparrow::primitive_array<T> deserialize_primitive_array(const std::vector<uint8_t>& buffer);
 
     template <typename T>
-    std::vector<uint8_t> serialize_primitive_array(const sparrow::primitive_array<T>& arr)
+    std::vector<uint8_t> serialize_primitive_array(sparrow::primitive_array<T>& arr)
     {
         // This function serializes a sparrow::primitive_array into a byte vector that is compliant
         // with the Apache Arrow IPC Streaming Format. It constructs a stream containing two messages:
@@ -40,9 +40,10 @@ namespace sparrow_ipc
         // - 8-byte padding and alignment for the message body.
         // - Correctly populating the Flatbuffer-defined metadata for both messages.
 
-        // Create a mutable copy of the input array to allow moving its internal structures
-        sparrow::primitive_array<T> mutable_arr = arr;
-        auto [arrow_arr, arrow_schema] = sparrow::extract_arrow_structures(std::move(mutable_arr));
+        // Get arrow structures
+        auto [arrow_arr_ptr, arrow_schema_ptr] = sparrow::get_arrow_structures(arr);
+        auto& arrow_arr = *arrow_arr_ptr;
+        auto& arrow_schema = *arrow_schema_ptr;
 
         // This will be the final buffer holding the complete IPC stream.
         std::vector<uint8_t> final_buffer;
@@ -193,10 +194,6 @@ namespace sparrow_ipc
                 memcpy(dst, data_buffer, data_size);
             }
         }
-
-        // Release the memory managed by the C structures
-        arrow_arr.release(&arrow_arr);
-        arrow_schema.release(&arrow_schema);
 
         // Return the final buffer containing the complete IPC stream
         return final_buffer;
