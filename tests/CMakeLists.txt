@@ -2,8 +2,7 @@ cmake_minimum_required(VERSION 3.28)
 
 set(test_target "test_sparrow_ipc_lib")
 
-add_executable(${test_target} main.cpp test_primitive_array.cpp test_utils.cpp)
-
+add_executable(${test_target} main.cpp test_utils.cpp test_primitive_array.cpp test_serialize_null_array.cpp)
 target_link_libraries(${test_target}
     PRIVATE
         sparrow-ipc
