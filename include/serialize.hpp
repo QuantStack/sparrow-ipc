@@ -13,8 +13,6 @@
 #include "Message_generated.h"
 #include "Schema_generated.h"
 
-#include "config/config.hpp"
-#include "serialize.hpp"
 #include "utils.hpp"
 
 namespace sparrow_ipc
@@ -218,7 +216,6 @@ namespace sparrow_ipc
         {
             throw std::runtime_error("Expected schema with exactly one field for primitive_array.");
         }
-        bool is_nullable = fields->Get(0)->nullable();
         current_offset += schema_meta_len;
 
         // II - Deserialize the RecordBatch message
