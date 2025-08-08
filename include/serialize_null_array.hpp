@@ -57,14 +57,7 @@ namespace sparrow_ipc
             {
                 sparrow::key_value_view metadata_view = *(arr.metadata());
                 std::vector<flatbuffers::Offset<org::apache::arrow::flatbuf::KeyValue>> kv_offsets;
-//                 kv_offsets.reserve(metadata_view.size());
-//                 for (const auto& pair : metadata_view)
-//                 {
-//                     auto key_offset = schema_builder.CreateString(std::string(pair.first));
-//                     auto value_offset = schema_builder.CreateString(std::string(pair.second));
-//                     kv_offsets.push_back(
-//                         org::apache::arrow::flatbuf::CreateKeyValue(schema_builder, key_offset, value_offset));
-//                 }
+                kv_offsets.reserve(metadata_view.size());
                 auto mv_it = metadata_view.cbegin();
                 for (auto i = 0; i < metadata_view.size(); ++i, ++mv_it)
                 {

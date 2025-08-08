@@ -68,7 +68,7 @@ namespace sparrow_ipc
             {
                 sparrow::key_value_view metadata_view = *(arr.metadata());
                 std::vector<flatbuffers::Offset<org::apache::arrow::flatbuf::KeyValue>> kv_offsets;
-
+                kv_offsets.reserve(metadata_view.size());
                 auto mv_it = metadata_view.cbegin();
                 for (auto i = 0; i < metadata_view.size(); ++i, ++mv_it)
                 {
