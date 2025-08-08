@@ -1,7 +1,7 @@
 #pragma once
 
-#include "sparrow.hpp"
 #include "doctest/doctest.h"
+#include "sparrow.hpp"
 
 namespace sparrow_ipc
 {

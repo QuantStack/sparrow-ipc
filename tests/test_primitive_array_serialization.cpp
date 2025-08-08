@@ -6,7 +6,7 @@
 #include "doctest/doctest.h"
 #include "sparrow.hpp"
 
-#include "serialize.hpp"
+#include "serialize_primitive_array.hpp"
 #include "sparrow_ipc_tests_helpers.hpp"
 
 namespace sparrow_ipc

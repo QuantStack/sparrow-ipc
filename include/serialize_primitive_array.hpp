@@ -16,7 +16,6 @@
 
 namespace sparrow_ipc
 {
-    //TODO split serialize/deserialize fcts in two different files or just rename the current one?
     template <typename T>
     std::vector<uint8_t> serialize_primitive_array(sparrow::primitive_array<T>& arr);
 
