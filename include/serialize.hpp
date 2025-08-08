@@ -5,7 +5,6 @@
 #include <optional>
 #include <stdexcept>
 #include <string>
-#include <string_view>
 #include <vector>
 
 #include "sparrow.hpp"
@@ -247,11 +246,11 @@ namespace sparrow_ipc
         memcpy(data_buffer_copy, body_ptr + buffers_meta->Get(1)->offset(), data_len);
 
         // Get name
-        std::optional<std::string_view> name;
+        std::optional<std::string> name;
         const flatbuffers::String* fb_name_flatbuffer = fields->Get(0)->name();
         if (fb_name_flatbuffer)
         {
-            name = std::string_view(fb_name_flatbuffer->c_str(), fb_name_flatbuffer->size());
+            name = std::string(fb_name_flatbuffer->c_str(), fb_name_flatbuffer->size());
         }
 
         // Handle metadata
