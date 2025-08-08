@@ -2,7 +2,17 @@ cmake_minimum_required(VERSION 3.28)
 
 set(test_target "test_sparrow_ipc_lib")
 
-add_executable(${test_target} main.cpp test_utils.cpp test_primitive_array.cpp test_serialize_null_array.cpp)
+set(
+    SPARROW_IPC_TESTS_SRC
+    include/sparrow_ipc_tests_helpers.hpp
+    # TODO move all the files below under src?
+    main.cpp
+    test_utils.cpp
+    test_primitive_array_serialization.cpp
+    test_null_array_serialization.cpp
+)
+
+add_executable(${test_target} ${SPARROW_IPC_TESTS_SRC})
 target_link_libraries(${test_target}
     PRIVATE
         sparrow-ipc
@@ -24,6 +34,7 @@ endif()
 
 target_include_directories(${test_target}
     PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
         ${CMAKE_BINARY_DIR}/generated
         ${CMAKE_SOURCE_DIR}/include
 )

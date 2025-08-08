@@ -7,6 +7,7 @@
 #include "sparrow.hpp"
 
 #include "serialize.hpp"
+#include "sparrow_ipc_tests_helpers.hpp"
 
 namespace sparrow_ipc
 {
@@ -120,30 +121,6 @@ namespace sparrow_ipc
     }
 
     template <typename T>
-    void compare_metadata(sp::primitive_array<T>& pa1, sp::primitive_array<T>& pa2)
-    {
-        if (!pa1.metadata().has_value())
-        {
-            CHECK(!pa2.metadata().has_value());
-            return;
-        }
-
-        CHECK(pa2.metadata().has_value());
-        sp::key_value_view kvs1_view = *(pa1.metadata());
-        sp::key_value_view kvs2_view = *(pa2.metadata());
-
-        CHECK_EQ(kvs1_view.size(), kvs2_view.size());
-        auto kvs1_it = kvs1_view.cbegin();
-        auto kvs2_it = kvs2_view.cbegin();
-        for (auto i = 0; i < kvs1_view.size(); ++i)
-        {
-            CHECK_EQ(*kvs1_it, *kvs2_it);
-            ++kvs1_it;
-            ++kvs2_it;
-        }
-    }
-
-    template <typename T>
     void compare_primitive_arrays(sp::primitive_array<T>& ar, sp::primitive_array<T>& deserialized_ar)
     {
         auto [arrow_array_ar, arrow_schema_ar] = sp::get_arrow_structures(ar);
@@ -161,7 +138,7 @@ namespace sparrow_ipc
 
 //         compare_values<T>(ar, deserialized_ar);
         compare_bitmap<T>(ar, deserialized_ar);
-        compare_metadata<T>(ar, deserialized_ar);
+        compare_metadata(ar, deserialized_ar);
     }
 
     TEST_CASE_TEMPLATE_DEFINE("Serialize and Deserialize primitive_array", T, primitive_array_types)
