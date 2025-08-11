@@ -1,0 +1,160 @@
+// TODO check need of all these includes
+#include <cstdint>
+#include <cstring>
+#include <stdexcept>
+#include <string>
+
+#include "Message_generated.h"
+#include "Schema_generated.h"
+
+#include "serialize.hpp"
+#include "utils.hpp"
+
+namespace sparrow_ipc
+{
+    namespace details
+    {
+        void serialize_schema_message(const ArrowSchema& arrow_schema, const std::optional<sparrow::key_value_view>& metadata, std::vector<uint8_t>& final_buffer)
+        {
+            // Create a new builder for the Schema message's metadata
+            flatbuffers::FlatBufferBuilder schema_builder;
+
+            flatbuffers::Offset<flatbuffers::String> fb_name_offset = 0;
+            if (arrow_schema.name)
+            {
+                fb_name_offset = schema_builder.CreateString(arrow_schema.name);
+            }
+
+            // Determine the Flatbuffer type information from the C schema's format string
+            auto [type_enum, type_offset] = utils::get_flatbuffer_type(schema_builder, arrow_schema.format);
+
+            // Handle metadata
+            flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<org::apache::arrow::flatbuf::KeyValue>>>
+                fb_metadata_offset = 0;
+
+            if (metadata)
+            {
+                sparrow::key_value_view metadata_view = metadata.value();
+                std::vector<flatbuffers::Offset<org::apache::arrow::flatbuf::KeyValue>> kv_offsets;
+                kv_offsets.reserve(metadata_view.size());
+                auto mv_it = metadata_view.cbegin();
+                for (auto i = 0; i < metadata_view.size(); ++i, ++mv_it)
+                {
+                    auto key_offset = schema_builder.CreateString(std::string((*mv_it).first));
+                    auto value_offset = schema_builder.CreateString(std::string((*mv_it).second));
+                    kv_offsets.push_back(
+                        org::apache::arrow::flatbuf::CreateKeyValue(schema_builder, key_offset, value_offset));
+                }
+                fb_metadata_offset = schema_builder.CreateVector(kv_offsets);
+            }
+
+            // Build the Field object
+            auto fb_field = org::apache::arrow::flatbuf::CreateField(
+                schema_builder,
+                fb_name_offset,
+                (arrow_schema.flags & static_cast<int64_t>(sparrow::ArrowFlag::NULLABLE)) != 0,
+                type_enum,
+                type_offset,
+                0,  // dictionary
+                0,  // children
+                fb_metadata_offset);
+
+            // A Schema contains a vector of fields
+            std::vector<flatbuffers::Offset<org::apache::arrow::flatbuf::Field>> fields_vec = {fb_field};
+            auto fb_fields = schema_builder.CreateVector(fields_vec);
+
+            // Build the Schema object from the vector of fields
+            auto schema_offset = org::apache::arrow::flatbuf::CreateSchema(schema_builder, org::apache::arrow::flatbuf::Endianness::Little, fb_fields);
+
+            // Wrap the Schema in a top-level Message, which is the standard IPC envelope
+            auto schema_message_offset = org::apache::arrow::flatbuf::CreateMessage(
+                schema_builder,
+                org::apache::arrow::flatbuf::MetadataVersion::V5,
+                org::apache::arrow::flatbuf::MessageHeader::Schema,
+                schema_offset.Union(),
+                0
+            );
+            schema_builder.Finish(schema_message_offset);
+
+            // Assemble the Schema message bytes
+            uint32_t schema_len = schema_builder.GetSize(); // Get the size of the serialized metadata
+            final_buffer.resize(sizeof(uint32_t) + schema_len); // Resize the buffer to hold the message
+            // Copy the metadata into the buffer, after the 4-byte length prefix
+            memcpy(final_buffer.data() + sizeof(uint32_t), schema_builder.GetBufferPointer(), schema_len);
+            // Write the 4-byte metadata length at the beginning of the message
+            *(reinterpret_cast<uint32_t*>(final_buffer.data())) = schema_len;
+        }
+
+        void serialize_record_batch_message(const ArrowArray& arrow_arr, std::vector<uint8_t>& final_buffer)
+        {
+            // Create a new builder for the RecordBatch message's metadata
+            flatbuffers::FlatBufferBuilder batch_builder;
+
+            // arrow_arr.buffers[0] is the validity bitmap
+            // arrow_arr.buffers[1] is the data buffer
+//            const uint8_t* validity_bitmap = reinterpret_cast<const uint8_t*>(arrow_arr.buffers[0]);
+//            const uint8_t* data_buffer = reinterpret_cast<const uint8_t*>(arrow_arr.buffers[1]);
+
+            // Calculate the size of the validity and data buffers
+//            int64_t validity_size = (arrow_arr.length + 7) / 8;
+//            int64_t data_size = arrow_arr.length * sizeof(T);
+//            int64_t body_len = validity_size + data_size; // The total size of the message body
+            int64_t body_len = 0; // NULL ARRAY
+
+            // Create the FieldNode, which describes the layout of the array data
+            org::apache::arrow::flatbuf::FieldNode field_node_struct(arrow_arr.length, arrow_arr.null_count);
+            // A RecordBatch contains a vector of nodes and a vector of buffers
+            auto fb_nodes_vector = batch_builder.CreateVectorOfStructs(&field_node_struct, 1);
+//            std::vector<org::apache::arrow::flatbuf::Buffer> buffers_vec = {validity_buffer_struct, data_buffer_struct};
+            std::vector<org::apache::arrow::flatbuf::Buffer> buffers_vec = {}; // NULL ARRAY
+            auto fb_buffers_vector = batch_builder.CreateVectorOfStructs(buffers_vec);
+
+            // Build the RecordBatch metadata object
+            auto record_batch_offset = org::apache::arrow::flatbuf::CreateRecordBatch(batch_builder, arrow_arr.length, fb_nodes_vector, fb_buffers_vector);
+
+            // Wrap the RecordBatch in a top-level Message
+            auto batch_message_offset = org::apache::arrow::flatbuf::CreateMessage(
+                batch_builder,
+                org::apache::arrow::flatbuf::MetadataVersion::V5,
+                org::apache::arrow::flatbuf::MessageHeader::RecordBatch,
+                record_batch_offset.Union(),
+                body_len
+            );
+            batch_builder.Finish(batch_message_offset);
+
+            // III - Append the RecordBatch message to the final buffer
+            uint32_t batch_meta_len = batch_builder.GetSize(); // Get the size of the batch metadata
+            int64_t aligned_batch_meta_len = utils::align_to_8(batch_meta_len); // Calculate the padded length
+
+            size_t current_size = final_buffer.size(); // Get the current size (which is the end of the Schema message)
+            // Resize the buffer to append the new message
+            final_buffer.resize(current_size + sizeof(uint32_t) + aligned_batch_meta_len + body_len);
+            uint8_t* dst = final_buffer.data() + current_size; // Get a pointer to where the new message will start
+
+            // Write the 4-byte metadata length for the RecordBatch message
+            *(reinterpret_cast<uint32_t*>(dst)) = batch_meta_len;
+            dst += sizeof(uint32_t);
+            // Copy the RecordBatch metadata into the buffer
+            memcpy(dst, batch_builder.GetBufferPointer(), batch_meta_len);
+            // Add padding to align the body to an 8-byte boundary
+            memset(dst + batch_meta_len, 0, aligned_batch_meta_len - batch_meta_len);
+
+//            dst += aligned_batch_meta_len;
+//            // Copy the actual data buffers (the message body) into the buffer
+//            if (validity_bitmap)
+//            {
+//                memcpy(dst, validity_bitmap, validity_size);
+//            }
+//            else
+//            {
+//                // If validity_bitmap is null, it means there are no nulls
+//                memset(dst, 0xFF, validity_size);
+//            }
+//            dst += validity_size;
+//            if (data_buffer)
+//            {
+//                memcpy(dst, data_buffer, data_size);
+//            }
+        }
+    } // namespace details
+} // namespace sparrow-ipc

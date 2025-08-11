@@ -12,6 +12,7 @@
 #include "Message_generated.h"
 #include "Schema_generated.h"
 
+#include "serialize.hpp"
 #include "utils.hpp"
 
 namespace sparrow_ipc
@@ -45,77 +46,7 @@ namespace sparrow_ipc
         std::vector<uint8_t> final_buffer;
 
         // I - Serialize the Schema message
-        // An Arrow IPC stream must start with a Schema message
-        {
-            // Create a new builder for the Schema message's metadata
-            flatbuffers::FlatBufferBuilder schema_builder;
-
-            // Create the Field metadata, which describes a single column (or array)
-            flatbuffers::Offset<flatbuffers::String> fb_name_offset = 0;
-            if (arrow_schema.name)
-            {
-                fb_name_offset = schema_builder.CreateString(arrow_schema.name);
-            }
-
-            // Determine the Flatbuffer type information from the C schema's format string
-            auto [type_enum, type_offset] = utils::get_flatbuffer_type(schema_builder, arrow_schema.format);
-
-            // Handle metadata
-            flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<org::apache::arrow::flatbuf::KeyValue>>>
-                fb_metadata_offset = 0;
-
-            if (arr.metadata())
-            {
-                sparrow::key_value_view metadata_view = *(arr.metadata());
-                std::vector<flatbuffers::Offset<org::apache::arrow::flatbuf::KeyValue>> kv_offsets;
-                kv_offsets.reserve(metadata_view.size());
-                auto mv_it = metadata_view.cbegin();
-                for (auto i = 0; i < metadata_view.size(); ++i, ++mv_it)
-                {
-                    auto key_offset = schema_builder.CreateString(std::string((*mv_it).first));
-                    auto value_offset = schema_builder.CreateString(std::string((*mv_it).second));
-                    kv_offsets.push_back(
-                        org::apache::arrow::flatbuf::CreateKeyValue(schema_builder, key_offset, value_offset));
-                }
-                fb_metadata_offset = schema_builder.CreateVector(kv_offsets);
-            }
-
-            // Build the Field object
-            auto fb_field = org::apache::arrow::flatbuf::CreateField(
-                schema_builder,
-                fb_name_offset,
-                (arrow_schema.flags & static_cast<int64_t>(sparrow::ArrowFlag::NULLABLE)) != 0,
-                type_enum,
-                type_offset,
-                0,  // dictionary
-                0,  // children
-                fb_metadata_offset);
-
-            // A Schema contains a vector of fields. For this primitive array, there is only one
-            std::vector<flatbuffers::Offset<org::apache::arrow::flatbuf::Field>> fields_vec = {fb_field};
-            auto fb_fields = schema_builder.CreateVector(fields_vec);
-
-            // Build the Schema object from the vector of fields
-            auto schema_offset = org::apache::arrow::flatbuf::CreateSchema(schema_builder, org::apache::arrow::flatbuf::Endianness::Little, fb_fields);
-
-            // Wrap the Schema in a top-level Message, which is the standard IPC envelope
-            auto schema_message_offset = org::apache::arrow::flatbuf::CreateMessage(
-                schema_builder,
-                org::apache::arrow::flatbuf::MetadataVersion::V5,
-                org::apache::arrow::flatbuf::MessageHeader::Schema,
-                schema_offset.Union(),
-                0
-            );
-            schema_builder.Finish(schema_message_offset);
-
-            // Assemble the Schema message bytes
-            uint32_t schema_len = schema_builder.GetSize(); // Get the size of the serialized metadata
-            final_buffer.resize(sizeof(uint32_t) + schema_len); // Resize the buffer to hold the message
-            // Copy the metadata into the buffer, after the 4-byte length prefix
-            memcpy(final_buffer.data() + sizeof(uint32_t), schema_builder.GetBufferPointer(), schema_len);
-            // Write the 4-byte metadata length at the beginning of the message
-            *(reinterpret_cast<uint32_t*>(final_buffer.data())) = schema_len;
-        }
+        details::serialize_schema_message(arrow_schema, arr.metadata(), final_buffer);
 
         // II - Serialize the RecordBatch message
         // After the Schema, we send the RecordBatch containing the actual data
@@ -261,6 +192,7 @@ namespace sparrow_ipc
             metadata->reserve(fb_metadata->size());
             for (const auto& kv : *fb_metadata)
             {
+                // TODO use str() instead of c_str()
                 metadata->emplace_back(kv->key()->c_str(), kv->value()->c_str());
             }
         }
