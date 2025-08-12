@@ -73,13 +73,8 @@ namespace sparrow_ipc
 
         // II - Deserialize the RecordBatch message
         uint32_t batch_meta_len = *(reinterpret_cast<const uint32_t*>(buf_ptr + current_offset));
-        current_offset += sizeof(uint32_t);
-        auto batch_message = org::apache::arrow::flatbuf::GetMessage(buf_ptr + current_offset);
-        if (batch_message->header_type() != org::apache::arrow::flatbuf::MessageHeader::RecordBatch)
-        {
-            throw std::runtime_error("Expected RecordBatch message, but got a different type.");
-        }
-        auto record_batch = static_cast<const org::apache::arrow::flatbuf::RecordBatch*>(batch_message->header());
+        const auto* record_batch = details::deserialize_record_batch_message(buf_ptr, current_offset);
+
         current_offset += utils::align_to_8(batch_meta_len);
         const uint8_t* body_ptr = buf_ptr + current_offset;
 

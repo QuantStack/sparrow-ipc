@@ -196,5 +196,17 @@ namespace sparrow_ipc
             }
             current_offset += schema_meta_len;
         }
+
+        const org::apache::arrow::flatbuf::RecordBatch* deserialize_record_batch_message(const uint8_t* buf_ptr, size_t& current_offset)
+        {
+            current_offset += sizeof(uint32_t);
+            auto batch_message = org::apache::arrow::flatbuf::GetMessage(buf_ptr + current_offset);
+            if (batch_message->header_type() != org::apache::arrow::flatbuf::MessageHeader::RecordBatch)
+            {
+                throw std::runtime_error("Expected RecordBatch message, but got a different type.");
+            }
+            return static_cast<const org::apache::arrow::flatbuf::RecordBatch*>(batch_message->header());
+        }
+
     } // namespace details
 } // namespace sparrow-ipc
