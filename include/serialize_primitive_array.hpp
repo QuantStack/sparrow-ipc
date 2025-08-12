@@ -1,16 +1,6 @@
 #pragma once
 
-#include <cstdint>
 #include <cstring>
-#include <optional>
-#include <stdexcept>
-#include <string>
-#include <vector>
-
-#include "sparrow.hpp"
-
-#include "Message_generated.h"
-#include "Schema_generated.h"
 
 #include "serialize.hpp"
 #include "utils.hpp"

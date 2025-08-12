@@ -1,9 +1,14 @@
 #pragma once
 
+#include <cstdint>
 #include <optional>
+#include <string>
 #include <vector>
 
 #include "sparrow.hpp"
+
+#include "Message_generated.h"
+#include "Schema_generated.h"
 
 #include "config/config.hpp"
 

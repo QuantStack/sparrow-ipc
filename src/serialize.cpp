@@ -1,11 +1,5 @@
-// TODO check need of all these includes
-#include <cstdint>
 #include <cstring>
 #include <stdexcept>
-#include <string>
-
-#include "Message_generated.h"
-#include "Schema_generated.h"
 
 #include "serialize.hpp"
 #include "utils.hpp"

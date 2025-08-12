@@ -1,26 +1,10 @@
 #pragma once
 
-// TODO check needs of all these below
-#include <cstdint>
-#include <cstring>
-#include <optional>
-#include <stdexcept>
-#include <string>
-#include <vector>
-
-#include "sparrow.hpp"
-
-// TODO check needs of these two
-#include "Message_generated.h"
-#include "Schema_generated.h"
-
 #include "serialize.hpp"
-#include "utils.hpp"
 
 namespace sparrow_ipc
 {
     // TODO move to cpp if not templated
-    // TODO add comments and review
 
     // This function serializes a sparrow::null_array into a byte vector compliant
     // with the Apache Arrow IPC Streaming Format. It mirrors the structure of
