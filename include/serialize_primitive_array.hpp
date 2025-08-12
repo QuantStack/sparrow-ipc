@@ -67,20 +67,9 @@ namespace sparrow_ipc
         size_t current_offset = 0;
 
         // I - Deserialize the Schema message
-        uint32_t schema_meta_len = *(reinterpret_cast<const uint32_t*>(buf_ptr + current_offset));
-        current_offset += sizeof(uint32_t);
-        auto schema_message = org::apache::arrow::flatbuf::GetMessage(buf_ptr + current_offset);
-        if (schema_message->header_type() != org::apache::arrow::flatbuf::MessageHeader::Schema)
-        {
-            throw std::runtime_error("Expected Schema message at the start of the buffer.");
-        }
-        auto flatbuffer_schema = static_cast<const org::apache::arrow::flatbuf::Schema*>(schema_message->header());
-        auto fields = flatbuffer_schema->fields();
-        if (fields->size() != 1)
-        {
-            throw std::runtime_error("Expected schema with exactly one field for primitive_array.");
-        }
-        current_offset += schema_meta_len;
+        std::optional<std::string> name;
+        std::optional<std::vector<sparrow::metadata_pair>> metadata;
+        details::deserialize_schema_message(buf_ptr, current_offset, name, metadata);
 
         // II - Deserialize the RecordBatch message
         uint32_t batch_meta_len = *(reinterpret_cast<const uint32_t*>(buf_ptr + current_offset));
@@ -110,27 +99,6 @@ namespace sparrow_ipc
         uint8_t* data_buffer_copy = new uint8_t[data_len];
         memcpy(data_buffer_copy, body_ptr + buffers_meta->Get(1)->offset(), data_len);
 
-        // Get name
-        std::optional<std::string> name;
-        const flatbuffers::String* fb_name_flatbuffer = fields->Get(0)->name();
-        if (fb_name_flatbuffer)
-        {
-            name = std::string(fb_name_flatbuffer->c_str(), fb_name_flatbuffer->size());
-        }
-
-        // Handle metadata
-        std::optional<std::vector<sparrow::metadata_pair>> metadata;
-        auto fb_metadata = fields->Get(0)->custom_metadata();
-        if (fb_metadata && !fb_metadata->empty())
-        {
-            metadata = std::vector<sparrow::metadata_pair>();
-            metadata->reserve(fb_metadata->size());
-            for (const auto& kv : *fb_metadata)
-            {
-                // TODO use str() instead of c_str()
-                metadata->emplace_back(kv->key()->c_str(), kv->value()->c_str());
-            }
-        }
 
         auto data = sparrow::u8_buffer<T>(reinterpret_cast<T*>(data_buffer_copy), node_meta->length());
         auto bitmap = sparrow::validity_bitmap(validity_buffer_copy, node_meta->length());

@@ -158,5 +158,43 @@ namespace sparrow_ipc
                 dst += buffers_sizes[i];
             }
         }
+
+        void deserialize_schema_message(const uint8_t* buf_ptr, size_t& current_offset, std::optional<std::string>& name, std::optional<std::vector<sparrow::metadata_pair>>& metadata)
+        {
+            uint32_t schema_meta_len = *(reinterpret_cast<const uint32_t*>(buf_ptr + current_offset));
+            current_offset += sizeof(uint32_t);
+            auto schema_message = org::apache::arrow::flatbuf::GetMessage(buf_ptr + current_offset);
+            if (schema_message->header_type() != org::apache::arrow::flatbuf::MessageHeader::Schema)
+            {
+                throw std::runtime_error("Expected Schema message at the start of the buffer.");
+            }
+            auto flatbuffer_schema = static_cast<const org::apache::arrow::flatbuf::Schema*>(schema_message->header());
+            auto fields = flatbuffer_schema->fields();
+            if (fields->size() != 1)
+            {
+                throw std::runtime_error("Expected schema with exactly one field.");
+            }
+
+            auto field = fields->Get(0);
+
+            // Get name
+            if (const auto fb_name = field->name())
+            {
+                name = fb_name->str();
+            }
+
+            // Handle metadata
+            auto fb_metadata = field->custom_metadata();
+            if (fb_metadata && !fb_metadata->empty())
+            {
+                metadata = std::vector<sparrow::metadata_pair>();
+                metadata->reserve(fb_metadata->size());
+                for (const auto& kv : *fb_metadata)
+                {
+                    metadata->emplace_back(kv->key()->str(), kv->value()->str());
+                }
+            }
+            current_offset += schema_meta_len;
+        }
     } // namespace details
 } // namespace sparrow-ipc
