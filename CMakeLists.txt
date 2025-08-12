@@ -57,6 +57,7 @@ set(SPARROW_IPC_HEADERS
 
 set(SPARROW_IPC_SRC
     ${SPARROW_IPC_SOURCE_DIR}/serialize.cpp
+    ${SPARROW_IPC_SOURCE_DIR}/serialize_null_array.cpp
     ${SPARROW_IPC_SOURCE_DIR}/utils.cpp
 )
 
