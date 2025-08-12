@@ -85,28 +85,25 @@ namespace sparrow_ipc
             *(reinterpret_cast<uint32_t*>(final_buffer.data())) = schema_len;
         }
 
-        void serialize_record_batch_message(const ArrowArray& arrow_arr, std::vector<uint8_t>& final_buffer)
+        void serialize_record_batch_message(const ArrowArray& arrow_arr, const std::vector<int64_t>& buffers_sizes, std::vector<uint8_t>& final_buffer)
         {
             // Create a new builder for the RecordBatch message's metadata
             flatbuffers::FlatBufferBuilder batch_builder;
 
-            // arrow_arr.buffers[0] is the validity bitmap
-            // arrow_arr.buffers[1] is the data buffer
-//            const uint8_t* validity_bitmap = reinterpret_cast<const uint8_t*>(arrow_arr.buffers[0]);
-//            const uint8_t* data_buffer = reinterpret_cast<const uint8_t*>(arrow_arr.buffers[1]);
-
-            // Calculate the size of the validity and data buffers
-//            int64_t validity_size = (arrow_arr.length + 7) / 8;
-//            int64_t data_size = arrow_arr.length * sizeof(T);
-//            int64_t body_len = validity_size + data_size; // The total size of the message body
-            int64_t body_len = 0; // NULL ARRAY
+            std::vector<org::apache::arrow::flatbuf::Buffer> buffers_vec;
+            int64_t current_offset = 0;
+            int64_t body_len = 0; // The total size of the message body
+            for (const auto& size : buffers_sizes)
+            {
+                buffers_vec.emplace_back(current_offset, size);
+                current_offset += size;
+            }
+            body_len = current_offset;
 
             // Create the FieldNode, which describes the layout of the array data
             org::apache::arrow::flatbuf::FieldNode field_node_struct(arrow_arr.length, arrow_arr.null_count);
             // A RecordBatch contains a vector of nodes and a vector of buffers
             auto fb_nodes_vector = batch_builder.CreateVectorOfStructs(&field_node_struct, 1);
-//            std::vector<org::apache::arrow::flatbuf::Buffer> buffers_vec = {validity_buffer_struct, data_buffer_struct};
-            std::vector<org::apache::arrow::flatbuf::Buffer> buffers_vec = {}; // NULL ARRAY
             auto fb_buffers_vector = batch_builder.CreateVectorOfStructs(buffers_vec);
 
             // Build the RecordBatch metadata object
@@ -122,7 +119,7 @@ namespace sparrow_ipc
             );
             batch_builder.Finish(batch_message_offset);
 
-            // III - Append the RecordBatch message to the final buffer
+            // Append the RecordBatch message to the final buffer
             uint32_t batch_meta_len = batch_builder.GetSize(); // Get the size of the batch metadata
             int64_t aligned_batch_meta_len = utils::align_to_8(batch_meta_len); // Calculate the padded length
 
@@ -139,22 +136,27 @@ namespace sparrow_ipc
             // Add padding to align the body to an 8-byte boundary
             memset(dst + batch_meta_len, 0, aligned_batch_meta_len - batch_meta_len);
 
-//            dst += aligned_batch_meta_len;
-//            // Copy the actual data buffers (the message body) into the buffer
-//            if (validity_bitmap)
-//            {
-//                memcpy(dst, validity_bitmap, validity_size);
-//            }
-//            else
-//            {
-//                // If validity_bitmap is null, it means there are no nulls
-//                memset(dst, 0xFF, validity_size);
-//            }
-//            dst += validity_size;
-//            if (data_buffer)
-//            {
-//                memcpy(dst, data_buffer, data_size);
-//            }
+            dst += aligned_batch_meta_len;
+            // Copy the actual data buffers (the message body) into the buffer
+            for (size_t i = 0; i < buffers_sizes.size(); ++i)
+            {
+                // arrow_arr.buffers[0] is the validity bitmap
+                // arrow_arr.buffers[1] is the actual data buffer
+                const uint8_t* data_buffer = reinterpret_cast<const uint8_t*>(arrow_arr.buffers[i]);
+                if (data_buffer)
+                {
+                    memcpy(dst, data_buffer, buffers_sizes[i]);
+                }
+                else
+                {
+                    // If validity_bitmap is null, it means there are no nulls
+                    if (i == 0)
+                    {
+                        memset(dst, 0xFF, buffers_sizes[i]);
+                    }
+                }
+                dst += buffers_sizes[i];
+            }
         }
     } // namespace details
 } // namespace sparrow-ipc

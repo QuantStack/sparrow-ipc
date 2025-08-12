@@ -38,7 +38,7 @@ namespace sparrow_ipc
         details::serialize_schema_message(arrow_schema, arr.metadata(), final_buffer);
 
         // II - Serialize the RecordBatch message
-        details::serialize_record_batch_message(arrow_arr, final_buffer);
+        details::serialize_record_batch_message(arrow_arr, {}, final_buffer);
 
         // Return the final buffer containing the complete IPC stream
         return final_buffer;
