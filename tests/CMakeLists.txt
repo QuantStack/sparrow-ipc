@@ -1,15 +1,28 @@
 cmake_minimum_required(VERSION 3.28)
 
-find_package(doctest CONFIG REQUIRED)
-
 set(test_target "test_sparrow_ipc_lib")
 
 add_executable(${test_target} main.cpp test_primitive_array.cpp test_utils.cpp)
+
 target_link_libraries(${test_target}
     PRIVATE
         sparrow-ipc
         doctest::doctest
 )
+
+if(WIN32)
+    add_custom_command(
+        TARGET ${test_target} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy
+            "$<TARGET_FILE:sparrow::sparrow>"
+            "$<TARGET_FILE_DIR:${test_target}>"
+        COMMAND ${CMAKE_COMMAND} -E copy
+            "$<TARGET_FILE:sparrow-ipc>"
+            "$<TARGET_FILE_DIR:${test_target}>"
+        COMMENT "Copying sparrow and sparrow-ipc DLLs to executable directory"
+    )
+endif()
+
 target_include_directories(${test_target}
     PRIVATE
         ${CMAKE_BINARY_DIR}/generated
@@ -17,3 +30,25 @@ target_include_directories(${test_target}
 )
 add_dependencies(${test_target} generate_flatbuffers_headers)
 add_test(NAME sparrow-ipc-tests COMMAND ${test_target})
+
+add_custom_target(run_tests
+    COMMAND ${test_target}
+    DEPENDS 
+        ${test_target}
+    COMMENT "Running tests"
+    USES_TERMINAL
+)
+
+set_target_properties(run_tests PROPERTIES FOLDER "Tests utilities")
+
+set(JUNIT_REPORT_FILE_DOCTEST ${CMAKE_CURRENT_BINARY_DIR}/test_sparrow-ipc_lib_report_doctest.xml)
+
+add_custom_target(run_tests_with_junit_report
+    COMMAND ${test_target} --reporters=junit --out=${JUNIT_REPORT_FILE_DOCTEST} --no-path-filenames=true # TODO: use better junit as in sparrow
+    DEPENDS
+        ${test_target} 
+    COMMENT "Running tests with JUnit reports saved to: ${JUNIT_REPORT_FILE_DOCTEST}"
+    USES_TERMINAL
+)
+
+set_target_properties(run_tests_with_junit_report PROPERTIES FOLDER "Tests utilities")
