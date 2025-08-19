@@ -3,11 +3,26 @@ cmake_minimum_required(VERSION 3.28)
 set(test_target "test_sparrow_ipc_lib")
 
 add_executable(${test_target} main.cpp test_primitive_array.cpp test_utils.cpp)
+
 target_link_libraries(${test_target}
     PRIVATE
         sparrow-ipc
         doctest::doctest
 )
+
+if(WIN32)
+    add_custom_command(
+        TARGET ${test_target} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy
+            "$<TARGET_FILE:sparrow>"
+            "$<TARGET_FILE_DIR:${test_target}>"
+        COMMAND ${CMAKE_COMMAND} -E copy
+            "$<TARGET_FILE:sparrow-ipc>"
+            "$<TARGET_FILE_DIR:${test_target}>"
+        COMMENT "Copying sparrow and sparrow-ipc DLLs to executable directory"
+    )
+endif()
+
 target_include_directories(${test_target}
     PRIVATE
         ${CMAKE_BINARY_DIR}/generated
