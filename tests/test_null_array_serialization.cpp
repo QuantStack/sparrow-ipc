@@ -19,8 +19,8 @@ namespace sparrow_ipc
 
         sp::null_array arr(size, name, metadata);
 
-        auto buffer = serialize_null_array(arr);
-        auto deserialized_arr = deserialize_null_array(buffer);
+        const auto buffer = serialize_null_array(arr);
+        const auto deserialized_arr = deserialize_null_array(buffer);
 
         CHECK_EQ(deserialized_arr.size(), arr.size());
         REQUIRE(deserialized_arr.name().has_value());
@@ -43,8 +43,8 @@ namespace sparrow_ipc
     {
         const std::size_t size = 100;
         sp::null_array arr(size);
-        auto buffer = serialize_null_array(arr);
-        auto deserialized_arr = deserialize_null_array(buffer);
+        const auto buffer = serialize_null_array(arr);
+        const auto deserialized_arr = deserialize_null_array(buffer);
         CHECK_EQ(deserialized_arr.size(), arr.size());
         CHECK_FALSE(deserialized_arr.name().has_value());
         CHECK_FALSE(deserialized_arr.metadata().has_value());

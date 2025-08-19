@@ -84,8 +84,8 @@ namespace sparrow_ipc
         {
             CHECK_NE(lhs.buffers[i], rhs.buffers[i]);
         }
-        auto lhs_buffers = reinterpret_cast<const int8_t**>(lhs.buffers);
-        auto rhs_buffers = reinterpret_cast<const int8_t**>(rhs.buffers);
+        const auto lhs_buffers = reinterpret_cast<const int8_t**>(lhs.buffers);
+        const auto rhs_buffers = reinterpret_cast<const int8_t**>(rhs.buffers);
 
         for (size_t i = 0; i < static_cast<size_t>(lhs.length); ++i)
         {
@@ -94,7 +94,7 @@ namespace sparrow_ipc
     }
 
     template <typename T>
-    void compare_values(sp::primitive_array<T>& pa1, sp::primitive_array<T>& pa2)
+    void compare_values(const sp::primitive_array<T>& pa1, const sp::primitive_array<T>& pa2)
     {
         CHECK_EQ(pa1.size(), pa1.size());
         for (size_t i = 0; i < pa1.size(); ++i)
@@ -104,7 +104,7 @@ namespace sparrow_ipc
     }
 
     template <typename T>
-    void compare_bitmap(sp::primitive_array<T>& pa1, sp::primitive_array<T>& pa2)
+    void compare_bitmap(const sp::primitive_array<T>& pa1, const sp::primitive_array<T>& pa2)
     {
         const auto pa1_bitmap = pa1.bitmap();
         const auto pa2_bitmap = pa2.bitmap();
@@ -123,8 +123,8 @@ namespace sparrow_ipc
     template <typename T>
     void compare_primitive_arrays(sp::primitive_array<T>& ar, sp::primitive_array<T>& deserialized_ar)
     {
-        auto [arrow_array_ar, arrow_schema_ar] = sp::get_arrow_structures(ar);
-        auto [arrow_array_deserialized_ar, arrow_schema_deserialized_ar] = sp::get_arrow_structures(deserialized_ar);
+        const auto [arrow_array_ar, arrow_schema_ar] = sp::get_arrow_structures(ar);
+        const auto [arrow_array_deserialized_ar, arrow_schema_deserialized_ar] = sp::get_arrow_structures(deserialized_ar);
 
         // Check ArrowSchema equality
         REQUIRE_NE(arrow_schema_ar, nullptr);
@@ -164,7 +164,7 @@ namespace sparrow_ipc
 
         sp::primitive_array<T> ar = create_primitive_array();
 
-        std::vector<uint8_t> serialized_data = serialize_primitive_array(ar);
+        const std::vector<uint8_t> serialized_data = serialize_primitive_array(ar);
 
         CHECK(serialized_data.size() > 0);
 
@@ -178,7 +178,7 @@ namespace sparrow_ipc
     TEST_CASE("Serialize and Deserialize primitive_array - int with nulls")
     {
         // Data buffer
-        sp::u8_buffer<int> data_buffer = {100, 200, 300, 400, 500};
+        const sp::u8_buffer<int> data_buffer = {100, 200, 300, 400, 500};
 
         // Validity bitmap: 100 (valid), 200 (valid), 300 (null), 400 (valid), 500 (null)
         sp::validity_bitmap validity(5, true); // All valid initially
@@ -187,7 +187,7 @@ namespace sparrow_ipc
 
         sp::primitive_array<int> ar(std::move(data_buffer), std::move(validity));
 
-        std::vector<uint8_t> serialized_data = serialize_primitive_array(ar);
+        const std::vector<uint8_t> serialized_data = serialize_primitive_array(ar);
 
         CHECK(serialized_data.size() > 0);
 
@@ -199,13 +199,13 @@ namespace sparrow_ipc
     TEST_CASE("Serialize and Deserialize primitive_array - with name and metadata")
     {
         // Data buffer
-        sp::u8_buffer<int> data_buffer = {1, 2, 3};
+        const sp::u8_buffer<int> data_buffer = {1, 2, 3};
 
         // Validity bitmap: All valid
-        sp::validity_bitmap validity(3, true);
+        const sp::validity_bitmap validity(3, true);
 
         // Custom metadata
-        std::vector<sp::metadata_pair> metadata = {
+        const std::vector<sp::metadata_pair> metadata = {
             {"key1", "value1"},
             {"key2", "value2"}
         };
@@ -217,7 +217,7 @@ namespace sparrow_ipc
             std::make_optional(std::vector<sp::metadata_pair>{{"key1", "value1"}, {"key2", "value2"}})
         );
 
-        std::vector<uint8_t> serialized_data = serialize_primitive_array(ar);
+        const std::vector<uint8_t> serialized_data = serialize_primitive_array(ar);
 
         CHECK(serialized_data.size() > 0);
 

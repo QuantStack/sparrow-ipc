@@ -28,9 +28,9 @@ namespace sparrow_ipc
         // - Correctly populating the Flatbuffer-defined metadata for both messages.
 
         // Get arrow structures
-        auto [arrow_arr_ptr, arrow_schema_ptr] = sparrow::get_arrow_structures(arr);
-        auto& arrow_arr = *arrow_arr_ptr;
-        auto& arrow_schema = *arrow_schema_ptr;
+        const auto [arrow_arr_ptr, arrow_schema_ptr] = sparrow::get_arrow_structures(arr);
+        const auto& arrow_arr = *arrow_arr_ptr;
+        const auto& arrow_schema = *arrow_schema_ptr;
 
         // This will be the final buffer holding the complete IPC stream.
         std::vector<uint8_t> final_buffer;
@@ -42,9 +42,9 @@ namespace sparrow_ipc
         // After the Schema, we send the RecordBatch containing the actual data
 
         // Calculate the size of the validity and data buffers
-        int64_t validity_size = (arrow_arr.length + 7) / 8;
-        int64_t data_size = arrow_arr.length * sizeof(T);
-        std::vector<int64_t> buffers_sizes = {validity_size, data_size};
+        const int64_t validity_size = (arrow_arr.length + 7) / 8;
+        const int64_t data_size = arrow_arr.length * sizeof(T);
+        const std::vector<int64_t> buffers_sizes = {validity_size, data_size};
         details::serialize_record_batch_message(arrow_arr, buffers_sizes, final_buffer);
 
         // Return the final buffer containing the complete IPC stream
@@ -62,21 +62,21 @@ namespace sparrow_ipc
         details::deserialize_schema_message(buf_ptr, current_offset, name, metadata);
 
         // II - Deserialize the RecordBatch message
-        uint32_t batch_meta_len = *(reinterpret_cast<const uint32_t*>(buf_ptr + current_offset));
+        const uint32_t batch_meta_len = *(reinterpret_cast<const uint32_t*>(buf_ptr + current_offset));
         const auto* record_batch = details::deserialize_record_batch_message(buf_ptr, current_offset);
 
         current_offset += utils::align_to_8(batch_meta_len);
         const uint8_t* body_ptr = buf_ptr + current_offset;
 
         // Extract metadata from the RecordBatch
-        auto buffers_meta = record_batch->buffers();
-        auto nodes_meta = record_batch->nodes();
-        auto node_meta = nodes_meta->Get(0);
+        const auto buffers_meta = record_batch->buffers();
+        const auto nodes_meta = record_batch->nodes();
+        const auto node_meta = nodes_meta->Get(0);
 
         // The body contains the validity bitmap and the data buffer concatenated
         // We need to copy this data into memory owned by the new ArrowArray
-        int64_t validity_len = buffers_meta->Get(0)->length();
-        int64_t data_len = buffers_meta->Get(1)->length();
+        const int64_t validity_len = buffers_meta->Get(0)->length();
+        const int64_t data_len = buffers_meta->Get(1)->length();
 
         uint8_t* validity_buffer_copy = new uint8_t[validity_len];
         memcpy(validity_buffer_copy, body_ptr + buffers_meta->Get(0)->offset(), validity_len);

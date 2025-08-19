@@ -20,7 +20,7 @@ namespace sparrow_ipc
             }
 
             // Determine the Flatbuffer type information from the C schema's format string
-            auto [type_enum, type_offset] = utils::get_flatbuffer_type(schema_builder, arrow_schema.format);
+            const auto [type_enum, type_offset] = utils::get_flatbuffer_type(schema_builder, arrow_schema.format);
 
             // Handle metadata
             flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<org::apache::arrow::flatbuf::KeyValue>>>
@@ -28,14 +28,14 @@ namespace sparrow_ipc
 
             if (metadata)
             {
-                sparrow::key_value_view metadata_view = metadata.value();
+                const sparrow::key_value_view metadata_view = metadata.value();
                 std::vector<flatbuffers::Offset<org::apache::arrow::flatbuf::KeyValue>> kv_offsets;
                 kv_offsets.reserve(metadata_view.size());
                 auto mv_it = metadata_view.cbegin();
                 for (auto i = 0; i < metadata_view.size(); ++i, ++mv_it)
                 {
-                    auto key_offset = schema_builder.CreateString(std::string((*mv_it).first));
-                    auto value_offset = schema_builder.CreateString(std::string((*mv_it).second));
+                    const auto key_offset = schema_builder.CreateString(std::string((*mv_it).first));
+                    const auto value_offset = schema_builder.CreateString(std::string((*mv_it).second));
                     kv_offsets.push_back(
                         org::apache::arrow::flatbuf::CreateKeyValue(schema_builder, key_offset, value_offset));
                 }
@@ -43,7 +43,7 @@ namespace sparrow_ipc
             }
 
             // Build the Field object
-            auto fb_field = org::apache::arrow::flatbuf::CreateField(
+            const auto fb_field = org::apache::arrow::flatbuf::CreateField(
                 schema_builder,
                 fb_name_offset,
                 (arrow_schema.flags & static_cast<int64_t>(sparrow::ArrowFlag::NULLABLE)) != 0,
@@ -54,14 +54,14 @@ namespace sparrow_ipc
                 fb_metadata_offset);
 
             // A Schema contains a vector of fields
-            std::vector<flatbuffers::Offset<org::apache::arrow::flatbuf::Field>> fields_vec = {fb_field};
-            auto fb_fields = schema_builder.CreateVector(fields_vec);
+            const std::vector<flatbuffers::Offset<org::apache::arrow::flatbuf::Field>> fields_vec = {fb_field};
+            const auto fb_fields = schema_builder.CreateVector(fields_vec);
 
             // Build the Schema object from the vector of fields
-            auto schema_offset = org::apache::arrow::flatbuf::CreateSchema(schema_builder, org::apache::arrow::flatbuf::Endianness::Little, fb_fields);
+            const auto schema_offset = org::apache::arrow::flatbuf::CreateSchema(schema_builder, org::apache::arrow::flatbuf::Endianness::Little, fb_fields);
 
             // Wrap the Schema in a top-level Message, which is the standard IPC envelope
-            auto schema_message_offset = org::apache::arrow::flatbuf::CreateMessage(
+            const auto schema_message_offset = org::apache::arrow::flatbuf::CreateMessage(
                 schema_builder,
                 org::apache::arrow::flatbuf::MetadataVersion::V5,
                 org::apache::arrow::flatbuf::MessageHeader::Schema,
@@ -71,7 +71,7 @@ namespace sparrow_ipc
             schema_builder.Finish(schema_message_offset);
 
             // Assemble the Schema message bytes
-            uint32_t schema_len = schema_builder.GetSize(); // Get the size of the serialized metadata
+            const uint32_t schema_len = schema_builder.GetSize(); // Get the size of the serialized metadata
             final_buffer.resize(sizeof(uint32_t) + schema_len); // Resize the buffer to hold the message
             // Copy the metadata into the buffer, after the 4-byte length prefix
             memcpy(final_buffer.data() + sizeof(uint32_t), schema_builder.GetBufferPointer(), schema_len);
@@ -95,16 +95,16 @@ namespace sparrow_ipc
             body_len = current_offset;
 
             // Create the FieldNode, which describes the layout of the array data
-            org::apache::arrow::flatbuf::FieldNode field_node_struct(arrow_arr.length, arrow_arr.null_count);
+            const org::apache::arrow::flatbuf::FieldNode field_node_struct(arrow_arr.length, arrow_arr.null_count);
             // A RecordBatch contains a vector of nodes and a vector of buffers
-            auto fb_nodes_vector = batch_builder.CreateVectorOfStructs(&field_node_struct, 1);
-            auto fb_buffers_vector = batch_builder.CreateVectorOfStructs(buffers_vec);
+            const auto fb_nodes_vector = batch_builder.CreateVectorOfStructs(&field_node_struct, 1);
+            const auto fb_buffers_vector = batch_builder.CreateVectorOfStructs(buffers_vec);
 
             // Build the RecordBatch metadata object
-            auto record_batch_offset = org::apache::arrow::flatbuf::CreateRecordBatch(batch_builder, arrow_arr.length, fb_nodes_vector, fb_buffers_vector);
+            const auto record_batch_offset = org::apache::arrow::flatbuf::CreateRecordBatch(batch_builder, arrow_arr.length, fb_nodes_vector, fb_buffers_vector);
 
             // Wrap the RecordBatch in a top-level Message
-            auto batch_message_offset = org::apache::arrow::flatbuf::CreateMessage(
+            const auto batch_message_offset = org::apache::arrow::flatbuf::CreateMessage(
                 batch_builder,
                 org::apache::arrow::flatbuf::MetadataVersion::V5,
                 org::apache::arrow::flatbuf::MessageHeader::RecordBatch,
@@ -114,10 +114,10 @@ namespace sparrow_ipc
             batch_builder.Finish(batch_message_offset);
 
             // Append the RecordBatch message to the final buffer
-            uint32_t batch_meta_len = batch_builder.GetSize(); // Get the size of the batch metadata
-            int64_t aligned_batch_meta_len = utils::align_to_8(batch_meta_len); // Calculate the padded length
+            const uint32_t batch_meta_len = batch_builder.GetSize(); // Get the size of the batch metadata
+            const int64_t aligned_batch_meta_len = utils::align_to_8(batch_meta_len); // Calculate the padded length
 
-            size_t current_size = final_buffer.size(); // Get the current size (which is the end of the Schema message)
+            const size_t current_size = final_buffer.size(); // Get the current size (which is the end of the Schema message)
             // Resize the buffer to append the new message
             final_buffer.resize(current_size + sizeof(uint32_t) + aligned_batch_meta_len + body_len);
             uint8_t* dst = final_buffer.data() + current_size; // Get a pointer to where the new message will start
@@ -155,21 +155,21 @@ namespace sparrow_ipc
 
         void deserialize_schema_message(const uint8_t* buf_ptr, size_t& current_offset, std::optional<std::string>& name, std::optional<std::vector<sparrow::metadata_pair>>& metadata)
         {
-            uint32_t schema_meta_len = *(reinterpret_cast<const uint32_t*>(buf_ptr + current_offset));
+            const uint32_t schema_meta_len = *(reinterpret_cast<const uint32_t*>(buf_ptr + current_offset));
             current_offset += sizeof(uint32_t);
-            auto schema_message = org::apache::arrow::flatbuf::GetMessage(buf_ptr + current_offset);
+            const auto schema_message = org::apache::arrow::flatbuf::GetMessage(buf_ptr + current_offset);
             if (schema_message->header_type() != org::apache::arrow::flatbuf::MessageHeader::Schema)
             {
                 throw std::runtime_error("Expected Schema message at the start of the buffer.");
             }
-            auto flatbuffer_schema = static_cast<const org::apache::arrow::flatbuf::Schema*>(schema_message->header());
-            auto fields = flatbuffer_schema->fields();
+            const auto flatbuffer_schema = static_cast<const org::apache::arrow::flatbuf::Schema*>(schema_message->header());
+            const auto fields = flatbuffer_schema->fields();
             if (fields->size() != 1)
             {
                 throw std::runtime_error("Expected schema with exactly one field.");
             }
 
-            auto field = fields->Get(0);
+            const auto field = fields->Get(0);
 
             // Get name
             if (const auto fb_name = field->name())
@@ -178,7 +178,7 @@ namespace sparrow_ipc
             }
 
             // Handle metadata
-            auto fb_metadata = field->custom_metadata();
+            const auto fb_metadata = field->custom_metadata();
             if (fb_metadata && !fb_metadata->empty())
             {
                 metadata = std::vector<sparrow::metadata_pair>();
@@ -194,7 +194,7 @@ namespace sparrow_ipc
         const org::apache::arrow::flatbuf::RecordBatch* deserialize_record_batch_message(const uint8_t* buf_ptr, size_t& current_offset)
         {
             current_offset += sizeof(uint32_t);
-            auto batch_message = org::apache::arrow::flatbuf::GetMessage(buf_ptr + current_offset);
+            const auto batch_message = org::apache::arrow::flatbuf::GetMessage(buf_ptr + current_offset);
             if (batch_message->header_type() != org::apache::arrow::flatbuf::MessageHeader::RecordBatch)
             {
                 throw std::runtime_error("Expected RecordBatch message, but got a different type.");

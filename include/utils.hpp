@@ -14,7 +14,7 @@ namespace sparrow_ipc
     namespace utils
     {
         // Aligns a value to the next multiple of 8, as required by the Arrow IPC format for message bodies
-        SPARROW_IPC_API int64_t align_to_8(int64_t n);
+        SPARROW_IPC_API int64_t align_to_8(const int64_t n);
 
         // Creates a Flatbuffers type from a format string
         // This function maps a sparrow data type to the corresponding Flatbuffers type

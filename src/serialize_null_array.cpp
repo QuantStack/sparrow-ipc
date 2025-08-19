@@ -6,9 +6,10 @@ namespace sparrow_ipc
     // making its message body zero-length.
     std::vector<uint8_t> serialize_null_array(sparrow::null_array& arr)
     {
-        auto [arrow_arr_ptr, arrow_schema_ptr] = sparrow::get_arrow_structures(arr);
-        auto& arrow_arr = *arrow_arr_ptr;
-        auto& arrow_schema = *arrow_schema_ptr;
+        // TODO Use `arr` as const after fixing the issue upstream in sparrow::get_arrow_structures
+        const auto [arrow_arr_ptr, arrow_schema_ptr] = sparrow::get_arrow_structures(arr);
+        const auto& arrow_arr = *arrow_arr_ptr;
+        const auto& arrow_schema = *arrow_schema_ptr;
 
         std::vector<uint8_t> final_buffer;
         // I - Serialize the Schema message
