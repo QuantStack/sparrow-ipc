@@ -28,9 +28,6 @@ jobs:
           environment-name: build_env
           cache-environment: true
 
-      - name: Install external dependencies
-        run: micromamba install -n build_env -y -f ./environment-dev.yml
-
       - name: Configure using cmake
         run: |
           cmake -G Ninja \
@@ -39,8 +36,7 @@ jobs:
           -DCMAKE_INSTALL_PREFIX=%CONDA_PREFIX% \
           -DCMAKE_PREFIX_PATH=%CONDA_PREFIX% \
           -DSPARROW_IPC_BUILD_SHARED=${{ matrix.build_shared }} \
-          -DSPARROW_IPC_BUILD_TESTS=ON \
-          -DFETCH_DEPENDENCIES_WITH_CMAKE=MISSING
+          -DSPARROW_IPC_BUILD_TESTS=ON
 
       - name: Build sparrow-ipc
         working-directory: build
