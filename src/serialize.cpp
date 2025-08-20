@@ -8,7 +8,7 @@ namespace sparrow_ipc
 {
     namespace details
     {
-        void serialize_schema_message(const ArrowSchema& arrow_schema, const std::optional<sparrow::key_value_view>& metadata, std::vector<uint8_t>& final_buffer)
+        std::vector<uint8_t> serialize_schema_message(const ArrowSchema& arrow_schema, const std::optional<sparrow::key_value_view>& metadata)
         {
             // Create a new builder for the Schema message's metadata
             flatbuffers::FlatBufferBuilder schema_builder;
@@ -71,11 +71,14 @@ namespace sparrow_ipc
 
             // Assemble the Schema message bytes
             const uint32_t schema_len = schema_builder.GetSize(); // Get the size of the serialized metadata
+            // This will be the final buffer holding the complete IPC stream.
+            std::vector<uint8_t> final_buffer;
             final_buffer.resize(sizeof(uint32_t) + schema_len); // Resize the buffer to hold the message
             // Copy the metadata into the buffer, after the 4-byte length prefix
             memcpy(final_buffer.data() + sizeof(uint32_t), schema_builder.GetBufferPointer(), schema_len);
             // Write the 4-byte metadata length at the beginning of the message
             *(reinterpret_cast<uint32_t*>(final_buffer.data())) = schema_len;
+            return final_buffer;
         }
 
         void serialize_record_batch_message(const ArrowArray& arrow_arr, const std::vector<int64_t>& buffers_sizes, std::vector<uint8_t>& final_buffer)

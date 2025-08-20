@@ -7,6 +7,7 @@
 
 namespace sparrow_ipc
 {
+    // TODO Use `arr` as const after fixing the issue upstream in sparrow::get_arrow_structures
     template <typename T>
     std::vector<uint8_t> serialize_primitive_array(sparrow::primitive_array<T>& arr);
 
@@ -32,11 +33,8 @@ namespace sparrow_ipc
         const auto& arrow_arr = *arrow_arr_ptr;
         const auto& arrow_schema = *arrow_schema_ptr;
 
-        // This will be the final buffer holding the complete IPC stream.
-        std::vector<uint8_t> final_buffer;
-
         // I - Serialize the Schema message
-        details::serialize_schema_message(arrow_schema, arr.metadata(), final_buffer);
+        auto final_buffer = details::serialize_schema_message(arrow_schema, arr.metadata());
 
         // II - Serialize the RecordBatch message
         // After the Schema, we send the RecordBatch containing the actual data
