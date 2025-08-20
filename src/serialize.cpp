@@ -31,11 +31,10 @@ namespace sparrow_ipc
                 const sparrow::key_value_view metadata_view = metadata.value();
                 std::vector<flatbuffers::Offset<org::apache::arrow::flatbuf::KeyValue>> kv_offsets;
                 kv_offsets.reserve(metadata_view.size());
-                auto mv_it = metadata_view.cbegin();
-                for (auto i = 0; i < metadata_view.size(); ++i, ++mv_it)
+                for (const auto& [key, value] : metadata_view)
                 {
-                    const auto key_offset = schema_builder.CreateString(std::string((*mv_it).first));
-                    const auto value_offset = schema_builder.CreateString(std::string((*mv_it).second));
+                    const auto key_offset = schema_builder.CreateString(std::string(key));
+                    const auto value_offset = schema_builder.CreateString(std::string(value));
                     kv_offsets.push_back(
                         org::apache::arrow::flatbuf::CreateKeyValue(schema_builder, key_offset, value_offset));
                 }
