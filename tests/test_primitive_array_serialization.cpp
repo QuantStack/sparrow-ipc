@@ -123,20 +123,22 @@ namespace sparrow_ipc
     template <typename T>
     void compare_primitive_arrays(sp::primitive_array<T>& ar, sp::primitive_array<T>& deserialized_ar)
     {
-        const auto [arrow_array_ar, arrow_schema_ar] = sp::get_arrow_structures(ar);
-        const auto [arrow_array_deserialized_ar, arrow_schema_deserialized_ar] = sp::get_arrow_structures(deserialized_ar);
-
-        // Check ArrowSchema equality
-        REQUIRE_NE(arrow_schema_ar, nullptr);
-        REQUIRE_NE(arrow_schema_deserialized_ar, nullptr);
-        compare_arrow_schemas(*arrow_schema_ar, *arrow_schema_deserialized_ar);
-
-        // Check ArrowArray equality
-        REQUIRE_NE(arrow_array_ar, nullptr);
-        REQUIRE_NE(arrow_array_deserialized_ar, nullptr);
-        compare_arrow_arrays(*arrow_array_ar, *arrow_array_deserialized_ar);
+//         const auto [arrow_array_ar, arrow_schema_ar] = sp::get_arrow_structures(ar);
+//         const auto [arrow_array_deserialized_ar, arrow_schema_deserialized_ar] = sp::get_arrow_structures(deserialized_ar);
+//
+//         // Check ArrowSchema equality
+//         REQUIRE_NE(arrow_schema_ar, nullptr);
+//         REQUIRE_NE(arrow_schema_deserialized_ar, nullptr);
+//         compare_arrow_schemas(*arrow_schema_ar, *arrow_schema_deserialized_ar);
+//
+//         // Check ArrowArray equality
+//         REQUIRE_NE(arrow_array_ar, nullptr);
+//         REQUIRE_NE(arrow_array_deserialized_ar, nullptr);
+//         compare_arrow_arrays(*arrow_array_ar, *arrow_array_deserialized_ar);
 
 //         compare_values<T>(ar, deserialized_ar);
+
+        CHECK_EQ(ar, deserialized_ar);
         compare_bitmap<T>(ar, deserialized_ar);
         compare_metadata(ar, deserialized_ar);
     }
