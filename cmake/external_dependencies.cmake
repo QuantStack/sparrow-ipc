@@ -48,9 +48,9 @@ endfunction()
 set(SPARROW_BUILD_SHARED ${SPARROW_IPC_BUILD_SHARED})
 find_package_or_fetch(
     PACKAGE_NAME sparrow
-    VERSION 1.0.0
+    VERSION 1.0.0 #TODO not used? to be removed
     GIT_REPOSITORY https://github.com/man-group/sparrow.git
-    TAG 1.0.0
+    TAG main
 )
 
 if(NOT TARGET sparrow::sparrow)
