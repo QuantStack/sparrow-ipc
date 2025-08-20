@@ -50,10 +50,14 @@ set(SPARROW_IPC_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
 set(SPARROW_IPC_HEADERS
     ${SPARROW_IPC_INCLUDE_DIR}/config/config.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/serialize.hpp
+    ${SPARROW_IPC_INCLUDE_DIR}/serialize_primitive_array.hpp
+    ${SPARROW_IPC_INCLUDE_DIR}/serialize_null_array.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/utils.hpp
 )
 
 set(SPARROW_IPC_SRC
+    ${SPARROW_IPC_SOURCE_DIR}/serialize.cpp
+    ${SPARROW_IPC_SOURCE_DIR}/serialize_null_array.cpp
     ${SPARROW_IPC_SOURCE_DIR}/utils.cpp
 )
 
