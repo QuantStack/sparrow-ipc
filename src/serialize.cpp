@@ -8,7 +8,7 @@ namespace sparrow_ipc
 {
     namespace details
     {
-        std::vector<uint8_t> serialize_schema_message(const ArrowSchema& arrow_schema, const std::optional<sparrow::key_value_view>& metadata)
+        std::vector<uint8_t> serialize_schema_message(const ArrowSchema& arrow_schema)
         {
             // Create a new builder for the Schema message's metadata
             flatbuffers::FlatBufferBuilder schema_builder;
@@ -26,9 +26,9 @@ namespace sparrow_ipc
             flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<org::apache::arrow::flatbuf::KeyValue>>>
                 fb_metadata_offset = 0;
 
-            if (metadata)
+            if (arrow_schema.metadata)
             {
-                const sparrow::key_value_view metadata_view = metadata.value();
+                const auto metadata_view = sparrow::key_value_view(arrow_schema.metadata);
                 std::vector<flatbuffers::Offset<org::apache::arrow::flatbuf::KeyValue>> kv_offsets;
                 kv_offsets.reserve(metadata_view.size());
                 for (const auto& [key, value] : metadata_view)

@@ -34,7 +34,7 @@ namespace sparrow_ipc
         const auto& arrow_schema = *arrow_schema_ptr;
 
         // I - Serialize the Schema message
-        auto final_buffer = details::serialize_schema_message(arrow_schema, arr.metadata());
+        auto final_buffer = details::serialize_schema_message(arrow_schema);
 
         // II - Serialize the RecordBatch message
         // After the Schema, we send the RecordBatch containing the actual data

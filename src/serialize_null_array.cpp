@@ -11,7 +11,7 @@ namespace sparrow_ipc
         const auto& arrow_schema = *arrow_schema_ptr;
 
         // I - Serialize the Schema message
-        auto final_buffer = details::serialize_schema_message(arrow_schema, arr.metadata());
+        auto final_buffer = details::serialize_schema_message(arrow_schema);
 
         // II - Serialize the RecordBatch message
         details::serialize_record_batch_message(arrow_arr, {}, final_buffer);
