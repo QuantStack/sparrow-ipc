@@ -18,91 +18,6 @@ namespace sparrow_ipc
         float,
         double>;
 
-    // TODO We should use comparison functions from sparrow, after making them available if not already
-    // after next release?
-    // Or even better, allow checking directly primitive_array equality in sparrow
-    void compare_arrow_schemas(const ArrowSchema& s1, const ArrowSchema& s2)
-    {
-        std::string_view s1_format = (s1.format != nullptr) ? std::string_view(s1.format) : "";
-        std::string_view s2_format = (s2.format != nullptr) ? std::string_view(s2.format) : "";
-        CHECK_EQ(s1_format, s2_format);
-
-        std::string_view s1_name = (s1.name != nullptr) ? std::string_view(s1.name) : "";
-        std::string_view s2_name = (s2.name != nullptr) ? std::string_view(s2.name) : "";
-        CHECK_EQ(s1_name, s2_name);
-
-        if (s1.metadata == nullptr)
-        {
-            CHECK_EQ(s2.metadata, nullptr);
-        }
-        else
-        {
-            REQUIRE_NE(s2.metadata, nullptr);
-        }
-
-        CHECK_EQ(s1.flags, s2.flags);
-        CHECK_EQ(s1.n_children, s2.n_children);
-
-        if (s1.n_children > 0)
-        {
-            REQUIRE_NE(s1.children, nullptr);
-            REQUIRE_NE(s2.children, nullptr);
-            for (int64_t i = 0; i < s1.n_children; ++i)
-            {
-                REQUIRE_NE(s1.children[i], nullptr);
-                REQUIRE_NE(s2.children[i], nullptr);
-                compare_arrow_schemas(*s1.children[i], *s2.children[i]);
-            }
-        }
-        else
-        {
-            CHECK_EQ(s1.children, nullptr);
-            CHECK_EQ(s2.children, nullptr);
-        }
-
-        if (s1.dictionary != nullptr)
-        {
-            REQUIRE_NE(s2.dictionary, nullptr);
-            compare_arrow_schemas(*s1.dictionary, *s2.dictionary);
-        }
-        else
-        {
-            CHECK_EQ(s2.dictionary, nullptr);
-        }
-    }
-
-    void compare_arrow_arrays(const ArrowArray& lhs, const ArrowArray& rhs)
-    {
-        CHECK_EQ(lhs.length, rhs.length);
-        CHECK_EQ(lhs.null_count, rhs.null_count);
-        CHECK_EQ(lhs.offset, rhs.offset);
-        CHECK_EQ(lhs.n_buffers, rhs.n_buffers);
-        CHECK_EQ(lhs.n_children, rhs.n_children);
-        CHECK_NE(lhs.buffers, rhs.buffers);
-        CHECK_NE(lhs.private_data, rhs.private_data);
-        for (size_t i = 0; i < static_cast<size_t>(lhs.n_buffers); ++i)
-        {
-            CHECK_NE(lhs.buffers[i], rhs.buffers[i]);
-        }
-        const auto lhs_buffers = reinterpret_cast<const int8_t**>(lhs.buffers);
-        const auto rhs_buffers = reinterpret_cast<const int8_t**>(rhs.buffers);
-
-        for (size_t i = 0; i < static_cast<size_t>(lhs.length); ++i)
-        {
-            CHECK_EQ(lhs_buffers[1][i], rhs_buffers[1][i]);
-        }
-    }
-
-    template <typename T>
-    void compare_values(const sp::primitive_array<T>& pa1, const sp::primitive_array<T>& pa2)
-    {
-        CHECK_EQ(pa1.size(), pa1.size());
-        for (size_t i = 0; i < pa1.size(); ++i)
-        {
-            CHECK_EQ(pa1[i], pa2[i]);
-        }
-    }
-
     template <typename T>
     void compare_bitmap(const sp::primitive_array<T>& pa1, const sp::primitive_array<T>& pa2)
     {
@@ -121,23 +36,8 @@ namespace sparrow_ipc
     }
 
     template <typename T>
-    void compare_primitive_arrays(sp::primitive_array<T>& ar, sp::primitive_array<T>& deserialized_ar)
+    void compare_primitive_arrays(const sp::primitive_array<T>& ar, const sp::primitive_array<T>& deserialized_ar)
     {
-//         const auto [arrow_array_ar, arrow_schema_ar] = sp::get_arrow_structures(ar);
-//         const auto [arrow_array_deserialized_ar, arrow_schema_deserialized_ar] = sp::get_arrow_structures(deserialized_ar);
-//
-//         // Check ArrowSchema equality
-//         REQUIRE_NE(arrow_schema_ar, nullptr);
-//         REQUIRE_NE(arrow_schema_deserialized_ar, nullptr);
-//         compare_arrow_schemas(*arrow_schema_ar, *arrow_schema_deserialized_ar);
-//
-//         // Check ArrowArray equality
-//         REQUIRE_NE(arrow_array_ar, nullptr);
-//         REQUIRE_NE(arrow_array_deserialized_ar, nullptr);
-//         compare_arrow_arrays(*arrow_array_ar, *arrow_array_deserialized_ar);
-
-//         compare_values<T>(ar, deserialized_ar);
-
         CHECK_EQ(ar, deserialized_ar);
         compare_bitmap<T>(ar, deserialized_ar);
         compare_metadata(ar, deserialized_ar);
