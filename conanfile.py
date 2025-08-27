@@ -30,6 +30,8 @@ class SparrowIPCRecipe(ConanFile):
         "build_tests": False,
     }
 
+    _flatbuffers_version = "24.12.23"
+
     def config_options(self):
         if self.settings.os == "Windows":
             del self.options.fPIC
@@ -40,13 +42,13 @@ class SparrowIPCRecipe(ConanFile):
 
     def requirements(self):
         self.requires("sparrow/1.0.0")
-        self.requires("flatbuffers/24.12.23")
+        self.requires(f"flatbuffers/{self._flatbuffers_version}")
         if self.options.get_safe("build_tests"):
             self.test_requires("doctest/2.4.12")
 
     def build_requirements(self):
         self.tool_requires("cmake/[>=3.28.1 <4.2.0]")
-        self.tool_requires("flatbuffers/24.12.23")
+        self.tool_requires(f"flatbuffers/{self._flatbuffers_version}")
 
     @property
     def _min_cppstd(self):
