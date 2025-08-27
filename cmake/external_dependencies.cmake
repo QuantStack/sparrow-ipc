@@ -11,16 +11,23 @@ endif()
 
 function(find_package_or_fetch)
     set(options)
-    set(oneValueArgs PACKAGE_NAME VERSION GIT_REPOSITORY TAG)
+    set(oneValueArgs CONAN_PKG_NAME PACKAGE_NAME VERSION GIT_REPOSITORY TAG)
     set(multiValueArgs)
     cmake_parse_arguments(PARSE_ARGV 0 arg
         "${options}" "${oneValueArgs}" "${multiValueArgs}"
     )
-    if(NOT FETCH_DEPENDENCIES_WITH_CMAKE STREQUAL "ON")
-        find_package(${arg_PACKAGE_NAME} ${FIND_PACKAGE_OPTIONS})
+
+    set(actual_pkg_name ${arg_PACKAGE_NAME})
+    if(arg_CONAN_PKG_NAME)
+        set(actual_pkg_name ${arg_CONAN_PKG_NAME})
     endif()
+
+    if(NOT FETCH_DEPENDENCIES_WITH_CMAKE STREQUAL "ON")
+        find_package(${actual_pkg_name} ${FIND_PACKAGE_OPTIONS})
+    endif()
+
     if(FETCH_DEPENDENCIES_WITH_CMAKE STREQUAL "ON" OR FETCH_DEPENDENCIES_WITH_CMAKE STREQUAL "MISSING")
-        if(NOT ${arg_PACKAGE_NAME}_FOUND)
+        if(NOT ${actual_pkg_name}_FOUND)
             message(STATUS "📦 Fetching ${arg_PACKAGE_NAME}")
             FetchContent_Declare(
                 ${arg_PACKAGE_NAME}
@@ -33,7 +40,7 @@ function(find_package_or_fetch)
             FetchContent_MakeAvailable(${arg_PACKAGE_NAME})
             message(STATUS "\t✅ Fetched ${arg_PACKAGE_NAME}")
         else()
-            message(STATUS "📦 ${arg_PACKAGE_NAME} found here: ${arg_PACKAGE_NAME}_DIR")
+            message(STATUS "📦 ${actual_pkg_name} found here: ${actual_pkg_name}_DIR")
         endif()
     endif()
 endfunction()
@@ -53,6 +60,7 @@ endif()
 set(FLATBUFFERS_BUILD_TESTS OFF)
 set(FLATBUFFERS_BUILD_SHAREDLIB ${SPARROW_IPC_BUILD_SHARED})
 find_package_or_fetch(
+    CONAN_PKG_NAME flatbuffers
     PACKAGE_NAME FlatBuffers
     VERSION v25.2.10
     GIT_REPOSITORY https://github.com/google/flatbuffers.git

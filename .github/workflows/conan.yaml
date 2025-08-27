@@ -30,7 +30,7 @@ jobs:
           -DSPARROW_IPC_BUILD_TESTS=ON \
           -DFETCH_DEPENDENCIES_WITH_CMAKE=MISSING
 
-      - name: Build
+      - name: Build tests
         working-directory: build/build/Release
         run: cmake --build . --config Release --target test_sparrow_ipc_lib
 
