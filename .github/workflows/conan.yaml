@@ -10,6 +10,9 @@ jobs:
     runs-on: ubuntu-24.04
 
     steps:
+      - name: Run sccache-cache
+        uses: mozilla-actions/sccache-action@v0.0.9
+
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -28,7 +31,9 @@ jobs:
         run: |
           cmake --preset conan-release \
           -DSPARROW_IPC_BUILD_TESTS=ON \
-          -DFETCH_DEPENDENCIES_WITH_CMAKE=MISSING
+          -DFETCH_DEPENDENCIES_WITH_CMAKE=MISSING \
+          -DCMAKE_C_COMPILER_LAUNCHER=sccache \
+          -DCMAKE_CXX_COMPILER_LAUNCHER=sccache
 
       - name: Build tests
         working-directory: build/build/Release
@@ -37,3 +42,7 @@ jobs:
       - name: Run tests
         working-directory: build/build/Release
         run: cmake --build . --config Release --target run_tests_with_junit_report
+
+      - name: Run sccache stat for check
+        shell: bash
+        run: ${SCCACHE_PATH} --show-stats
