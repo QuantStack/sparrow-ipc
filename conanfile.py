@@ -40,7 +40,7 @@ class SparrowIPCRecipe(ConanFile):
 
     def requirements(self):
         self.requires("sparrow/1.0.0")
-        self.requires("flatbuffers/25.2.10")
+        self.requires("flatbuffers/24.12.23")
         if self.options.get_safe("build_tests"):
             self.test_requires("doctest/2.4.12")
 
