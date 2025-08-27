@@ -46,6 +46,7 @@ class SparrowIPCRecipe(ConanFile):
 
     def build_requirements(self):
         self.tool_requires("cmake/[>=3.28.1 <4.2.0]")
+        self.tool_requires("flatbuffers/24.12.23")
 
     @property
     def _min_cppstd(self):
