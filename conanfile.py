@@ -1,7 +1,7 @@
 from conan import ConanFile
 from conan.errors import ConanInvalidConfiguration
 from conan.tools.build.cppstd import check_min_cppstd
-from conan.tools.cmake import CMake, CMakeToolchain, cmake_layout
+from conan.tools.cmake import CMake, CMakeDeps, CMakeToolchain, cmake_layout
 from conan.tools.files import copy
 from conan.tools.scm import Version
 import os
@@ -18,7 +18,6 @@ class SparrowIPCRecipe(ConanFile):
     topics = ("arrow", "apache arrow", "columnar format", "dataframe", "ipc", "serialization", "deserialization", "flatbuffers")
     package_type = "library"
     settings = "os", "arch", "compiler", "build_type"
-    generators = "CMakeDeps"
     exports_sources = "include/*", "src/*", "cmake/*", "CMakeLists.txt", "LICENSE"
     options = {
         "shared": [True, False],
@@ -44,6 +43,9 @@ class SparrowIPCRecipe(ConanFile):
         self.requires("flatbuffers/25.2.10")
         if self.options.get_safe("build_tests"):
             self.test_requires("doctest/2.4.12")
+
+    def build_requirements(self):
+        self.tool_requires("cmake/[>=3.28.1 <4.2.0]")
 
     @property
     def _min_cppstd(self):
@@ -73,7 +75,11 @@ class SparrowIPCRecipe(ConanFile):
         cmake_layout(self, src_folder=".")
 
     def generate(self):
+        deps = CMakeDeps(self)
+        deps.generate()
+
         tc = CMakeToolchain(self)
+        tc.variables["SPARROW_IPC_BUILD_SHARED"] = self.options.shared
         tc.variables["SPARROW_IPC_BUILD_TESTS"] = self.options.build_tests
         tc.generate()
 
