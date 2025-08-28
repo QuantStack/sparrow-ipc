@@ -15,6 +15,42 @@ include(external_dependencies)
 
 set(SPARROW_IPC_COMPILE_DEFINITIONS "" CACHE STRING "List of public compile definitions of the sparrow-ipc target")
 
+set(SPARROW_IPC_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
+set(SPARROW_IPC_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
+
+# Versioning
+# ==========
+file(STRINGS "${SPARROW_IPC_INCLUDE_DIR}/config/sparrow_ipc_version.hpp" sparrow_ipc_version_defines
+    REGEX "constexpr int SPARROW_IPC_VERSION_(MAJOR|MINOR|PATCH)")
+
+foreach(ver ${sparrow_ipc_version_defines})
+    if(ver MATCHES "constexpr int SPARROW_IPC_VERSION_(MAJOR|MINOR|PATCH) = ([0-9]+);$")
+        set(PROJECT_VERSION_${CMAKE_MATCH_1} "${CMAKE_MATCH_2}" CACHE INTERNAL "")
+    endif()
+endforeach()
+
+set(CMAKE_PROJECT_VERSION
+    ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH})
+
+message(STATUS "Building sparrow-ipc v${CMAKE_PROJECT_VERSION}")
+
+# Binary version
+# See the following URL for more info on the binary versioning
+# https://www.gnu.org/software/libtool/manual/html_node/Updating-version-info.html#Updating-version-info
+file(STRINGS "${SPARROW_IPC_INCLUDE_DIR}/config/sparrow_ipc_version.hpp" sparrow_ipc_version_defines
+    REGEX "constexpr int SPARROW_IPC_BINARY_(CURRENT|REVISION|AGE)")
+
+foreach(ver ${sparrow_ipc_version_defines})
+    if(ver MATCHES "constexpr int SPARROW_IPC_BINARY_(CURRENT|REVISION|AGE) = ([0-9]+);$")
+        set(SPARROW_IPC_BINARY_${CMAKE_MATCH_1} "${CMAKE_MATCH_2}" CACHE INTERNAL "")
+    endif()
+endforeach()
+
+set(SPARROW_IPC_BINARY_VERSION
+    ${SPARROW_IPC_BINARY_CURRENT}.${SPARROW_IPC_BINARY_REVISION}.${SPARROW_IPC_BINARY_AGE})
+
+message(STATUS "sparrow-ipc binary version: v${SPARROW_IPC_BINARY_VERSION}")
+
 # Linter options
 # =============
 OPTION(ACTIVATE_LINTER "Create targets to run clang-format" OFF)
@@ -44,11 +80,9 @@ endif()
 OPTION(SPARROW_IPC_BUILD_TESTS "Build sparrow-ipc test suite" OFF)
 MESSAGE(STATUS "🔧 Build tests: ${SPARROW_IPC_BUILD_TESTS}")
 
-set(SPARROW_IPC_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
-set(SPARROW_IPC_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
-
 set(SPARROW_IPC_HEADERS
     ${SPARROW_IPC_INCLUDE_DIR}/config/config.hpp
+    ${SPARROW_IPC_INCLUDE_DIR}/config/sparrow_ipc_version.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/serialize.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/serialize_primitive_array.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/serialize_null_array.hpp
@@ -133,8 +167,26 @@ target_compile_definitions(sparrow-ipc
         ${SPARROW_IPC_COMPILE_DEFINITIONS})
 
 if(UNIX)
+    # CMake does not compute the version number of so files as libtool
+    # does on Linux. Strictly speaking, we should exclude FreeBSD and
+    # Apple from this, but that would require having different version
+    # numbers depending on the platform. We prefer to follow the
+    # libtool pattern everywhere.
+    math(EXPR SPARROW_IPC_BINARY_COMPATIBLE "${SPARROW_IPC_BINARY_CURRENT} - ${SPARROW_IPC_BINARY_AGE}")
+    set_target_properties(
+        sparrow-ipc
+        PROPERTIES
+        VERSION "${SPARROW_IPC_BINARY_COMPATIBLE}.${SPARROW_IPC_BINARY_REVISION}.${SPARROW_IPC_BINARY_AGE}"
+        SOVERSION ${SPARROW_IPC_BINARY_COMPATIBLE}
+    )
     target_compile_options(sparrow-ipc PRIVATE "-fvisibility=hidden")
 else()
+    set_target_properties(
+        sparrow-ipc
+        PROPERTIES
+        VERSION ${SPARROW_IPC_BINARY_VERSION}
+        SOVERSION ${SPARROW_IPC_BINARY_CURRENT}
+    )
     target_compile_definitions(sparrow-ipc PRIVATE SPARROW_IPC_EXPORTS)
 endif()
 
