@@ -99,9 +99,15 @@ foreach(fbs_file IN LISTS FLATBUFFERS_SCHEMAS)
     list(APPEND FLATBUFFERS_GENERATED_HEADERS "${FLATBUFFERS_GENERATED_DIR}/${header_name}_generated.h")
 endforeach()
 
+if(TARGET flatbuffers::flatc)
+    set(FLATC_EXECUTABLE flatbuffers::flatc)
+else()
+    set(FLATC_EXECUTABLE flatc)
+endif()
+
 add_custom_command(
     OUTPUT ${FLATBUFFERS_GENERATED_HEADERS}
-    COMMAND flatc --cpp -o ${FLATBUFFERS_GENERATED_DIR} --cpp-std c++17 --scoped-enums ${FLATBUFFERS_SCHEMAS}
+    COMMAND ${FLATC_EXECUTABLE} --cpp -o ${FLATBUFFERS_GENERATED_DIR} --cpp-std c++17 --scoped-enums ${FLATBUFFERS_SCHEMAS}
     DEPENDS ${FLATBUFFERS_SCHEMAS}
     COMMENT "Generating FlatBuffers C++ headers from schemas"
 )
