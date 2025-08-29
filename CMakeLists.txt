@@ -254,3 +254,45 @@ if(SPARROW_IPC_BUILD_DOCS)
     message(STATUS "📚 Create docs targets")
     add_subdirectory(docs)
 endif()
+
+# Installation
+# ============
+include(GNUInstallDirs)
+include(CMakePackageConfigHelpers)
+
+# Install target
+install(TARGETS sparrow-ipc
+    EXPORT ${PROJECT_NAME}-targets)
+
+# Makes the project importable from the build directory
+export(EXPORT ${PROJECT_NAME}-targets
+    FILE "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Targets.cmake"
+    NAMESPACE sparrow-ipc::)
+
+# Install headers
+install(DIRECTORY ${SPARROW_IPC_INCLUDE_DIR}
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    PATTERN ".clang-*" EXCLUDE
+    PATTERN "README.md" EXCLUDE)
+
+# Install CMake configuration files
+set(SPARROW_IPC_CMAKECONFIG_INSTALL_DIR "${CMAKE_INSTALL_DATADIR}/cmake/${PROJECT_NAME}" CACHE
+    STRING "install path for sparrow-ipcConfig.cmake")
+
+configure_package_config_file(${PROJECT_NAME}Config.cmake.in
+    "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
+    INSTALL_DESTINATION ${SPARROW_IPC_CMAKECONFIG_INSTALL_DIR})
+
+write_basic_package_version_file(${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
+    VERSION ${CMAKE_PROJECT_VERSION}
+    COMPATIBILITY AnyNewerVersion)
+
+install(FILES
+    ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
+    ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
+    DESTINATION ${SPARROW_IPC_CMAKECONFIG_INSTALL_DIR})
+
+install(EXPORT ${PROJECT_NAME}-targets
+    FILE ${PROJECT_NAME}Targets.cmake
+    NAMESPACE sparrow-ipc::
+    DESTINATION ${SPARROW_IPC_CMAKECONFIG_INSTALL_DIR})
