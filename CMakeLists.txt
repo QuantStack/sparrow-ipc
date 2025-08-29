@@ -260,21 +260,6 @@ endif()
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 
-# Install target
-install(TARGETS sparrow-ipc
-    EXPORT ${PROJECT_NAME}-targets)
-
-# Makes the project importable from the build directory
-export(EXPORT ${PROJECT_NAME}-targets
-    FILE "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Targets.cmake"
-    NAMESPACE sparrow-ipc::)
-
-# Install headers
-install(DIRECTORY ${SPARROW_IPC_INCLUDE_DIR}
-    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-    PATTERN ".clang-*" EXCLUDE
-    PATTERN "README.md" EXCLUDE)
-
 # Install CMake configuration files
 set(SPARROW_IPC_CMAKECONFIG_INSTALL_DIR "${CMAKE_INSTALL_DATADIR}/cmake/${PROJECT_NAME}" CACHE
     STRING "install path for sparrow-ipcConfig.cmake")
@@ -296,3 +281,18 @@ install(EXPORT ${PROJECT_NAME}-targets
     FILE ${PROJECT_NAME}Targets.cmake
     NAMESPACE sparrow-ipc::
     DESTINATION ${SPARROW_IPC_CMAKECONFIG_INSTALL_DIR})
+
+# Install target
+install(TARGETS sparrow-ipc
+    EXPORT ${PROJECT_NAME}-targets)
+
+# Makes the project importable from the build directory
+export(EXPORT ${PROJECT_NAME}-targets
+    FILE "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Targets.cmake"
+    NAMESPACE sparrow-ipc::)
+
+# Install headers
+install(DIRECTORY ${SPARROW_IPC_INCLUDE_DIR}
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    PATTERN ".clang-*" EXCLUDE
+    PATTERN "README.md" EXCLUDE)
