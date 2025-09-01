@@ -50,6 +50,10 @@ jobs:
         working-directory: build
         run: cmake --build . --target run_tests_with_junit_report
 
+      - name: Install
+        working-directory: build
+        run: cmake --install .
+
   linux_build_fetch_from_source:
     runs-on: ubuntu-latest
     strategy:
@@ -80,3 +84,7 @@ jobs:
       - name: Run tests
         working-directory: build
         run: cmake --build . --target run_tests_with_junit_report
+
+      - name: Install
+        working-directory: build
+        run: cmake --install .

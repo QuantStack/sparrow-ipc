@@ -55,6 +55,10 @@ jobs:
         working-directory: build
         run: cmake --build . --target run_tests_with_junit_report
 
+      - name: Install
+        working-directory: build
+        run: cmake --install .
+
   osx_build_fetch_from_source:
     runs-on: macos-latest
     strategy:
@@ -90,3 +94,7 @@ jobs:
       - name: Run tests
         working-directory: build
         run: cmake --build . --target run_tests_with_junit_report
+
+      - name: Install
+        working-directory: build
+        run: cmake --install .

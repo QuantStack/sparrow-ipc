@@ -50,6 +50,10 @@ jobs:
         run: |
           cmake --build . --config ${{ matrix.build_type }} --target run_tests_with_junit_report
 
+      - name: Install
+        working-directory: build
+        run: cmake --install .
+
   windows_build_fetch_from_source:
     runs-on: windows-latest
     strategy:
@@ -85,6 +89,10 @@ jobs:
       - name: Run tests
         working-directory: build
         run: cmake --build . --config ${{ matrix.build_type }} --target run_tests_with_junit_report
+
+      - name: Install
+        working-directory: build
+        run: cmake --install .
 
       - name: Tests coverage
         if: matrix.build_type == 'Debug'
