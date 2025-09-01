@@ -49,7 +49,7 @@ set(SPARROW_BUILD_SHARED ${SPARROW_IPC_BUILD_SHARED})
 find_package_or_fetch(
     PACKAGE_NAME sparrow
     GIT_REPOSITORY https://github.com/man-group/sparrow.git
-    TAG main
+    TAG 1.1.0
 )
 
 if(NOT TARGET sparrow::sparrow)
