@@ -7,9 +7,12 @@ set(
     include/sparrow_ipc_tests_helpers.hpp
     # TODO move all the files below under src?
     main.cpp
-    test_utils.cpp
-    test_primitive_array_serialization.cpp
+    test_arrow_array.cpp
+    test_arrow_schema.cpp
     test_null_array_serialization.cpp
+    test_primitive_array_serialization.cpp
+    test_primitive_array_with_files.cpp
+    test_utils.cpp
 )
 
 add_executable(${test_target} ${SPARROW_IPC_TESTS_SRC})
@@ -17,7 +20,12 @@ target_link_libraries(${test_target}
     PRIVATE
         sparrow-ipc
         doctest::doctest
+        sparrow::json_reader
 )
+
+target_compile_definitions(${test_target}
+    PRIVATE
+        TESTS_RESOURCES_FILES_PATH="${CMAKE_CURRENT_SOURCE_DIR}/resources/")
 
 if(WIN32)
     add_custom_command(
