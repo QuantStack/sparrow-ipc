@@ -8,7 +8,7 @@ namespace sparrow_ipc
     namespace sp = sparrow;
 
     template <typename T1, typename T2>
-    void compare_metadata(T1& arr1, T2& arr2)
+    void compare_metadata(const T1& arr1, const T2& arr2)
     {
         if (!arr1.metadata().has_value())
         {

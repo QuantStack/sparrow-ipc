@@ -11,7 +11,7 @@ endif()
 
 function(find_package_or_fetch)
     set(options)
-    set(oneValueArgs CONAN_PKG_NAME PACKAGE_NAME VERSION GIT_REPOSITORY TAG)
+    set(oneValueArgs CONAN_PKG_NAME PACKAGE_NAME GIT_REPOSITORY TAG)
     set(multiValueArgs)
     cmake_parse_arguments(PARSE_ARGV 0 arg
         "${options}" "${oneValueArgs}" "${multiValueArgs}"
@@ -48,9 +48,8 @@ endfunction()
 set(SPARROW_BUILD_SHARED ${SPARROW_IPC_BUILD_SHARED})
 find_package_or_fetch(
     PACKAGE_NAME sparrow
-    VERSION 1.0.0
     GIT_REPOSITORY https://github.com/man-group/sparrow.git
-    TAG 1.0.0
+    TAG 1.1.0
 )
 
 if(NOT TARGET sparrow::sparrow)
@@ -62,7 +61,6 @@ set(FLATBUFFERS_BUILD_SHAREDLIB ${SPARROW_IPC_BUILD_SHARED})
 find_package_or_fetch(
     CONAN_PKG_NAME flatbuffers
     PACKAGE_NAME FlatBuffers
-    VERSION v25.2.10
     GIT_REPOSITORY https://github.com/google/flatbuffers.git
     TAG v25.2.10
 )
@@ -75,7 +73,6 @@ unset(FLATBUFFERS_BUILD_TESTS CACHE)
 if(SPARROW_IPC_BUILD_TESTS)
     find_package_or_fetch(
         PACKAGE_NAME doctest
-        VERSION v2.4.12
         GIT_REPOSITORY https://github.com/doctest/doctest.git
         TAG v2.4.12
     )
