@@ -20,4 +20,4 @@ Sparrow-IPC requires a modern C++ compiler supporting C++20:
 | Apple Clang | 16 or higher    |
 | MSVC        | 19.41 or higher |
 
-This software is licensed under the BSD-3-Clause license. See the LICENSE file for details.
+This software is licensed under the BSD-3-Clause license. See the [LICENSE](https://github.com/QuantStack/sparrow-ipc/blob/main/LICENSE) file for details.
