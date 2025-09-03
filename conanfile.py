@@ -18,16 +18,18 @@ class SparrowIPCRecipe(ConanFile):
     topics = ("arrow", "apache arrow", "columnar format", "dataframe", "ipc", "serialization", "deserialization", "flatbuffers")
     package_type = "library"
     settings = "os", "arch", "compiler", "build_type"
-    exports_sources = "include/*", "src/*", "cmake/*", "CMakeLists.txt", "LICENSE"
+    exports_sources = "include/*", "src/*", "cmake/*", "docs/*", "CMakeLists.txt", "LICENSE"
     options = {
         "shared": [True, False],
         "fPIC": [True, False],
         "build_tests": [True, False],
+        "generate_documentation": [True, False],
     }
     default_options = {
         "shared": False,
         "fPIC": True,
         "build_tests": False,
+        "generate_documentation": False,
     }
 
     _flatbuffers_version = "24.12.23"
@@ -48,6 +50,8 @@ class SparrowIPCRecipe(ConanFile):
 
     def build_requirements(self):
         self.tool_requires("cmake/[>=3.28.1 <4.2.0]")
+        if self.options.get_safe("generate_documentation"):
+            self.tool_requires("doxygen/[>=1.9.4 <2.0.0]", options={"enable_app": "True"})
         self.tool_requires(f"flatbuffers/{self._flatbuffers_version}")
 
     @property
@@ -84,6 +88,7 @@ class SparrowIPCRecipe(ConanFile):
         tc = CMakeToolchain(self)
         tc.variables["SPARROW_IPC_BUILD_SHARED"] = self.options.shared
         tc.variables["SPARROW_IPC_BUILD_TESTS"] = self.options.build_tests
+        tc.variables["BUILD_DOCS"] = self.options.generate_documentation
         tc.generate()
 
     def build(self):
