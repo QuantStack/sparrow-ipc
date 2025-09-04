@@ -16,10 +16,12 @@ namespace sparrow_ipc
      */
     template <class T>
         requires std::same_as<T, ArrowArray> || std::same_as<T, ArrowSchema>
-    void release_common_arrow(T& t)
+    void release_common_non_owning_arrow(T& t)
     {
-        using private_data_type = std::
-            conditional_t<std::same_as<T, ArrowArray>, arrow_array_private_data, arrow_schema_private_data>;
+        using private_data_type = std::conditional_t<
+            std::same_as<T, ArrowArray>,
+            non_owning_arrow_array_private_data,
+            non_owning_arrow_schema_private_data>;
         if (t.release == nullptr)
         {
             return;

@@ -2,7 +2,7 @@
 
 namespace sparrow_ipc
 {
-    const void** arrow_array_private_data::buffers_ptrs() noexcept
+    const void** non_owning_arrow_array_private_data::buffers_ptrs() noexcept
     {
         return const_cast<const void**>(reinterpret_cast<void**>(m_buffers_pointers.data()));
     }

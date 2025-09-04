@@ -15,14 +15,9 @@ namespace sparrow_ipc
     {
         return std::ranges::equal(buf, continuation);
     }
-
-    [[nodiscard]] bool is_continuation(std::istream& stream);
-
     template <std::ranges::input_range R>
     [[nodiscard]] bool is_end_of_stream(const R& buf)
     {
         return std::ranges::equal(buf, end_of_stream);
     }
-
-    [[nodiscard]] bool is_end_of_stream(std::istream& stream);
 }

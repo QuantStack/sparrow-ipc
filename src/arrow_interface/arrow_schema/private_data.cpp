@@ -2,7 +2,7 @@
 
 namespace sparrow_ipc
 {
-    arrow_schema_private_data::arrow_schema_private_data(
+    non_owning_arrow_schema_private_data::non_owning_arrow_schema_private_data(
         std::string_view format,
         const char* name,
         std::optional<std::string> metadata
@@ -13,17 +13,17 @@ namespace sparrow_ipc
     {
     }
 
-    const char* arrow_schema_private_data::format_ptr() const noexcept
+    const char* non_owning_arrow_schema_private_data::format_ptr() const noexcept
     {
         return m_format.data();
     }
 
-    const char* arrow_schema_private_data::name_ptr() const noexcept
+    const char* non_owning_arrow_schema_private_data::name_ptr() const noexcept
     {
         return m_name;
     }
 
-    const char* arrow_schema_private_data::metadata_ptr() const noexcept
+    const char* non_owning_arrow_schema_private_data::metadata_ptr() const noexcept
     {
         return m_metadata.has_value() ? m_metadata->c_str() : nullptr;
     }

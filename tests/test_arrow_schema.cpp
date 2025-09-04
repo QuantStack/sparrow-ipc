@@ -66,7 +66,7 @@ TEST_SUITE("C Data Interface")
 {
     TEST_CASE("ArrowSchema")
     {
-        SUBCASE("make_schema_constructor")
+        SUBCASE("make_non_owning_arrow_schema")
         {
             ArrowSchema** children = new ArrowSchema*[2];
             children[0] = new ArrowSchema();
@@ -79,7 +79,7 @@ TEST_SUITE("C Data Interface")
             dictionnary->name = "dictionary";
             const std::string format = "format";
             const std::string name = "name";
-            auto schema = sparrow_ipc::make_arrow_schema(
+            auto schema = sparrow_ipc::make_non_owning_arrow_schema(
                 format.data(),
                 name.data(),
                 sparrow_ipc::metadata_sample_opt,
@@ -102,15 +102,16 @@ TEST_SUITE("C Data Interface")
             CHECK_EQ(schema.children[0], children_1_ptr);
             CHECK_EQ(schema.children[1], children_2_ptr);
             CHECK_EQ(schema.dictionary, dictionnary);
-            const bool is_release_arrow_schema = schema.release == &sparrow_ipc::release_arrow_schema;
+            const bool is_release_arrow_schema = schema.release
+                                                 == &sparrow_ipc::release_non_owning_arrow_schema;
             CHECK(is_release_arrow_schema);
             CHECK_NE(schema.private_data, nullptr);
             schema.release(&schema);
         }
 
-        SUBCASE("make_schema_constructor no children, no dictionary, no name and metadata")
+        SUBCASE("make_non_owning_arrow_schema no children, no dictionary, no name and metadata")
         {
-            auto schema = sparrow_ipc::make_arrow_schema(
+            auto schema = sparrow_ipc::make_non_owning_arrow_schema(
                 "format",
                 nullptr,
                 std::optional<std::vector<sparrow::metadata_pair>>{},
@@ -129,7 +130,8 @@ TEST_SUITE("C Data Interface")
             CHECK_EQ(schema.n_children, 0);
             CHECK_EQ(schema.children, nullptr);
             CHECK_EQ(schema.dictionary, nullptr);
-            const bool is_release_arrow_schema = schema.release == &sparrow_ipc::release_arrow_schema;
+            const bool is_release_arrow_schema = schema.release
+                                                 == &sparrow_ipc::release_non_owning_arrow_schema;
             CHECK(is_release_arrow_schema);
             CHECK_NE(schema.private_data, nullptr);
             schema.release(&schema);
@@ -141,7 +143,7 @@ TEST_SUITE("C Data Interface")
             children[0] = new ArrowSchema();
             children[1] = new ArrowSchema();
 
-            auto schema = sparrow_ipc::make_arrow_schema(
+            auto schema = sparrow_ipc::make_non_owning_arrow_schema(
                 "format",
                 "name",
                 sparrow_ipc::metadata_sample_opt,
@@ -165,7 +167,7 @@ TEST_SUITE("C Data Interface")
 
         SUBCASE("ArrowSchema release no children, no dictionary, no name and metadata")
         {
-            auto schema = sparrow_ipc::make_arrow_schema(
+            auto schema = sparrow_ipc::make_non_owning_arrow_schema(
                 "format",
                 nullptr,
                 std::optional<std::vector<sparrow::metadata_pair>>{},
@@ -191,7 +193,7 @@ TEST_SUITE("C Data Interface")
         {
             auto children = new ArrowSchema*[2];
             children[0] = new ArrowSchema();
-            *children[0] = sparrow_ipc::make_arrow_schema(
+            *children[0] = sparrow_ipc::make_non_owning_arrow_schema(
                 "format",
                 "child1",
                 sparrow_ipc::metadata_sample_opt,
@@ -201,7 +203,7 @@ TEST_SUITE("C Data Interface")
                 nullptr
             );
             children[1] = new ArrowSchema();
-            *children[1] = sparrow_ipc::make_arrow_schema(
+            *children[1] = sparrow_ipc::make_non_owning_arrow_schema(
                 "format",
                 "child2",
                 sparrow_ipc::metadata_sample_opt,
@@ -212,7 +214,7 @@ TEST_SUITE("C Data Interface")
             );
 
             auto dictionary = new ArrowSchema();
-            *dictionary = sparrow_ipc::make_arrow_schema(
+            *dictionary = sparrow_ipc::make_non_owning_arrow_schema(
                 "format",
                 "dictionary",
                 sparrow_ipc::metadata_sample_opt,
@@ -221,12 +223,12 @@ TEST_SUITE("C Data Interface")
                 nullptr,
                 nullptr
             );
-            auto schema = sparrow_ipc::make_arrow_schema(
+            auto schema = sparrow_ipc::make_non_owning_arrow_schema(
                 "format",
                 "name",
                 sparrow_ipc::metadata_sample_opt,
                 std::unordered_set<sparrow::ArrowFlag>{sparrow::ArrowFlag::DICTIONARY_ORDERED},
-                0,
+                2,
                 children,
                 dictionary
             );

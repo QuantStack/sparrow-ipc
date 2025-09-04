@@ -7,7 +7,7 @@
 
 namespace sparrow_ipc
 {
-    [[nodiscard]] ArrowArray make_arrow_array(
+    [[nodiscard]] ArrowArray make_non_owning_arrow_array(
         int64_t length,
         int64_t null_count,
         int64_t offset,
@@ -17,9 +17,9 @@ namespace sparrow_ipc
         ArrowArray* dictionary
     );
 
-    void release_arrow_array(ArrowArray* array);
+    void release_non_owning_arrow_array(ArrowArray* array);
 
-    void fill_arrow_array(
+    void fill_non_owning_arrow_array(
         ArrowArray& array,
         int64_t length,
         int64_t null_count,

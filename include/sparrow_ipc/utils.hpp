@@ -17,5 +17,4 @@ namespace sparrow_ipc::utils
     // This function maps a sparrow data type to the corresponding Flatbuffers type
     SPARROW_IPC_API std::pair<org::apache::arrow::flatbuf::Type, flatbuffers::Offset<void>>
     get_flatbuffer_type(flatbuffers::FlatBufferBuilder& builder, std::string_view format_str);
-
 }

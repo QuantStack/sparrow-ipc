@@ -3,6 +3,7 @@
 #include <stdexcept>
 
 #include "sparrow_ipc/magic_values.hpp"
+#include "sparrow_ipc/utils.hpp"
 
 namespace sparrow_ipc
 {
@@ -73,8 +74,8 @@ namespace sparrow_ipc
     std::span<const uint8_t> EncapsulatedMessage::body() const
     {
         const size_t offset = sizeof(uint32_t) * 2  // 4 bytes continuation + 4 bytes metadata size
-                      + metadata_length();
-        const size_t padded_offset = (offset + 7) & ~7;  // Round up to 8-byte boundary
+                              + metadata_length();
+        const size_t padded_offset = utils::align_to_8(offset);  // Round up to 8-byte boundary
         const uint8_t* body_ptr = m_buf_ptr + padded_offset;
         return {body_ptr, body_length()};
     }
@@ -82,8 +83,8 @@ namespace sparrow_ipc
     size_t EncapsulatedMessage::total_length() const
     {
         const size_t offset = sizeof(uint32_t) * 2  // 4 bytes continuation + 4 bytes metadata size
-                      + metadata_length();
-        const size_t padded_offset = (offset + 7) & ~7;  // Round up to 8-byte boundary
+                              + metadata_length();
+        const size_t padded_offset = utils::align_to_8(offset);  // Round up to 8-byte boundary
         return padded_offset + body_length();
     }
 

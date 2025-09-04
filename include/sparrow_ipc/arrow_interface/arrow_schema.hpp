@@ -11,10 +11,10 @@
 
 namespace sparrow_ipc
 {
-    void release_arrow_schema(ArrowSchema* schema);
+    void release_non_owning_arrow_schema(ArrowSchema* schema);
 
     template <sparrow::input_metadata_container M = std::vector<sparrow::metadata_pair>>
-    void fill_arrow_schema(
+    void fill_non_owning_arrow_schema(
         ArrowSchema& schema,
         std::string_view format,
         const char* name,
@@ -41,19 +41,19 @@ namespace sparrow_ipc
                                                         )
                                                       : std::nullopt;
 
-        schema.private_data = new arrow_schema_private_data(format, name, std::move(metadata_str));
+        schema.private_data = new non_owning_arrow_schema_private_data(format, name, std::move(metadata_str));
 
-        const auto private_data = static_cast<arrow_schema_private_data*>(schema.private_data);
+        const auto private_data = static_cast<non_owning_arrow_schema_private_data*>(schema.private_data);
         schema.format = private_data->format_ptr();
         schema.name = private_data->name_ptr();
         schema.metadata = private_data->metadata_ptr();
         schema.children = children;
         schema.dictionary = dictionary;
-        schema.release = release_arrow_schema;
+        schema.release = release_non_owning_arrow_schema;
     }
 
     template <sparrow::input_metadata_container M = std::vector<sparrow::metadata_pair>>
-    [[nodiscard]] ArrowSchema make_arrow_schema(
+    [[nodiscard]] ArrowSchema make_non_owning_arrow_schema(
         std::string_view format,
         const char* name,
         std::optional<M> metadata,
@@ -64,7 +64,7 @@ namespace sparrow_ipc
     )
     {
         ArrowSchema schema{};
-        fill_arrow_schema(schema, format, name, metadata, flags, children_count, children, dictionary);
+        fill_non_owning_arrow_schema(schema, format, name, metadata, flags, children_count, children, dictionary);
         return schema;
     }
 }

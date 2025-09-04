@@ -10,22 +10,22 @@
 
 namespace sparrow_ipc
 {
-    void release_arrow_array(ArrowArray* array)
+    void release_non_owning_arrow_array(ArrowArray* array)
     {
         SPARROW_ASSERT_FALSE(array == nullptr)
-        SPARROW_ASSERT_TRUE(array->release == std::addressof(release_arrow_array))
+        SPARROW_ASSERT_TRUE(array->release == std::addressof(release_non_owning_arrow_array))
 
-        release_common_arrow(*array);
+        release_common_non_owning_arrow(*array);
         if (array->private_data != nullptr)
         {
-            const auto private_data = static_cast<arrow_array_private_data*>(array->private_data);
+            const auto private_data = static_cast<non_owning_arrow_array_private_data*>(array->private_data);
             delete private_data;
             array->private_data = nullptr;
         }
         array->buffers = nullptr;  // The buffers were deleted with the private data
     }
 
-    void fill_arrow_array(
+    void fill_non_owning_arrow_array(
         ArrowArray& array,
         int64_t length,
         int64_t null_count,
@@ -44,16 +44,16 @@ namespace sparrow_ipc
         array.null_count = null_count;
         array.offset = offset;
         array.n_buffers = static_cast<int64_t>(buffers.size());
-        array.private_data = new arrow_array_private_data(std::move(buffers));
-        const auto private_data = static_cast<arrow_array_private_data*>(array.private_data);
+        array.private_data = new non_owning_arrow_array_private_data(std::move(buffers));
+        const auto private_data = static_cast<non_owning_arrow_array_private_data*>(array.private_data);
         array.buffers = private_data->buffers_ptrs();
         array.n_children = static_cast<int64_t>(children_count);
         array.children = children;
         array.dictionary = dictionary;
-        array.release = release_arrow_array;
+        array.release = release_non_owning_arrow_array;
     }
 
-    ArrowArray make_arrow_array(
+    ArrowArray make_non_owning_arrow_array(
         int64_t length,
         int64_t null_count,
         int64_t offset,
@@ -64,8 +64,16 @@ namespace sparrow_ipc
     )
     {
         ArrowArray array{};
-        fill_arrow_array(array, length, null_count, offset, std::move(buffers), children_count, children, dictionary);
+        fill_non_owning_arrow_array(
+            array,
+            length,
+            null_count,
+            offset,
+            std::move(buffers),
+            children_count,
+            children,
+            dictionary
+        );
         return array;
     }
-
 }

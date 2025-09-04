@@ -6,11 +6,15 @@
 
 namespace sparrow_ipc
 {
-    class arrow_schema_private_data
+    class non_owning_arrow_schema_private_data
     {
     public:
 
-        arrow_schema_private_data(std::string_view format, const char* name, std::optional<std::string> metadata);
+        non_owning_arrow_schema_private_data(
+            std::string_view format,
+            const char* name,
+            std::optional<std::string> metadata
+        );
 
         [[nodiscard]] const char* format_ptr() const noexcept;
         [[nodiscard]] const char* name_ptr() const noexcept;
