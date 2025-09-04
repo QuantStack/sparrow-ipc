@@ -44,6 +44,9 @@ endif()
 OPTION(SPARROW_IPC_BUILD_TESTS "Build sparrow-ipc test suite" OFF)
 MESSAGE(STATUS "🔧 Build tests: ${SPARROW_IPC_BUILD_TESTS}")
 
+OPTION(BUILD_DOCS  "Build sparrow-ipc documentation" OFF)
+MESSAGE(STATUS "🔧 Build docs: ${BUILD_DOCS}")
+
 set(SPARROW_IPC_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
 set(SPARROW_IPC_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
@@ -153,8 +156,17 @@ target_link_libraries(sparrow-ipc
 
 add_dependencies(sparrow-ipc generate_flatbuffers_headers)
 
+# Tests
+# =====
 if(SPARROW_IPC_BUILD_TESTS)
     message(STATUS "🧪 Create tests targets")
     enable_testing()
     add_subdirectory(tests)
+endif()
+
+# Docs
+# ====
+if(BUILD_DOCS)
+    message(STATUS "📚 Create docs targets")
+    add_subdirectory(docs)
 endif()
