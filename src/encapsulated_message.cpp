@@ -72,16 +72,19 @@ namespace sparrow_ipc
 
     std::span<const uint8_t> EncapsulatedMessage::body() const
     {
-        const uint8_t* body_ptr = m_buf_ptr + (sizeof(uint32_t) * 2)  // 4 bytes continuation + 4 bytes
-                                                                      // metadata size
-                                  + metadata_length();
+        const size_t offset = sizeof(uint32_t) * 2  // 4 bytes continuation + 4 bytes metadata size
+                      + metadata_length();
+        const size_t padded_offset = (offset + 7) & ~7;  // Round up to 8-byte boundary
+        const uint8_t* body_ptr = m_buf_ptr + padded_offset;
         return {body_ptr, body_length()};
     }
 
     size_t EncapsulatedMessage::total_length() const
     {
-        return sizeof(uint32_t) * 2  // 4 bytes continuation + 4 bytes metadata size
-               + metadata_length() + body_length();
+        const size_t offset = sizeof(uint32_t) * 2  // 4 bytes continuation + 4 bytes metadata size
+                      + metadata_length();
+        const size_t padded_offset = (offset + 7) & ~7;  // Round up to 8-byte boundary
+        return padded_offset + body_length();
     }
 
     std::span<const uint8_t> EncapsulatedMessage::as_span() const

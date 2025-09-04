@@ -19,6 +19,9 @@ const std::filesystem::path tests_resources_files_path = TESTS_RESOURCES_FILES_P
 
 const std::vector<std::filesystem::path> files_paths_to_test = {
     tests_resources_files_path / "generated_primitive",
+    tests_resources_files_path / "generated_primitive_large_offsets",
+    tests_resources_files_path / "generated_primitive_zerolength",
+    tests_resources_files_path / "generated_primitive_no_batches"
 };
 
 size_t get_number_of_batches(const std::filesystem::path& json_path)
@@ -42,15 +45,15 @@ nlohmann::json load_json_file(const std::filesystem::path& json_path)
     return nlohmann::json::parse(json_file);
 }
 
-TEST_SUITE("integration tests")
+TEST_SUITE("Integration tests")
 {
-    TEST_CASE("POUET")
+    TEST_CASE("Compare stream deserialization with JSON deserialization")
     {
         for (const auto& file_path : files_paths_to_test)
         {
             std::filesystem::path json_path = file_path;
             json_path.replace_extension(".json");
-            const std::string test_name = "Testing " + json_path.filename().string();
+            const std::string test_name = "Testing " + file_path.filename().string();
             SUBCASE(test_name.c_str())
             {
                 // Load the JSON file
@@ -91,7 +94,8 @@ TEST_SUITE("integration tests")
                     {
                         for(size_t z = 0 ; z < record_batches_from_stream[i].get_column(y).size(); z++)
                         {
-                            INFO("Comparing batch " << i << ", column " << y << ", row " << z);
+                            const auto col_name = record_batches_from_stream[i].get_column(y).name().value_or("NA");
+                            INFO("Comparing batch " << i << ", column " << y << " named :"<< col_name <<" , row " << z);
                             REQUIRE_EQ(record_batches_from_stream[i].get_column(y).size(), record_batches_from_json[i].get_column(y).size());
                             CHECK_EQ(record_batches_from_stream[i].get_column(y).at(z), record_batches_from_json[i].get_column(y).at(z));
                         }

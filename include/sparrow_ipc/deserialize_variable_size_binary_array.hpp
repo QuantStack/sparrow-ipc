@@ -26,19 +26,24 @@ namespace sparrow_ipc
         ArrowSchema schema = make_arrow_schema(format, name.data(), metadata, std::nullopt, 0, nullptr, nullptr);
 
         const auto bitmap_buffer_metadata = record_batch.buffers()->Get(buffer_index++);
-        auto bitmap_ptr = const_cast<uint8_t*>(body.data() + bitmap_buffer_metadata->offset());
+        uint8_t* bitmap_ptr = nullptr;
+        int64_t null_count = 0;
+        
+        // Check if validity buffer is present (length > 0 for nullable fields)
+        if (bitmap_buffer_metadata->length() > 0) {
+            bitmap_ptr = const_cast<uint8_t*>(body.data() + bitmap_buffer_metadata->offset());
+            const sparrow::dynamic_bitset_view<const std::uint8_t> bitmap_view{bitmap_ptr, static_cast<size_t>(record_batch.length())};
+            null_count = bitmap_view.null_count();
+        }
 
         const auto offset_metadata = record_batch.buffers()->Get(buffer_index++);
         auto offset_ptr = const_cast<uint8_t*>(body.data() + offset_metadata->offset());
-        const size_t offset_size = offset_metadata->length();
         
         const auto buffer_metadata = record_batch.buffers()->Get(buffer_index++);
         auto buffer_ptr = const_cast<uint8_t*>(body.data() + buffer_metadata->offset());
-        const size_t buffer_size = buffer_metadata->length();
 
-        const sparrow::dynamic_bitset_view<const std::uint8_t> bitmap_view{bitmap_ptr, static_cast<size_t>(record_batch.length())};
         std::vector<std::uint8_t*> buffers = {bitmap_ptr, offset_ptr, buffer_ptr};
-        ArrowArray array = make_arrow_array(record_batch.length(), bitmap_view.null_count(), 0, std::move(buffers), 0, nullptr, nullptr);
+        ArrowArray array = make_arrow_array(record_batch.length(), null_count, 0, std::move(buffers), 0, nullptr, nullptr);
 
         sparrow::arrow_proxy ap{std::move(array), std::move(schema)};
         return T{std::move(ap)};

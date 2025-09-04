@@ -23,17 +23,24 @@ namespace sparrow_ipc
         const std::string format = "w:" + std::to_string(byte_width);
         ArrowSchema schema = make_arrow_schema(format, name.data(), metadata, std::nullopt, 0, nullptr, nullptr);
 
+        const auto bitmap_buffer_metadata = record_batch.buffers()->Get(buffer_index++);
+
+        uint8_t* bitmap_ptr = nullptr;
+        int64_t null_count = 0;
+        
+        // Check if validity buffer is present (length > 0 for nullable fields)
+        if (bitmap_buffer_metadata->length() > 0) {
+            bitmap_ptr = const_cast<uint8_t*>(body.data() + bitmap_buffer_metadata->offset());
+            const sparrow::dynamic_bitset_view<const std::uint8_t> bitmap_view{bitmap_ptr, static_cast<size_t>(record_batch.length())};
+            null_count = bitmap_view.null_count();
+        }
+
         const auto buffer_metadata = record_batch.buffers()->Get(buffer_index++);
         auto buffer_ptr = const_cast<uint8_t*>(body.data() + buffer_metadata->offset());
-        const size_t buffer_size = buffer_metadata->length();
+        
+        std::vector<std::uint8_t*> buffers = {bitmap_ptr, buffer_ptr};
 
-        const auto bitmap_buffer_metadata = record_batch.buffers()->Get(buffer_index++);
-        auto bitmap_ptr = const_cast<uint8_t*>(body.data() + bitmap_buffer_metadata->offset());
-
-        const sparrow::dynamic_bitset_view<const std::uint8_t> bitmap_view{bitmap_ptr, static_cast<size_t>(record_batch.length())};
-        std::vector<std::uint8_t*> buffers = {buffer_ptr, bitmap_ptr};
-
-        ArrowArray array = make_arrow_array(record_batch.length(), bitmap_view.null_count(), 0, std::move(buffers), 0, nullptr, nullptr);
+        ArrowArray array = make_arrow_array(record_batch.length(), null_count, 0, std::move(buffers), 0, nullptr, nullptr);
 
         sparrow::arrow_proxy ap{std::move(array), std::move(schema)};
         return sparrow::fixed_width_binary_array{std::move(ap)};
