@@ -3,6 +3,8 @@
 #include <cstdint>
 #include <vector>
 
+#include "sparrow_ipc/config/config.hpp"
+
 namespace sparrow_ipc
 {
     class non_owning_arrow_array_private_data
@@ -14,7 +16,7 @@ namespace sparrow_ipc
         {
         }
 
-        [[nodiscard]] const void** buffers_ptrs() noexcept;
+        [[nodiscard]] SPARROW_IPC_API const void** buffers_ptrs() noexcept;
 
     private:
 

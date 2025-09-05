@@ -5,21 +5,23 @@
 #include <optional>
 #include <string>
 
+#include "sparrow_ipc/config/config.hpp"
+
 namespace sparrow_ipc
 {
     class non_owning_arrow_schema_private_data
     {
     public:
 
-        non_owning_arrow_schema_private_data(
+        SPARROW_IPC_API non_owning_arrow_schema_private_data(
             std::string_view format,
             const char* name,
             std::optional<std::string> metadata
         );
 
-        [[nodiscard]] const char* format_ptr() const noexcept;
-        [[nodiscard]] const char* name_ptr() const noexcept;
-        [[nodiscard]] const char* metadata_ptr() const noexcept;
+        [[nodiscard]] SPARROW_IPC_API const char* format_ptr() const noexcept;
+        [[nodiscard]] SPARROW_IPC_API const char* name_ptr() const noexcept;
+        [[nodiscard]] SPARROW_IPC_API const char* metadata_ptr() const noexcept;
 
     private:
 
