@@ -47,6 +47,9 @@ MESSAGE(STATUS "🔧 Build tests: ${SPARROW_IPC_BUILD_TESTS}")
 OPTION(BUILD_DOCS  "Build sparrow-ipc documentation" OFF)
 MESSAGE(STATUS "🔧 Build docs: ${BUILD_DOCS}")
 
+OPTION(ENABLE_COVERAGE "Enable test coverage" OFF)
+MESSAGE(STATUS "🔧 Enable coverage: ${ENABLE_COVERAGE}")
+
 set(SPARROW_IPC_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
 set(SPARROW_IPC_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
@@ -156,6 +159,10 @@ target_link_libraries(sparrow-ipc
 
 add_dependencies(sparrow-ipc generate_flatbuffers_headers)
 
+if(ENABLE_COVERAGE)
+    include(code_coverage)
+    enable_coverage(sparrow-ipc)
+endif()
 # Tests
 # =====
 if(SPARROW_IPC_BUILD_TESTS)
