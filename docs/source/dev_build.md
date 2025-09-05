@@ -10,6 +10,7 @@ List of CMake options:
 - `BUILD_DOCS`: Build the documentation (default: OFF)
 - `SPARROW_IPC_BUILD_TESTS`: Build the tests (default: OFF)
 - `SPARROW_IPC_BUILD_SHARED`: Build sparrow-ipc as a shared library (default: ON)
+- `SPARROW_IPC_ENABLE_COVERAGE`: Enable coverage reporting (default: OFF)
 
 ## Building
 
