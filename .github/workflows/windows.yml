@@ -48,6 +48,7 @@ jobs:
       - name: Run tests
         working-directory: build
         run: |
+          export CTEST_OUTPUT_ON_FAILURE=1
           cmake --build . --config ${{ matrix.build_type }} --target run_tests
 
   windows_build_fetch_from_source:
