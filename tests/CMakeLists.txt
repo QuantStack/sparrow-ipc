@@ -23,12 +23,6 @@ target_link_libraries(${test_target}
         arrow-testing-data
 )
 
-set(APACHE_ARROW_TESTING_DIR $<TARGET_PROPERTY:arrow-testing,INTERFACE_INCLUDE_DIRECTORIES>)
-
-target_compile_definitions(${test_target}
-    PRIVATE
-        TESTS_RESOURCES_FILES_PATH="${CMAKE_CURRENT_SOURCE_DIR}/resources/")
-
 if(WIN32)
     add_custom_command(
         TARGET ${test_target} POST_BUILD
