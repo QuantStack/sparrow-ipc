@@ -9,7 +9,7 @@ namespace sparrow_ipc
     {
     public:
 
-        EncapsulatedMessage(const uint8_t* buf_ptr);
+        EncapsulatedMessage(std::span<const uint8_t> data);
 
         [[nodiscard]] const org::apache::arrow::flatbuf::Message* flat_buffer_message() const;
 
@@ -36,8 +36,8 @@ namespace sparrow_ipc
 
     private:
 
-        const uint8_t* m_buf_ptr;
+        std::span<const uint8_t> m_data;
     };
 
-    [[nodiscard]] EncapsulatedMessage create_encapsulated_message(const uint8_t* buf_ptr);
+    [[nodiscard]] EncapsulatedMessage create_encapsulated_message(std::span<const uint8_t> buf_ptr);
 }

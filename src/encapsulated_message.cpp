@@ -7,21 +7,21 @@
 
 namespace sparrow_ipc
 {
-    EncapsulatedMessage::EncapsulatedMessage(const uint8_t* buf_ptr)
-        : m_buf_ptr(buf_ptr)
+    EncapsulatedMessage::EncapsulatedMessage(std::span<const uint8_t> data)
+        : m_data(data)
     {
     }
 
     const org::apache::arrow::flatbuf::Message* EncapsulatedMessage::flat_buffer_message() const
     {
-        const uint8_t* message_ptr = m_buf_ptr + (sizeof(uint32_t) * 2);  // 4 bytes continuation + 4 bytes
-                                                                          // metadata size
+        const uint8_t* message_ptr = m_data.data() + (sizeof(uint32_t) * 2);  // 4 bytes continuation + 4
+                                                                              // bytes metadata size
         return org::apache::arrow::flatbuf::GetMessage(message_ptr);
     }
 
     size_t EncapsulatedMessage::metadata_length() const
     {
-        return *(reinterpret_cast<const uint32_t*>(m_buf_ptr + sizeof(uint32_t)));
+        return *(reinterpret_cast<const uint32_t*>(m_data.data() + sizeof(uint32_t)));
     }
 
     [[nodiscard]] std::variant<
@@ -76,8 +76,7 @@ namespace sparrow_ipc
         const size_t offset = sizeof(uint32_t) * 2  // 4 bytes continuation + 4 bytes metadata size
                               + metadata_length();
         const size_t padded_offset = utils::align_to_8(offset);  // Round up to 8-byte boundary
-        const uint8_t* body_ptr = m_buf_ptr + padded_offset;
-        return {body_ptr, body_length()};
+        return m_data.subspan(padded_offset, body_length());
     }
 
     size_t EncapsulatedMessage::total_length() const
@@ -90,20 +89,20 @@ namespace sparrow_ipc
 
     std::span<const uint8_t> EncapsulatedMessage::as_span() const
     {
-        return {m_buf_ptr, total_length()};
+        return m_data;
     }
 
-    EncapsulatedMessage create_encapsulated_message(const uint8_t* buf_ptr)
+    EncapsulatedMessage create_encapsulated_message(std::span<const uint8_t> data)
     {
-        if (!buf_ptr)
+        if (!data.size() || data.size() < 8)
         {
-            throw std::invalid_argument("Buffer pointer cannot be null.");
+            throw std::invalid_argument("Buffer is too small to contain a valid message.");
         }
-        const std::span<const uint8_t> continuation_span(buf_ptr, 4);
+        const std::span<const uint8_t> continuation_span = data.subspan(0, 4);
         if (!is_continuation(continuation_span))
         {
             throw std::runtime_error("Buffer starts with continuation bytes, expected a valid message.");
         }
-        return {buf_ptr};
+        return {data};
     }
 }

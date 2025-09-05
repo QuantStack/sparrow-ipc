@@ -84,21 +84,26 @@ TEST_SUITE("Integration tests")
                 stream_file.close();
 
                 // Process the stream file
-                const auto record_batches_from_stream = sparrow_ipc::deserialize_stream(stream_data.data());
+                const auto record_batches_from_stream = sparrow_ipc::deserialize_stream(
+                    std::span<const uint8_t>(stream_data)
+                );
 
                 // Compare record batches
                 REQUIRE_EQ(record_batches_from_stream.size(), record_batches_from_json.size());
                 for (size_t i = 0; i < record_batches_from_stream.size(); ++i)
                 {
-                    for(size_t y = 0; y < record_batches_from_stream[i].nb_columns(); y++)
+                    for (size_t y = 0; y < record_batches_from_stream[i].nb_columns(); y++)
                     {
                         const auto& column_stream = record_batches_from_stream[i].get_column(y);
                         const auto& column_json = record_batches_from_json[i].get_column(y);
                         REQUIRE_EQ(column_stream.size(), column_json.size());
-                        for(size_t z = 0 ; z < column_json.size(); z++)
+                        for (size_t z = 0; z < column_json.size(); z++)
                         {
                             const auto col_name = column_stream.name().value_or("NA");
-                            INFO("Comparing batch " << i << ", column " << y << " named :"<< col_name <<" , row " << z);
+                            INFO(
+                                "Comparing batch " << i << ", column " << y << " named :" << col_name
+                                                   << " , row " << z
+                            );
                             const auto& column_stream_value = column_stream[z];
                             const auto& column_json_value = column_json[z];
                             CHECK_EQ(column_stream_value, column_json_value);

@@ -11,15 +11,15 @@
 namespace sparrow_ipc
 {
     void deserialize_schema_message(
-        const uint8_t* buf_ptr,
+        std::span<const uint8_t> data,
         size_t& current_offset,
         std::optional<std::string>& name,
         std::optional<std::vector<sparrow::metadata_pair>>& metadata
     )
     {
-        const uint32_t schema_meta_len = *(reinterpret_cast<const uint32_t*>(buf_ptr + current_offset));
+        const uint32_t schema_meta_len = *(reinterpret_cast<const uint32_t*>(data.data() + current_offset));
         current_offset += sizeof(uint32_t);
-        const auto schema_message = org::apache::arrow::flatbuf::GetMessage(buf_ptr + current_offset);
+        const auto schema_message = org::apache::arrow::flatbuf::GetMessage(data.data() + current_offset);
         if (schema_message->header_type() != org::apache::arrow::flatbuf::MessageHeader::Schema)
         {
             throw std::runtime_error("Expected Schema message at the start of the buffer.");
@@ -56,10 +56,10 @@ namespace sparrow_ipc
     }
 
     const org::apache::arrow::flatbuf::RecordBatch*
-    deserialize_record_batch_message(const uint8_t* buf_ptr, size_t& current_offset)
+    deserialize_record_batch_message(std::span<const uint8_t> data, size_t& current_offset)
     {
         current_offset += sizeof(uint32_t);
-        const auto batch_message = org::apache::arrow::flatbuf::GetMessage(buf_ptr + current_offset);
+        const auto batch_message = org::apache::arrow::flatbuf::GetMessage(data.data() + current_offset);
         if (batch_message->header_type() != org::apache::arrow::flatbuf::MessageHeader::RecordBatch)
         {
             throw std::runtime_error("Expected RecordBatch message, but got a different type.");
@@ -225,7 +225,7 @@ namespace sparrow_ipc
         return arrays;
     }
 
-    std::vector<sparrow::record_batch> deserialize_stream(const uint8_t* buf_ptr)
+    std::vector<sparrow::record_batch> deserialize_stream(std::span<const uint8_t> data)
     {
         const org::apache::arrow::flatbuf::Schema* schema = nullptr;
         std::vector<sparrow::record_batch> record_batches;
@@ -234,7 +234,7 @@ namespace sparrow_ipc
         std::vector<sparrow::data_type> field_types;
         do
         {
-            const EncapsulatedMessage encapsulated_message = create_encapsulated_message(buf_ptr);
+            const EncapsulatedMessage encapsulated_message = create_encapsulated_message(data);
             const org::apache::arrow::flatbuf::Message* message = encapsulated_message.flat_buffer_message();
             switch (message->header_type())
             {
@@ -280,8 +280,8 @@ namespace sparrow_ipc
                     throw std::runtime_error("Unknown message header type.");
             }
             const size_t encapsulated_message_total_length = encapsulated_message.total_length();
-            buf_ptr += encapsulated_message_total_length;
-            if (is_end_of_stream(std::span<const uint8_t>{buf_ptr, 8}))
+            data = data.subspan(encapsulated_message_total_length);
+            if (is_end_of_stream(data.subspan(0, 8)))
             {
                 break;
             }
