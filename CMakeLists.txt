@@ -44,8 +44,8 @@ endif()
 OPTION(SPARROW_IPC_BUILD_TESTS "Build sparrow-ipc test suite" OFF)
 MESSAGE(STATUS "🔧 Build tests: ${SPARROW_IPC_BUILD_TESTS}")
 
-OPTION(BUILD_DOCS  "Build sparrow-ipc documentation" OFF)
-MESSAGE(STATUS "🔧 Build docs: ${BUILD_DOCS}")
+OPTION(SPARROW_IPC_BUILD_DOCS  "Build sparrow-ipc documentation" OFF)
+MESSAGE(STATUS "🔧 Build docs: ${SPARROW_IPC_BUILD_DOCS}")
 
 # Code coverage
 # =============
@@ -175,7 +175,7 @@ endif()
 
 # Docs
 # ====
-if(BUILD_DOCS)
+if(SPARROW_IPC_BUILD_DOCS)
     message(STATUS "📚 Create docs targets")
     add_subdirectory(docs)
 endif()

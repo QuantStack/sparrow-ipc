@@ -88,7 +88,7 @@ class SparrowIPCRecipe(ConanFile):
         tc = CMakeToolchain(self)
         tc.variables["SPARROW_IPC_BUILD_SHARED"] = self.options.shared
         tc.variables["SPARROW_IPC_BUILD_TESTS"] = self.options.build_tests
-        tc.variables["BUILD_DOCS"] = self.options.generate_documentation
+        tc.variables["SPARROW_IPC_BUILD_DOCS"] = self.options.generate_documentation
         tc.generate()
 
     def build(self):
