@@ -3,20 +3,17 @@
 #include <string_view>
 #include <vector>
 
-#include "doctest/doctest.h"
-#include "sparrow.hpp"
+#include <doctest/doctest.h>
+#include <sparrow.hpp>
 
-#include "serialize_primitive_array.hpp"
+#include "sparrow_ipc/serialize_primitive_array.hpp"
 #include "sparrow_ipc_tests_helpers.hpp"
 
 namespace sparrow_ipc
 {
     namespace sp = sparrow;
 
-    using testing_types = std::tuple<
-        int,
-        float,
-        double>;
+    using testing_types = std::tuple<int, float, double>;
 
     template <typename T>
     void compare_bitmap(const sp::primitive_array<T>& pa1, const sp::primitive_array<T>& pa2)
@@ -45,7 +42,8 @@ namespace sparrow_ipc
 
     TEST_CASE_TEMPLATE_DEFINE("Serialize and Deserialize primitive_array", T, primitive_array_types)
     {
-        auto create_primitive_array = []() -> sp::primitive_array<T> {
+        auto create_primitive_array = []() -> sp::primitive_array<T>
+        {
             if constexpr (std::is_same_v<T, int>)
             {
                 return {10, 20, 30, 40, 50};
@@ -83,9 +81,9 @@ namespace sparrow_ipc
         const sp::u8_buffer<int> data_buffer = {100, 200, 300, 400, 500};
 
         // Validity bitmap: 100 (valid), 200 (valid), 300 (null), 400 (valid), 500 (null)
-        sp::validity_bitmap validity(5, true); // All valid initially
-        validity.set(2, false); // Set index 2 to null
-        validity.set(4, false); // Set index 4 to null
+        sp::validity_bitmap validity(5, true);  // All valid initially
+        validity.set(2, false);                 // Set index 2 to null
+        validity.set(4, false);                 // Set index 4 to null
 
         sp::primitive_array<int> ar(std::move(data_buffer), std::move(validity));
 
@@ -107,15 +105,12 @@ namespace sparrow_ipc
         const sp::validity_bitmap validity(3, true);
 
         // Custom metadata
-        const std::vector<sp::metadata_pair> metadata = {
-            {"key1", "value1"},
-            {"key2", "value2"}
-        };
+        const std::vector<sp::metadata_pair> metadata = {{"key1", "value1"}, {"key2", "value2"}};
 
         sp::primitive_array<int> ar(
             std::move(data_buffer),
             std::move(validity),
-            "my_named_array", // name
+            "my_named_array",  // name
             std::make_optional(std::vector<sp::metadata_pair>{{"key1", "value1"}, {"key2", "value2"}})
         );
 

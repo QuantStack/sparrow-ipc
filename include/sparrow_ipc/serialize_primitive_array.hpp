@@ -2,6 +2,9 @@
 
 #include <cstring>
 
+#include <sparrow/primitive_array.hpp>
+
+#include "deserialize.hpp"
 #include "serialize.hpp"
 #include "utils.hpp"
 
@@ -50,18 +53,22 @@ namespace sparrow_ipc
     }
 
     template <typename T>
-    sparrow::primitive_array<T> deserialize_primitive_array(const std::vector<uint8_t>& buffer) {
+    sparrow::primitive_array<T> deserialize_primitive_array(const std::vector<uint8_t>& buffer)
+    {
         const uint8_t* buf_ptr = buffer.data();
         size_t current_offset = 0;
 
         // I - Deserialize the Schema message
         std::optional<std::string> name;
         std::optional<std::vector<sparrow::metadata_pair>> metadata;
-        details::deserialize_schema_message(buf_ptr, current_offset, name, metadata);
+        deserialize_schema_message(std::span<const uint8_t>(buffer), current_offset, name, metadata);
 
         // II - Deserialize the RecordBatch message
         const uint32_t batch_meta_len = *(reinterpret_cast<const uint32_t*>(buf_ptr + current_offset));
-        const auto* record_batch = details::deserialize_record_batch_message(buf_ptr, current_offset);
+        const auto* record_batch = deserialize_record_batch_message(
+            std::span<const uint8_t>(buffer),
+            current_offset
+        );
 
         current_offset += utils::align_to_8(batch_meta_len);
         const uint8_t* body_ptr = buf_ptr + current_offset;

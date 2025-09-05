@@ -1,13 +1,12 @@
-#include "doctest/doctest.h"
-#include "sparrow.hpp"
+#include <doctest/doctest.h>
+#include <sparrow.hpp>
 
-#include "serialize_null_array.hpp"
+#include "sparrow_ipc/serialize_null_array.hpp"
 #include "sparrow_ipc_tests_helpers.hpp"
 
 namespace sparrow_ipc
 {
     namespace sp = sparrow;
-
 
     TEST_CASE("Serialize and deserialize null_array")
     {
