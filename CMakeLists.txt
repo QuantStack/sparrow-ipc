@@ -49,7 +49,7 @@ MESSAGE(STATUS "🔧 Build docs: ${BUILD_DOCS}")
 
 # Code coverage
 # =============
-OPTION(SPARROW_IPC_ENABLE_COVERAGE "Enable test coverage" OFF)
+OPTION(SPARROW_IPC_ENABLE_COVERAGE "Enable sparrow-ipc test coverage" OFF)
 MESSAGE(STATUS "🔧 Enable coverage: ${SPARROW_IPC_ENABLE_COVERAGE}")
 
 if(SPARROW_IPC_ENABLE_COVERAGE)
