@@ -65,7 +65,7 @@ jobs:
         if: matrix.build_type == 'Debug'
         run: |
           choco install opencppcoverage
-          echo "TEST_COVERAGE_ACTIVATION=' -DSPARROW_IPC_ENABLE_COVERAGE=ON'" >> $GITHUB_ENV
+          echo "TEST_COVERAGE_ACTIVATION=-DSPARROW_IPC_ENABLE_COVERAGE=ON" >> $GITHUB_ENV
 
       - name: Configure using cmake
         run: |
