@@ -7,7 +7,6 @@ set(COBERTURA_REPORT_PATH "${COVERAGE_REPORT_PATH}/cobertura.xml" CACHE PATH "Pa
 set(COVERAGE_TARGETS_FOLDER "Tests utilities/Code Coverage")
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
-    message(STATUS "==============> Using MSVC")
     find_program(OpenCPPCoverage OpenCppCoverage.exe opencppcoverage.exe REQUIRED
         PATHS "C:/Program Files/OpenCppCoverage" "C:/Program Files (x86)/OpenCppCoverage")
 
@@ -33,19 +32,4 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
         COMMENT "Generating coverage report with OpenCppCoverage: ${COVERAGE_REPORT_PATH}"
     )
     set(TARGET_PROPERTIES sparrow_ipc_generate_cobertura PROPERTIES FOLDER "Tests utilities/Code Coverage")
-elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-    message(STATUS "==============> Using Clang or GNU")
 endif()
-
-#TODO this may not be useful if coverage only on Windows ci?
-# function(enable_coverage target)
-#     set(CLANG_COVERAGE_FLAGS --coverage -fprofile-instr-generate -fcoverage-mapping -fno-inline -fno-elide-constructors)
-#     set(GCC_COVERAGE_FLAGS --coverage -fno-inline -fno-inline-small-functions -fno-default-inline)
-#
-#     target_compile_options(${target} PRIVATE
-#         $<$<CXX_COMPILER_ID:Clang>:${CLANG_COVERAGE_FLAGS}>
-#         $<$<CXX_COMPILER_ID:GNU>:${GCC_COVERAGE_FLAGS}>)
-#     target_link_options(${target} PRIVATE
-#         $<$<CXX_COMPILER_ID:Clang>:${CLANG_COVERAGE_FLAGS}>
-#         $<$<CXX_COMPILER_ID:GNU>:${GCC_COVERAGE_FLAGS}>)
-# endfunction(enable_coverage target)
