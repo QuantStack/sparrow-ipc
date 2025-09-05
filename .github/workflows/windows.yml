@@ -49,7 +49,7 @@ jobs:
         working-directory: build
         run: |
           export CTEST_OUTPUT_ON_FAILURE=1
-          cmake --build . --config ${{ matrix.build_type }} --target run_tests
+          cmake --build . --config ${{ matrix.build_type }} --target run_tests_with_junit_report
 
   windows_build_fetch_from_source:
     runs-on: windows-latest
