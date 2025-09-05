@@ -164,7 +164,7 @@ namespace sparrow_ipc
                 case org::apache::arrow::flatbuf::Type::FixedSizeBinary:
                 {
                     const auto fixed_size_binary_field = field->type_as_FixedSizeBinary();
-                    arrays.emplace_back(deserialize_fixedwidthbinary(
+                    arrays.emplace_back(deserialize_non_owning_fixedwidthbinary(
                         record_batch,
                         encapsulated_message.body(),
                         name,
@@ -176,7 +176,7 @@ namespace sparrow_ipc
                 }
                 case org::apache::arrow::flatbuf::Type::Binary:
                     arrays.emplace_back(
-                        deserialize_variable_size_binary<sparrow::binary_array>(
+                        deserialize_non_owning_variable_size_binary<sparrow::binary_array>(
                             record_batch,
                             encapsulated_message.body(),
                             name,
@@ -187,7 +187,7 @@ namespace sparrow_ipc
                     break;
                 case org::apache::arrow::flatbuf::Type::LargeBinary:
                     arrays.emplace_back(
-                        deserialize_variable_size_binary<sparrow::big_binary_array>(
+                        deserialize_non_owning_variable_size_binary<sparrow::big_binary_array>(
                             record_batch,
                             encapsulated_message.body(),
                             name,
@@ -198,7 +198,7 @@ namespace sparrow_ipc
                     break;
                 case org::apache::arrow::flatbuf::Type::Utf8:
                     arrays.emplace_back(
-                        deserialize_variable_size_binary<sparrow::string_array>(
+                        deserialize_non_owning_variable_size_binary<sparrow::string_array>(
                             record_batch,
                             encapsulated_message.body(),
                             name,
@@ -209,7 +209,7 @@ namespace sparrow_ipc
                     break;
                 case org::apache::arrow::flatbuf::Type::LargeUtf8:
                     arrays.emplace_back(
-                        deserialize_variable_size_binary<sparrow::big_string_array>(
+                        deserialize_non_owning_variable_size_binary<sparrow::big_string_array>(
                             record_batch,
                             encapsulated_message.body(),
                             name,

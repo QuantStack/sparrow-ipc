@@ -111,13 +111,14 @@ set(SPARROW_IPC_SRC
     ${SPARROW_IPC_SOURCE_DIR}/arrow_interface/arrow_array/private_data.cpp
     ${SPARROW_IPC_SOURCE_DIR}/arrow_interface/arrow_schema.cpp
     ${SPARROW_IPC_SOURCE_DIR}/arrow_interface/arrow_schema/private_data.cpp
+    ${SPARROW_IPC_SOURCE_DIR}/deserialize_fixedsizebinary_array.cpp
+    ${SPARROW_IPC_SOURCE_DIR}/deserialize_utils.cpp
     ${SPARROW_IPC_SOURCE_DIR}/deserialize.cpp
     ${SPARROW_IPC_SOURCE_DIR}/encapsulated_message.cpp
+    ${SPARROW_IPC_SOURCE_DIR}/metadata.cpp
     ${SPARROW_IPC_SOURCE_DIR}/serialize_null_array.cpp
     ${SPARROW_IPC_SOURCE_DIR}/serialize.cpp
     ${SPARROW_IPC_SOURCE_DIR}/utils.cpp
-    ${SPARROW_IPC_SOURCE_DIR}/metadata.cpp
-    ${SPARROW_IPC_SOURCE_DIR}/deserialize_utils.cpp
 )
 
 # Fetch schemas from apache arrow
