@@ -7,11 +7,12 @@
 #include <sparrow/utils/contracts.hpp>
 #include <sparrow/utils/metadata.hpp>
 
-#include "arrow_schema/private_data.hpp"
+#include "sparrow_ipc/arrow_interface/arrow_schema/private_data.hpp"
+#include "sparrow_ipc/config/config.hpp"
 
 namespace sparrow_ipc
 {
-    void release_non_owning_arrow_schema(ArrowSchema* schema);
+    SPARROW_IPC_API void release_non_owning_arrow_schema(ArrowSchema* schema);
 
     template <sparrow::input_metadata_container M = std::vector<sparrow::metadata_pair>>
     void fill_non_owning_arrow_schema(

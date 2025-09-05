@@ -1,8 +1,10 @@
-#include <sparrow_ipc/deserialize.hpp>
+#include "sparrow_ipc/deserialize.hpp"
 
-#include "sparrow_ipc/deserialize_variable_size_binary_array.hpp"
+#include <sparrow/types/data_type.hpp>
+
 #include "sparrow_ipc/deserialize_fixedsizebinary_array.hpp"
 #include "sparrow_ipc/deserialize_primitive_array.hpp"
+#include "sparrow_ipc/deserialize_variable_size_binary_array.hpp"
 #include "sparrow_ipc/magic_values.hpp"
 #include "sparrow_ipc/metadata.hpp"
 
@@ -65,6 +67,164 @@ namespace sparrow_ipc
         return static_cast<const org::apache::arrow::flatbuf::RecordBatch*>(batch_message->header());
     }
 
+    std::vector<sparrow::array> get_arrays_from_record_batch(
+        const org::apache::arrow::flatbuf::RecordBatch& record_batch,
+        const org::apache::arrow::flatbuf::Schema& schema,
+        const EncapsulatedMessage& encapsulated_message
+    )
+    {
+        const size_t length = static_cast<size_t>(record_batch.length());
+        size_t buffer_index = 0;
+
+        std::vector<sparrow::array> arrays;
+        arrays.reserve(schema.fields()->size());
+
+        for (const auto field : *(schema.fields()))
+        {
+            const ::flatbuffers::Vector<::flatbuffers::Offset<org::apache::arrow::flatbuf::KeyValue>>*
+                fb_custom_metadata = field->custom_metadata();
+            const std::optional<std::vector<sparrow::metadata_pair>>
+                metadata = fb_custom_metadata == nullptr
+                               ? std::nullopt
+                               : std::make_optional(to_sparrow_metadata(*fb_custom_metadata));
+            const auto name = field->name()->string_view();
+            const auto field_type = field->type_type();
+            const auto deserialize_non_owning_primitive_array_lambda = [&]<typename T>()
+            {
+                return deserialize_non_owning_primitive_array<T>(
+                    record_batch,
+                    encapsulated_message.body(),
+                    name,
+                    metadata,
+                    buffer_index
+                );
+            };
+            switch (field_type)
+            {
+                case org::apache::arrow::flatbuf::Type::Bool:
+                    arrays.emplace_back(
+                        deserialize_non_owning_primitive_array_lambda.template operator()<bool>()
+                    );
+                    break;
+                case org::apache::arrow::flatbuf::Type::Int:
+                {
+                    const auto int_type = field->type_as_Int();
+                    const auto bit_width = int_type->bitWidth();
+                    const bool is_signed = int_type->is_signed();
+
+                    if (is_signed)
+                    {
+                        switch (bit_width)
+                        {
+                                // clang-format off
+                                        case 8:  arrays.emplace_back(deserialize_non_owning_primitive_array_lambda.template operator()<int8_t>()); break;
+                                        case 16: arrays.emplace_back(deserialize_non_owning_primitive_array_lambda.template operator()<int16_t>()); break;
+                                        case 32: arrays.emplace_back(deserialize_non_owning_primitive_array_lambda.template operator()<int32_t>()); break;
+                                        case 64: arrays.emplace_back(deserialize_non_owning_primitive_array_lambda.template operator()<int64_t>()); break;
+                                        default: throw std::runtime_error("Unsupported integer bit width.");
+                                // clang-format on
+                        }
+                    }
+                    else
+                    {
+                        switch (bit_width)
+                        {
+                                // clang-format off
+                                        case 8:  arrays.emplace_back(deserialize_non_owning_primitive_array_lambda.template operator()<uint8_t>()); break;
+                                        case 16: arrays.emplace_back(deserialize_non_owning_primitive_array_lambda.template operator()<uint16_t>()); break;
+                                        case 32: arrays.emplace_back(deserialize_non_owning_primitive_array_lambda.template operator()<uint32_t>()); break;
+                                        case 64: arrays.emplace_back(deserialize_non_owning_primitive_array_lambda.template operator()<uint64_t>()); break;
+                                        default: throw std::runtime_error("Unsupported integer bit width.");
+                                // clang-format on
+                        }
+                    }
+                }
+                break;
+                case org::apache::arrow::flatbuf::Type::FloatingPoint:
+                {
+                    const auto float_type = field->type_as_FloatingPoint();
+                    switch (float_type->precision())
+                    {
+                            // clang-format off
+                                    case org::apache::arrow::flatbuf::Precision::HALF:
+                                        arrays.emplace_back(deserialize_non_owning_primitive_array_lambda.template operator()<sparrow::float16_t>());
+                                        break;
+                                    case org::apache::arrow::flatbuf::Precision::SINGLE:
+                                        arrays.emplace_back(deserialize_non_owning_primitive_array_lambda.template operator()<float>());
+                                        break;
+                                    case org::apache::arrow::flatbuf::Precision::DOUBLE:
+                                        arrays.emplace_back(deserialize_non_owning_primitive_array_lambda.template operator()<double>());
+                                        break;
+                                    default:
+                                        throw std::runtime_error("Unsupported floating point precision.");
+                            // clang-format on
+                    }
+                    break;
+                }
+                case org::apache::arrow::flatbuf::Type::FixedSizeBinary:
+                {
+                    const auto fixed_size_binary_field = field->type_as_FixedSizeBinary();
+                    arrays.emplace_back(deserialize_fixedwidthbinary(
+                        record_batch,
+                        encapsulated_message.body(),
+                        name,
+                        metadata,
+                        buffer_index,
+                        fixed_size_binary_field->byteWidth()
+                    ));
+                    break;
+                }
+                case org::apache::arrow::flatbuf::Type::Binary:
+                    arrays.emplace_back(
+                        deserialize_variable_size_binary<sparrow::binary_array>(
+                            record_batch,
+                            encapsulated_message.body(),
+                            name,
+                            metadata,
+                            buffer_index
+                        )
+                    );
+                    break;
+                case org::apache::arrow::flatbuf::Type::LargeBinary:
+                    arrays.emplace_back(
+                        deserialize_variable_size_binary<sparrow::big_binary_array>(
+                            record_batch,
+                            encapsulated_message.body(),
+                            name,
+                            metadata,
+                            buffer_index
+                        )
+                    );
+                    break;
+                case org::apache::arrow::flatbuf::Type::Utf8:
+                    arrays.emplace_back(
+                        deserialize_variable_size_binary<sparrow::string_array>(
+                            record_batch,
+                            encapsulated_message.body(),
+                            name,
+                            metadata,
+                            buffer_index
+                        )
+                    );
+                    break;
+                case org::apache::arrow::flatbuf::Type::LargeUtf8:
+                    arrays.emplace_back(
+                        deserialize_variable_size_binary<sparrow::big_string_array>(
+                            record_batch,
+                            encapsulated_message.body(),
+                            name,
+                            metadata,
+                            buffer_index
+                        )
+                    );
+                    break;
+                default:
+                    throw std::runtime_error("Unsupported type.");
+            }
+        }
+        return arrays;
+    }
+
     std::vector<sparrow::record_batch> deserialize_stream(const uint8_t* buf_ptr)
     {
         const org::apache::arrow::flatbuf::Schema* schema = nullptr;
@@ -94,7 +254,6 @@ namespace sparrow_ipc
                 break;
                 case org::apache::arrow::flatbuf::MessageHeader::RecordBatch:
                 {
-                    const auto lol = message->header_type();
                     if (schema == nullptr)
                     {
                         throw std::runtime_error("Schema message is missing.");
@@ -104,240 +263,11 @@ namespace sparrow_ipc
                     {
                         throw std::runtime_error("RecordBatch message is missing.");
                     }
-                    const size_t length = static_cast<size_t>(record_batch->length());
-                    size_t buffer_index = 0;
-
-                    std::vector<sparrow::array> arrays;
-                    arrays.reserve(schema->fields()->size());
-
-                    for (const auto field : *(schema->fields()))
-                    {
-                        const ::flatbuffers::Vector<::flatbuffers::Offset<org::apache::arrow::flatbuf::KeyValue>>*
-                            fb_custom_metadata = field->custom_metadata();
-                        const std::optional<std::vector<sparrow::metadata_pair>>
-                            metadata = fb_custom_metadata == nullptr
-                                           ? std::nullopt
-                                           : std::make_optional(to_sparrow_metadata(*fb_custom_metadata));
-                        const auto name = field->name()->string_view();
-                        const auto field_type = field->type_type();
-                        switch (field_type)
-                        {
-                            case org::apache::arrow::flatbuf::Type::Bool:
-                                arrays.emplace_back(
-                                    deserialize_primitive_array_bis<bool>(
-                                        *record_batch,
-                                        encapsulated_message.body(),
-                                        name,
-                                        metadata,
-                                        buffer_index
-                                    )
-                                );
-                                break;
-                            case org::apache::arrow::flatbuf::Type::Int:
-                            {
-                                const auto int_type = field->type_as_Int();
-
-                                if (int_type->is_signed())
-                                {
-                                    switch (int_type->bitWidth())
-                                    {
-                                        case 8:
-                                            arrays.emplace_back(
-                                                deserialize_primitive_array_bis<int8_t>(
-                                                    *record_batch,
-                                                    encapsulated_message.body(),
-                                                    name,
-                                                    metadata,
-                                                    buffer_index
-                                                )
-                                            );
-                                            break;
-                                        case 16:
-                                            arrays.emplace_back(
-                                                deserialize_primitive_array_bis<int16_t>(
-                                                    *record_batch,
-                                                    encapsulated_message.body(),
-                                                    name,
-                                                    metadata,
-                                                    buffer_index
-                                                )
-                                            );
-                                            break;
-                                        case 32:
-                                            arrays.emplace_back(
-                                                deserialize_primitive_array_bis<int32_t>(
-                                                    *record_batch,
-                                                    encapsulated_message.body(),
-                                                    name,
-                                                    metadata,
-                                                    buffer_index
-                                                )
-                                            );
-                                            break;
-                                        case 64:
-                                            arrays.emplace_back(
-                                                deserialize_primitive_array_bis<int64_t>(
-                                                    *record_batch,
-                                                    encapsulated_message.body(),
-                                                    name,
-                                                    metadata,
-                                                    buffer_index
-                                                )
-                                            );
-                                            break;
-                                        default:
-                                            throw std::runtime_error("Unsupported integer bit width.");
-                                    }
-                                }
-                                else
-                                {
-                                    switch (int_type->bitWidth())
-                                    {
-                                        case 8:
-                                            arrays.emplace_back(
-                                                deserialize_primitive_array_bis<uint8_t>(
-                                                    *record_batch,
-                                                    encapsulated_message.body(),
-                                                    name,
-                                                    metadata,
-                                                    buffer_index
-                                                )
-                                            );
-                                            break;
-                                        case 16:
-                                            arrays.emplace_back(
-                                                deserialize_primitive_array_bis<uint16_t>(
-                                                    *record_batch,
-                                                    encapsulated_message.body(),
-                                                    name,
-                                                    metadata,
-                                                    buffer_index
-                                                )
-                                            );
-                                            break;
-                                        case 32:
-                                            arrays.emplace_back(
-                                                deserialize_primitive_array_bis<uint32_t>(
-                                                    *record_batch,
-                                                    encapsulated_message.body(),
-                                                    name,
-                                                    metadata,
-                                                    buffer_index
-                                                )
-                                            );
-                                            break;
-                                        case 64:
-                                            arrays.emplace_back(
-                                                deserialize_primitive_array_bis<uint64_t>(
-                                                    *record_batch,
-                                                    encapsulated_message.body(),
-                                                    name,
-                                                    metadata,
-                                                    buffer_index
-                                                )
-                                            );
-                                            break;
-                                        default:
-                                            throw std::runtime_error("Unsupported integer bit width.");
-                                    }
-                                }
-                            }
-                            break;
-                            case org::apache::arrow::flatbuf::Type::FloatingPoint:
-                            {
-                                const auto float_type = field->type_as_FloatingPoint();
-                                switch (float_type->precision())
-                                {
-                                    case org::apache::arrow::flatbuf::Precision::HALF:
-                                        arrays.emplace_back(
-                                            deserialize_primitive_array_bis<std::uint16_t>(
-                                                *record_batch,
-                                                encapsulated_message.body(),
-                                                name,
-                                                metadata,
-                                                buffer_index
-                                            )
-                                        );
-                                        break;
-                                    case org::apache::arrow::flatbuf::Precision::SINGLE:
-                                        arrays.emplace_back(
-                                            deserialize_primitive_array_bis<float>(
-                                                *record_batch,
-                                                encapsulated_message.body(),
-                                                name,
-                                                metadata,
-                                                buffer_index
-                                            )
-                                        );
-                                        break;
-                                    case org::apache::arrow::flatbuf::Precision::DOUBLE:
-                                        arrays.emplace_back(
-                                            deserialize_primitive_array_bis<double>(
-                                                *record_batch,
-                                                encapsulated_message.body(),
-                                                name,
-                                                metadata,
-                                                buffer_index
-                                            )
-                                        );
-                                        break;
-                                    default:
-                                        throw std::runtime_error("Unsupported floating point precision.");
-                                }
-                                break;
-                            }
-                            case org::apache::arrow::flatbuf::Type::FixedSizeBinary:
-                            {
-                                const auto fixed_size_binary_field = field->type_as_FixedSizeBinary();
-                                arrays.emplace_back(deserialize_fixedwidthbinary(*record_batch,
-                                                             encapsulated_message.body(),
-                                                             name,
-                                                             metadata,
-                                                             buffer_index,
-                                                             fixed_size_binary_field->byteWidth()));
-                                break;
-                            }
-                            case org::apache::arrow::flatbuf::Type::Binary:
-                                arrays.emplace_back(deserialize_variable_size_binary<sparrow::binary_array>(
-                                    *record_batch,
-                                    encapsulated_message.body(),
-                                    name,
-                                    metadata,
-                                    buffer_index
-                                ));
-                                break;
-                            case org::apache::arrow::flatbuf::Type::LargeBinary:
-                                arrays.emplace_back(deserialize_variable_size_binary<sparrow::big_binary_array>(
-                                    *record_batch,
-                                    encapsulated_message.body(),
-                                    name,
-                                    metadata,
-                                    buffer_index
-                                ));
-                                break;
-                            case org::apache::arrow::flatbuf::Type::Utf8:
-                                arrays.emplace_back(deserialize_variable_size_binary<sparrow::string_array>(
-                                    *record_batch,
-                                    encapsulated_message.body(),
-                                    name,
-                                    metadata,
-                                    buffer_index
-                                ));
-                                break;
-                            case org::apache::arrow::flatbuf::Type::LargeUtf8:
-                                arrays.emplace_back(deserialize_variable_size_binary<sparrow::big_string_array>(
-                                    *record_batch,
-                                    encapsulated_message.body(),
-                                    name,
-                                    metadata,
-                                    buffer_index
-                                ));
-                                break;
-                            default:
-                                throw std::runtime_error("Unsupported type.");
-                        }
-                    }
-                     
+                    std::vector<sparrow::array> arrays = get_arrays_from_record_batch(
+                        *record_batch,
+                        *schema,
+                        encapsulated_message
+                    );
                     std::vector<std::string> field_names_str(field_names.cbegin(), field_names.cend());
                     record_batches.emplace_back(std::move(field_names_str), std::move(arrays), "test");
                 }
@@ -358,5 +288,4 @@ namespace sparrow_ipc
         } while (true);
         return record_batches;
     }
-
 }

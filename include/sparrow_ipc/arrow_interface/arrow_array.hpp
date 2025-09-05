@@ -5,9 +5,11 @@
 
 #include <sparrow/c_interface.hpp>
 
+#include "sparrow_ipc/config/config.hpp"
+
 namespace sparrow_ipc
 {
-    [[nodiscard]] ArrowArray make_non_owning_arrow_array(
+    [[nodiscard]] SPARROW_IPC_API ArrowArray make_non_owning_arrow_array(
         int64_t length,
         int64_t null_count,
         int64_t offset,
@@ -17,9 +19,9 @@ namespace sparrow_ipc
         ArrowArray* dictionary
     );
 
-    void release_non_owning_arrow_array(ArrowArray* array);
+    SPARROW_IPC_API void release_non_owning_arrow_array(ArrowArray* array);
 
-    void fill_non_owning_arrow_array(
+    SPARROW_IPC_API void fill_non_owning_arrow_array(
         ArrowArray& array,
         int64_t length,
         int64_t null_count,
