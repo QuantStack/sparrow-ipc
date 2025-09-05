@@ -14,9 +14,9 @@ set(
 
 add_executable(${test_target} ${SPARROW_IPC_TESTS_SRC})
 
-if(ENABLE_COVERAGE)
-    enable_coverage(${test_target})
-endif()
+# if(ENABLE_COVERAGE)
+#     enable_coverage(${test_target})
+# endif()
 
 target_link_libraries(${test_target}
     PRIVATE

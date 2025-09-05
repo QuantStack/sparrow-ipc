@@ -38,14 +38,14 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "
 endif()
 
 #TODO this may not be useful if coverage only on Windows ci?
-function(enable_coverage target)
-    set(CLANG_COVERAGE_FLAGS --coverage -fprofile-instr-generate -fcoverage-mapping -fno-inline -fno-elide-constructors)
-    set(GCC_COVERAGE_FLAGS --coverage -fno-inline -fno-inline-small-functions -fno-default-inline)
-
-    target_compile_options(${target} PRIVATE
-        $<$<CXX_COMPILER_ID:Clang>:${CLANG_COVERAGE_FLAGS}>
-        $<$<CXX_COMPILER_ID:GNU>:${GCC_COVERAGE_FLAGS}>)
-    target_link_options(${target} PRIVATE
-        $<$<CXX_COMPILER_ID:Clang>:${CLANG_COVERAGE_FLAGS}>
-        $<$<CXX_COMPILER_ID:GNU>:${GCC_COVERAGE_FLAGS}>)
-endfunction(enable_coverage target)
+# function(enable_coverage target)
+#     set(CLANG_COVERAGE_FLAGS --coverage -fprofile-instr-generate -fcoverage-mapping -fno-inline -fno-elide-constructors)
+#     set(GCC_COVERAGE_FLAGS --coverage -fno-inline -fno-inline-small-functions -fno-default-inline)
+#
+#     target_compile_options(${target} PRIVATE
+#         $<$<CXX_COMPILER_ID:Clang>:${CLANG_COVERAGE_FLAGS}>
+#         $<$<CXX_COMPILER_ID:GNU>:${GCC_COVERAGE_FLAGS}>)
+#     target_link_options(${target} PRIVATE
+#         $<$<CXX_COMPILER_ID:Clang>:${CLANG_COVERAGE_FLAGS}>
+#         $<$<CXX_COMPILER_ID:GNU>:${GCC_COVERAGE_FLAGS}>)
+# endfunction(enable_coverage target)
