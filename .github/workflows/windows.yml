@@ -29,17 +29,8 @@ jobs:
           init-shell: bash
           cache-environment: true
 
-      - name: Enable tests coverage
-        if: matrix.build_type == 'Debug'
-        run: |
-          choco install opencppcoverage
-          echo "TEST_COVERAGE_ACTIVATION=' -DENABLE_COVERAGE=ON'" >> $GITHUB_ENV
-
       - name: Configure using cmake
         run: |
-          #if [[ "${{ matrix.build_type }}" == "Debug" ]]; then
-            #export CMAKE_ARGS="-DENABLE_COVERAGE=ON"
-          #fi
           cmake -S ./ -B ./build \
           -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
           -DCMAKE_INSTALL_PREFIX=%CONDA_PREFIX% \
@@ -61,6 +52,43 @@ jobs:
         run: |
           cmake --build . --target run_tests
 
+  windows_build_fetch_from_source:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        build_type: [Release, Debug]
+        build_shared: [ON, OFF]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Enable tests coverage
+        if: matrix.build_type == 'Debug'
+        run: |
+          choco install opencppcoverage
+          echo "TEST_COVERAGE_ACTIVATION=' -DENABLE_COVERAGE=ON'" >> $GITHUB_ENV
+
+      - name: Configure using cmake
+        run: |
+          cmake -S ./ -B ./build \
+          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+          -DSPARROW_IPC_BUILD_SHARED=${{ matrix.build_shared }} \
+          -DSPARROW_IPC_BUILD_TESTS=ON \
+          -DFETCH_DEPENDENCIES_WITH_CMAKE=MISSING \
+          $TEST_COVERAGE_ACTIVATION
+
+      - name: Build sparrow-ipc
+        working-directory: build
+        run: cmake --build . --target sparrow-ipc
+
+      - name: Build tests
+        working-directory: build
+        run: cmake --build . --target test_sparrow_ipc_lib
+
+      - name: Run tests
+        working-directory: build
+        run: cmake --build . --target run_tests_with_junit_report
+
       - name: Tests coverage
         if: matrix.build_type == 'Debug'
         working-directory: build
@@ -77,33 +105,3 @@ jobs:
           flags: unittests
           token: ${{ secrets.CODECOV_TOKEN }}
           verbose: true
-
-  windows_build_fetch_from_source:
-    runs-on: windows-latest
-    strategy:
-      matrix:
-        build_type: [Release, Debug]
-        build_shared: [ON, OFF]
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Configure using cmake
-        run: |
-          cmake -S ./ -B ./build \
-          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
-          -DSPARROW_IPC_BUILD_SHARED=${{ matrix.build_shared }} \
-          -DSPARROW_IPC_BUILD_TESTS=ON \
-          -DFETCH_DEPENDENCIES_WITH_CMAKE=MISSING
-
-      - name: Build sparrow-ipc
-        working-directory: build
-        run: cmake --build . --target sparrow-ipc
-
-      - name: Build tests
-        working-directory: build
-        run: cmake --build . --target test_sparrow_ipc_lib
-
-      - name: Run tests
-        working-directory: build
-        run: cmake --build . --target run_tests_with_junit_report
