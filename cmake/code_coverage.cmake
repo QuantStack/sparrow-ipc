@@ -14,7 +14,7 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
     cmake_path(CONVERT ${CMAKE_SOURCE_DIR} TO_NATIVE_PATH_LIST OPENCPPCOVERAGE_SOURCES)
     set(OPENCPPCOVERAGE_COMMON_ARGS --sources=${OPENCPPCOVERAGE_SOURCES} --modules=${OPENCPPCOVERAGE_SOURCES} --excluded_sources=test*)
 
-    add_custom_target(generate_cobertura
+    add_custom_target(sparrow_ipc_generate_cobertura
         COMMAND ${OpenCPPCoverage}
             ${OPENCPPCOVERAGE_COMMON_ARGS}
             --export_type=cobertura:${COBERTURA_REPORT_PATH}
@@ -22,9 +22,9 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
         DEPENDS test_sparrow_ipc_lib
         COMMENT "Generating coverage cobertura report with OpenCppCoverage: ${COBERTURA_REPORT_PATH}"
     )
-    set(TARGET_PROPERTIES generate_cobertura PROPERTIES FOLDER ${COVERAGE_TARGETS_FOLDER})
+    set(TARGET_PROPERTIES sparrow_ipc_generate_cobertura PROPERTIES FOLDER ${COVERAGE_TARGETS_FOLDER})
 
-    add_custom_target(generate_html_coverage_report
+    add_custom_target(sparrow_ipc_generate_html_coverage_report
         COMMAND ${OpenCPPCoverage}
             ${OPENCPPCOVERAGE_COMMON_ARGS}
             --export_type=html:${COVERAGE_REPORT_PATH}
@@ -32,7 +32,7 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
         DEPENDS test_sparrow_ipc_lib
         COMMENT "Generating coverage report with OpenCppCoverage: ${COVERAGE_REPORT_PATH}"
     )
-    set(TARGET_PROPERTIES generate_cobertura PROPERTIES FOLDER "Tests utilities/Code Coverage")
+    set(TARGET_PROPERTIES sparrow_ipc_generate_cobertura PROPERTIES FOLDER "Tests utilities/Code Coverage")
 elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     message(STATUS "==============> Using Clang or GNU")
 endif()
