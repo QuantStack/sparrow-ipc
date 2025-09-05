@@ -6,7 +6,6 @@
 
 #include "sparrow.hpp"
 
-
 namespace sparrow_ipc
 {
     namespace
@@ -377,9 +376,8 @@ namespace sparrow_ipc
                 }
                 case sparrow::data_type::MAP:
                 {
-                    const auto map_type = org::apache::arrow::flatbuf::CreateMap(builder, false);  // not
-                                                                                                   // sorted
-                                                                                                   // keys
+                    // not sorted keys
+                    const auto map_type = org::apache::arrow::flatbuf::CreateMap(builder, false);
                     return {org::apache::arrow::flatbuf::Type::Map, map_type.Union()};
                 }
                 case sparrow::data_type::DENSE_UNION:
