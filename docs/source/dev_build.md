@@ -7,9 +7,10 @@ List of CMake options:
 - `ACTIVATE_LINTER`: Create targets to run clang-format and clang-tidy (default: OFF)
 - `ACTIVATE_LINTER_DURING_COMPILATION`: Run linter during the compilation (default: OFF),
   requires `ACTIVATE_LINTER` to be ON
-- `BUILD_DOCS`: Build the documentation (default: OFF)
+- `SPARROW_IPC_BUILD_DOCS`: Build the documentation (default: OFF)
 - `SPARROW_IPC_BUILD_TESTS`: Build the tests (default: OFF)
 - `SPARROW_IPC_BUILD_SHARED`: Build sparrow-ipc as a shared library (default: ON)
+- `SPARROW_IPC_ENABLE_COVERAGE`: Enable coverage reporting (default: OFF)
 
 ## Building
 
