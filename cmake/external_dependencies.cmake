@@ -85,4 +85,48 @@ if(SPARROW_IPC_BUILD_TESTS)
         GIT_REPOSITORY https://github.com/doctest/doctest.git
         TAG v2.4.12
     )
+    
+    message(STATUS "📦 Fetching arrow-testing")
+    cmake_policy(PUSH)
+    cmake_policy(SET CMP0174 NEW)  # Suppress warning about FetchContent_Declare GIT_REPOSITORY
+    # Fetch arrow-testing data (no CMake build needed)
+    FetchContent_Declare(
+        arrow-testing
+        GIT_REPOSITORY https://github.com/apache/arrow-testing.git
+        GIT_SHALLOW TRUE
+        # CONFIGURE_COMMAND ""
+        # BUILD_COMMAND ""
+        # INSTALL_COMMAND ""
+    )
+    FetchContent_MakeAvailable(arrow-testing)
+    cmake_policy(POP)
+    
+    # Create interface library for easy access to test data
+    add_library(arrow-testing-data INTERFACE)
+    message(STATUS "Arrow testing data directory: ${arrow-testing_SOURCE_DIR}")
+    target_compile_definitions(arrow-testing-data INTERFACE
+        ARROW_TESTING_DATA_DIR="${arrow-testing_SOURCE_DIR}"
+    )
+    message(STATUS "\t✅ Fetched arrow-testing")
+
+    # Iterate over all the files in the arrow-testing-data source directiory. When it's a gz, extract in place.
+    file(GLOB_RECURSE arrow_testing_data_targz_files CONFIGURE_DEPENDS
+        "${arrow-testing_SOURCE_DIR}/data/arrow-ipc-stream/integration/1.0.0-littleendian/*.json.gz"
+    )
+    foreach(file_path IN LISTS arrow_testing_data_targz_files)
+            cmake_path(GET file_path PARENT_PATH parent_dir)
+            cmake_path(GET file_path STEM filename)
+            set(destination_file_path "${parent_dir}/${filename}.json")
+            if(EXISTS "${destination_file_path}")
+                message(VERBOSE "File already extracted: ${destination_file_path}")
+            else()
+                message(STATUS "Extracting ${file_path}")
+                if(WIN32)
+                    execute_process(COMMAND powershell -Command "$i=\"${file_path}\"; $o=\"${destination_file_path}\"; [IO.Compression.GZipStream]::new([IO.File]::OpenRead($i),[IO.Compression.CompressionMode]::Decompress).CopyTo([IO.File]::Create($o))")
+                else()
+                    execute_process(COMMAND gunzip -kf "${file_path}")
+                endif()
+            endif()
+    endforeach()
+
 endif()

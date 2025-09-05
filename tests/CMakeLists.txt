@@ -2,8 +2,7 @@ cmake_minimum_required(VERSION 3.28)
 
 set(test_target "test_sparrow_ipc_lib")
 
-set(
-    SPARROW_IPC_TESTS_SRC
+set(SPARROW_IPC_TESTS_SRC
     include/sparrow_ipc_tests_helpers.hpp
     # TODO move all the files below under src?
     main.cpp
@@ -21,7 +20,10 @@ target_link_libraries(${test_target}
         sparrow-ipc
         doctest::doctest
         sparrow::json_reader
+        arrow-testing-data
 )
+
+set(APACHE_ARROW_TESTING_DIR $<TARGET_PROPERTY:arrow-testing,INTERFACE_INCLUDE_DIRECTORIES>)
 
 target_compile_definitions(${test_target}
     PRIVATE

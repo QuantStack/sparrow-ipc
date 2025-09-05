@@ -39,5 +39,6 @@ namespace sparrow_ipc
         std::span<const uint8_t> m_data;
     };
 
-    [[nodiscard]] EncapsulatedMessage create_encapsulated_message(std::span<const uint8_t> buf_ptr);
+    [[nodiscard]] std::pair<EncapsulatedMessage, std::span<const uint8_t>>
+    extract_encapsulated_message(std::span<const uint8_t> buf_ptr);
 }

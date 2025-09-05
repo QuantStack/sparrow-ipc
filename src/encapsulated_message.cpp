@@ -92,7 +92,8 @@ namespace sparrow_ipc
         return m_data;
     }
 
-    EncapsulatedMessage create_encapsulated_message(std::span<const uint8_t> data)
+    std::pair<EncapsulatedMessage, std::span<const uint8_t>>
+    extract_encapsulated_message(std::span<const uint8_t> data)
     {
         if (!data.size() || data.size() < 8)
         {
@@ -103,6 +104,8 @@ namespace sparrow_ipc
         {
             throw std::runtime_error("Buffer starts with continuation bytes, expected a valid message.");
         }
-        return {data};
+        EncapsulatedMessage message(data);
+        std::span<const uint8_t> rest = data.subspan(message.total_length());
+        return {std::move(message), std::move(rest)};
     }
 }

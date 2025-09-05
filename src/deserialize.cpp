@@ -234,7 +234,7 @@ namespace sparrow_ipc
         std::vector<sparrow::data_type> field_types;
         do
         {
-            const EncapsulatedMessage encapsulated_message = create_encapsulated_message(data);
+            const auto [encapsulated_message, rest] = extract_encapsulated_message(data);
             const org::apache::arrow::flatbuf::Message* message = encapsulated_message.flat_buffer_message();
             switch (message->header_type())
             {
@@ -279,8 +279,7 @@ namespace sparrow_ipc
                 default:
                     throw std::runtime_error("Unknown message header type.");
             }
-            const size_t encapsulated_message_total_length = encapsulated_message.total_length();
-            data = data.subspan(encapsulated_message_total_length);
+            data = rest;
             if (is_end_of_stream(data.subspan(0, 8)))
             {
                 break;
