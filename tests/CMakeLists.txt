@@ -4,13 +4,10 @@ set(test_target "test_sparrow_ipc_lib")
 
 set(SPARROW_IPC_TESTS_SRC
     include/sparrow_ipc_tests_helpers.hpp
-    # TODO move all the files below under src?
     main.cpp
     test_arrow_array.cpp
     test_arrow_schema.cpp
-    test_null_array_serialization.cpp
-    test_primitive_array_serialization.cpp
-    test_primitive_array_with_files.cpp
+    test_deserialization_with_files.cpp
     test_utils.cpp
 )
 
