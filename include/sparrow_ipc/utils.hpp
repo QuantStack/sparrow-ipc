@@ -5,8 +5,8 @@
 #include <string_view>
 #include <utility>
 
-#include "config/config.hpp"
 #include "Schema_generated.h"
+#include "sparrow_ipc/config/config.hpp"
 
 namespace sparrow_ipc::utils
 {

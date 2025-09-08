@@ -7,19 +7,19 @@
 
 namespace sparrow_ipc
 {
-    EncapsulatedMessage::EncapsulatedMessage(std::span<const uint8_t> data)
+    encapsulated_message::encapsulated_message(std::span<const uint8_t> data)
         : m_data(data)
     {
     }
 
-    const org::apache::arrow::flatbuf::Message* EncapsulatedMessage::flat_buffer_message() const
+    const org::apache::arrow::flatbuf::Message* encapsulated_message::flat_buffer_message() const
     {
         const uint8_t* message_ptr = m_data.data() + (sizeof(uint32_t) * 2);  // 4 bytes continuation + 4
                                                                               // bytes metadata size
         return org::apache::arrow::flatbuf::GetMessage(message_ptr);
     }
 
-    size_t EncapsulatedMessage::metadata_length() const
+    size_t encapsulated_message::metadata_length() const
     {
         return *(reinterpret_cast<const uint32_t*>(m_data.data() + sizeof(uint32_t)));
     }
@@ -30,7 +30,7 @@ namespace sparrow_ipc
         const org::apache::arrow::flatbuf::Tensor*,
         const org::apache::arrow::flatbuf::DictionaryBatch*,
         const org::apache::arrow::flatbuf::SparseTensor*>
-    EncapsulatedMessage::metadata() const
+    encapsulated_message::metadata() const
     {
         const auto schema_message = flat_buffer_message();
         switch (schema_message->header_type())
@@ -61,17 +61,17 @@ namespace sparrow_ipc
     }
 
     const ::flatbuffers::Vector<::flatbuffers::Offset<org::apache::arrow::flatbuf::KeyValue>>*
-    EncapsulatedMessage::custom_metadata() const
+    encapsulated_message::custom_metadata() const
     {
         return flat_buffer_message()->custom_metadata();
     }
 
-    size_t EncapsulatedMessage::body_length() const
+    size_t encapsulated_message::body_length() const
     {
         return static_cast<size_t>(flat_buffer_message()->bodyLength());
     }
 
-    std::span<const uint8_t> EncapsulatedMessage::body() const
+    std::span<const uint8_t> encapsulated_message::body() const
     {
         const size_t offset = sizeof(uint32_t) * 2  // 4 bytes continuation + 4 bytes metadata size
                               + metadata_length();
@@ -83,7 +83,7 @@ namespace sparrow_ipc
         return m_data.subspan(padded_offset, body_length());
     }
 
-    size_t EncapsulatedMessage::total_length() const
+    size_t encapsulated_message::total_length() const
     {
         const size_t offset = sizeof(uint32_t) * 2  // 4 bytes continuation + 4 bytes metadata size
                               + metadata_length();
@@ -91,12 +91,12 @@ namespace sparrow_ipc
         return padded_offset + body_length();
     }
 
-    std::span<const uint8_t> EncapsulatedMessage::as_span() const
+    std::span<const uint8_t> encapsulated_message::as_span() const
     {
         return m_data;
     }
 
-    std::pair<EncapsulatedMessage, std::span<const uint8_t>>
+    std::pair<encapsulated_message, std::span<const uint8_t>>
     extract_encapsulated_message(std::span<const uint8_t> data)
     {
         if (!data.size() || data.size() < 8)
@@ -108,7 +108,7 @@ namespace sparrow_ipc
         {
             throw std::runtime_error("Buffer starts with continuation bytes, expected a valid message.");
         }
-        EncapsulatedMessage message(data);
+        encapsulated_message message(data);
         std::span<const uint8_t> rest = data.subspan(message.total_length());
         return {std::move(message), std::move(rest)};
     }

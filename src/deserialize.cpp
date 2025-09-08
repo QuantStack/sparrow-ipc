@@ -45,7 +45,7 @@ namespace sparrow_ipc
     std::vector<sparrow::array> get_arrays_from_record_batch(
         const org::apache::arrow::flatbuf::RecordBatch& record_batch,
         const org::apache::arrow::flatbuf::Schema& schema,
-        const EncapsulatedMessage& encapsulated_message,
+        const encapsulated_message& encapsulated_message,
         const std::vector<std::optional<std::vector<sparrow::metadata_pair>>>& field_metadata
     )
     {
