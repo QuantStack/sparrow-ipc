@@ -21,6 +21,7 @@ namespace sparrow_ipc
         }
         return static_cast<const org::apache::arrow::flatbuf::RecordBatch*>(batch_message->header());
     }
+
     /**
      * @brief Deserializes arrays from an Apache Arrow RecordBatch using the provided schema.
      *
@@ -44,7 +45,8 @@ namespace sparrow_ipc
     std::vector<sparrow::array> get_arrays_from_record_batch(
         const org::apache::arrow::flatbuf::RecordBatch& record_batch,
         const org::apache::arrow::flatbuf::Schema& schema,
-        const EncapsulatedMessage& encapsulated_message
+        const EncapsulatedMessage& encapsulated_message,
+        const std::vector<std::optional<std::vector<sparrow::metadata_pair>>>& field_metadata
     )
     {
         const size_t length = static_cast<size_t>(record_batch.length());
@@ -52,15 +54,12 @@ namespace sparrow_ipc
 
         std::vector<sparrow::array> arrays;
         arrays.reserve(schema.fields()->size());
-
+        size_t field_idx = 0;
         for (const auto field : *(schema.fields()))
         {
             const ::flatbuffers::Vector<::flatbuffers::Offset<org::apache::arrow::flatbuf::KeyValue>>*
                 fb_custom_metadata = field->custom_metadata();
-            const std::optional<std::vector<sparrow::metadata_pair>>
-                metadata = fb_custom_metadata == nullptr
-                               ? std::nullopt
-                               : std::make_optional(to_sparrow_metadata(*fb_custom_metadata));
+            const std::optional<std::vector<sparrow::metadata_pair>>& metadata = field_metadata[field_idx++];
             const auto name = field->name()->string_view();
             const auto field_type = field->type_type();
             const auto deserialize_non_owning_primitive_array_lambda = [&]<typename T>()
@@ -206,6 +205,7 @@ namespace sparrow_ipc
         std::vector<std::string_view> field_names;
         std::vector<bool> fields_nullable;
         std::vector<sparrow::data_type> field_types;
+        std::vector<std::optional<std::vector<sparrow::metadata_pair>>> fields_metadata;
         do
         {
             const auto [encapsulated_message, rest] = extract_encapsulated_message(data);
@@ -218,11 +218,19 @@ namespace sparrow_ipc
                     const size_t size = static_cast<size_t>(schema->fields()->size());
                     field_names.reserve(size);
                     fields_nullable.reserve(size);
+                    fields_metadata.reserve(size);
 
                     for (const auto field : *(schema->fields()))
                     {
                         field_names.emplace_back(field->name()->string_view());
                         fields_nullable.push_back(field->nullable());
+                        const ::flatbuffers::Vector<::flatbuffers::Offset<org::apache::arrow::flatbuf::KeyValue>>*
+                            fb_custom_metadata = field->custom_metadata();
+                        std::optional<std::vector<sparrow::metadata_pair>>
+                            metadata = fb_custom_metadata == nullptr
+                                           ? std::nullopt
+                                           : std::make_optional(to_sparrow_metadata(*fb_custom_metadata));
+                        fields_metadata.push_back(std::move(metadata));
                     }
                 }
                 break;
@@ -240,7 +248,8 @@ namespace sparrow_ipc
                     std::vector<sparrow::array> arrays = get_arrays_from_record_batch(
                         *record_batch,
                         *schema,
-                        encapsulated_message
+                        encapsulated_message,
+                        fields_metadata
                     );
                     std::vector<std::string> field_names_str(field_names.cbegin(), field_names.cend());
                     record_batches.emplace_back(std::move(field_names_str), std::move(arrays));
