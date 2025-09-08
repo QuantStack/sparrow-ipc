@@ -10,59 +10,6 @@
 
 namespace sparrow_ipc
 {
-    void deserialize_schema_message(
-        std::span<const uint8_t> data,
-        size_t& current_offset,
-        std::optional<std::string>& name,
-        std::optional<std::vector<sparrow::metadata_pair>>& metadata
-    )
-    {
-        if (data.size() < (current_offset + sizeof(uint32_t)))
-        {
-            throw std::runtime_error("Data too short to contain schema length.");
-        }
-        const uint32_t schema_meta_len = *(reinterpret_cast<const uint32_t*>(data.data() + current_offset));
-        if (schema_meta_len == 0 || (data.size() < (current_offset + sizeof(uint32_t) + schema_meta_len)))
-        {
-            throw std::runtime_error("Invalid schema length.");
-        }
-        current_offset += sizeof(uint32_t);
-        const auto schema_message = org::apache::arrow::flatbuf::GetMessage(data.data() + current_offset);
-        if (schema_message->header_type() != org::apache::arrow::flatbuf::MessageHeader::Schema)
-        {
-            throw std::runtime_error("Expected Schema message at the start of the buffer.");
-        }
-        const auto flatbuffer_schema = static_cast<const org::apache::arrow::flatbuf::Schema*>(
-            schema_message->header()
-        );
-        const auto fields = flatbuffer_schema->fields();
-        if (fields->size() != 1)
-        {
-            throw std::runtime_error("Expected schema with exactly one field.");
-        }
-
-        const auto field = fields->Get(0);
-
-        // Get name
-        if (const auto fb_name = field->name())
-        {
-            name = fb_name->str();
-        }
-
-        // Handle metadata
-        const auto fb_metadata = field->custom_metadata();
-        if (fb_metadata && !fb_metadata->empty())
-        {
-            metadata = std::vector<sparrow::metadata_pair>();
-            metadata->reserve(fb_metadata->size());
-            for (const auto& kv : *fb_metadata)
-            {
-                metadata->emplace_back(kv->key()->str(), kv->value()->str());
-            }
-        }
-        current_offset += schema_meta_len;
-    }
-
     const org::apache::arrow::flatbuf::RecordBatch*
     deserialize_record_batch_message(std::span<const uint8_t> data, size_t& current_offset)
     {
