@@ -27,6 +27,10 @@ namespace sparrow_ipc
             buffer_index++
         );
         const auto buffer_metadata = record_batch.buffers()->Get(buffer_index++);
+        if ((body.size() < (buffer_metadata->offset() + buffer_metadata->length())))
+        {
+            throw std::runtime_error("Data buffer exceeds body size");
+        }
         auto buffer_ptr = const_cast<uint8_t*>(body.data() + buffer_metadata->offset());
         std::vector<std::uint8_t*> buffers = {bitmap_ptr, buffer_ptr};
         ArrowArray array = make_non_owning_arrow_array(

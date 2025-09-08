@@ -76,6 +76,10 @@ namespace sparrow_ipc
         const size_t offset = sizeof(uint32_t) * 2  // 4 bytes continuation + 4 bytes metadata size
                               + metadata_length();
         const size_t padded_offset = utils::align_to_8(offset);  // Round up to 8-byte boundary
+        if (m_data.size() < padded_offset + body_length())
+        {
+            throw std::runtime_error("Data size is smaller than expected from metadata.");
+        }
         return m_data.subspan(padded_offset, body_length());
     }
 

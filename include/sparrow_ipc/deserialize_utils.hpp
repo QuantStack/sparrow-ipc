@@ -1,36 +1,33 @@
 #pragma once
 
 #include <span>
+#include <utility>
 
 #include <sparrow/buffer/dynamic_bitset/dynamic_bitset_view.hpp>
 #include <sparrow/u8_buffer.hpp>
-#include <utility>
 
 #include "Message_generated.h"
 #include "Schema_generated.h"
 
 namespace sparrow_ipc::utils
 {
-    template <typename T>
-    [[nodiscard]] sparrow::u8_buffer<T> message_buffer_to_u8buffer(
-        const org::apache::arrow::flatbuf::RecordBatch* record_batch,
-        std::span<const uint8_t> body,
-        size_t index
-    )
-    {
-        const auto buffer_metadata = record_batch->buffers()->Get(index);
-        auto ptr = const_cast<uint8_t*>(body.data() + buffer_metadata->offset());
-        auto casted_ptr = reinterpret_cast<T*>(ptr);
-        const std::size_t count = static_cast<std::size_t>(buffer_metadata->length() / sizeof(T));
-        return sparrow::u8_buffer<T>{casted_ptr, count};
-    }
-
-    [[nodiscard]] const sparrow::dynamic_bitset_view<const std::uint8_t> message_buffer_to_validity_bitmap(
-        const org::apache::arrow::flatbuf::RecordBatch* record_batch,
-        std::span<const uint8_t> body,
-        size_t index
-    );
-
+    /**
+     * @brief Extracts bitmap pointer and null count from a RecordBatch buffer.
+     *
+     * This function retrieves a bitmap buffer from the specified index in the RecordBatch's
+     * buffer list and calculates the number of null values represented by the bitmap.
+     *
+     * @param record_batch The Arrow RecordBatch containing buffer metadata
+     * @param body The raw buffer data as a byte span
+     * @param index The index of the bitmap buffer in the RecordBatch's buffer list
+     *
+     * @return A pair containing:
+     *         - First: Pointer to the bitmap data (nullptr if buffer is empty)
+     *         - Second: Count of null values in the bitmap (0 if buffer is empty)
+     *
+     * @note If the bitmap buffer has zero length, returns {nullptr, 0}
+     * @note The returned pointer is a non-const cast of the original const data
+     */
     [[nodiscard]] std::pair<std::uint8_t*, int64_t> get_bitmap_pointer_and_null_count(
         const org::apache::arrow::flatbuf::RecordBatch& record_batch,
         std::span<const uint8_t> body,

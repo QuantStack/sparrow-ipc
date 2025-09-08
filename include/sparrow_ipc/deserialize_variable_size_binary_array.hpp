@@ -36,9 +36,18 @@ namespace sparrow_ipc
             body,
             buffer_index++
         );
+
         const auto offset_metadata = record_batch.buffers()->Get(buffer_index++);
+        if ((offset_metadata->offset() + offset_metadata->length()) > body.size())
+        {
+            throw std::runtime_error("Offset buffer exceeds body size");
+        }
         auto offset_ptr = const_cast<uint8_t*>(body.data() + offset_metadata->offset());
         const auto buffer_metadata = record_batch.buffers()->Get(buffer_index++);
+        if ((buffer_metadata->offset() + buffer_metadata->length()) > body.size())
+        {
+            throw std::runtime_error("Data buffer exceeds body size");
+        }
         auto buffer_ptr = const_cast<uint8_t*>(body.data() + buffer_metadata->offset());
         std::vector<std::uint8_t*> buffers = {bitmap_ptr, offset_ptr, buffer_ptr};
         ArrowArray array = make_non_owning_arrow_array(

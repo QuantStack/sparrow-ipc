@@ -16,12 +16,6 @@ namespace sparrow_ipc
         SPARROW_ASSERT_TRUE(array->release == std::addressof(release_non_owning_arrow_array))
 
         release_common_non_owning_arrow(*array);
-        if (array->private_data != nullptr)
-        {
-            const auto private_data = static_cast<non_owning_arrow_array_private_data*>(array->private_data);
-            delete private_data;
-            array->private_data = nullptr;
-        }
         array->buffers = nullptr;  // The buffers were deleted with the private data
     }
 

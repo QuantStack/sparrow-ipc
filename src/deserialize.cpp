@@ -17,7 +17,15 @@ namespace sparrow_ipc
         std::optional<std::vector<sparrow::metadata_pair>>& metadata
     )
     {
+        if (data.size() < (current_offset + sizeof(uint32_t)))
+        {
+            throw std::runtime_error("Data too short to contain schema length.");
+        }
         const uint32_t schema_meta_len = *(reinterpret_cast<const uint32_t*>(data.data() + current_offset));
+        if (schema_meta_len == 0 || (data.size() < (current_offset + sizeof(uint32_t) + schema_meta_len)))
+        {
+            throw std::runtime_error("Invalid schema length.");
+        }
         current_offset += sizeof(uint32_t);
         const auto schema_message = org::apache::arrow::flatbuf::GetMessage(data.data() + current_offset);
         if (schema_message->header_type() != org::apache::arrow::flatbuf::MessageHeader::Schema)
@@ -66,7 +74,26 @@ namespace sparrow_ipc
         }
         return static_cast<const org::apache::arrow::flatbuf::RecordBatch*>(batch_message->header());
     }
-
+    /**
+     * @brief Deserializes arrays from an Apache Arrow RecordBatch using the provided schema.
+     *
+     * This function processes each field in the schema and deserializes the corresponding
+     * data from the RecordBatch into sparrow::array objects. It handles various Arrow data
+     * types including primitive types (bool, integers, floating point), binary data, and
+     * string data with their respective size variants.
+     *
+     * @param record_batch The Apache Arrow FlatBuffer RecordBatch containing the serialized data
+     * @param schema The Apache Arrow FlatBuffer Schema defining the structure and types of the data
+     * @param encapsulated_message The message containing the binary data buffers
+     *
+     * @return std::vector<sparrow::array> A vector of deserialized arrays, one for each field in the schema
+     *
+     * @throws std::runtime_error If an unsupported data type, integer bit width, or floating point precision
+     * is encountered
+     *
+     * The function maintains a buffer index that is incremented as it processes each field
+     * to correctly map data buffers to their corresponding arrays.
+     */
     std::vector<sparrow::array> get_arrays_from_record_batch(
         const org::apache::arrow::flatbuf::RecordBatch& record_batch,
         const org::apache::arrow::flatbuf::Schema& schema,
@@ -269,7 +296,7 @@ namespace sparrow_ipc
                         encapsulated_message
                     );
                     std::vector<std::string> field_names_str(field_names.cbegin(), field_names.cend());
-                    record_batches.emplace_back(std::move(field_names_str), std::move(arrays), "test");
+                    record_batches.emplace_back(std::move(field_names_str), std::move(arrays));
                 }
                 break;
                 case org::apache::arrow::flatbuf::MessageHeader::Tensor:

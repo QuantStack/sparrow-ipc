@@ -28,6 +28,8 @@ namespace sparrow_ipc
         }
         SPARROW_ASSERT_TRUE(t.private_data != nullptr);
         const auto private_data = static_cast<const private_data_type*>(t.private_data);
+        delete private_data;
+        t.private_data = nullptr;
 
         if (t.dictionary)
         {
