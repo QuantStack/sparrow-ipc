@@ -444,5 +444,9 @@ namespace sparrow_ipc
                 }
             }
         }
+
+        // size_t calculate_output_serialized_size(const sparrow::record_batch& record_batch)
+        // {
+        // }
     }
 }

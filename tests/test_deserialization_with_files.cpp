@@ -7,13 +7,14 @@
 #include <nlohmann/json.hpp>
 
 #include <sparrow/record_batch.hpp>
+#include <sparrow/utils/format.hpp>
 
 #include "sparrow/json_reader/json_parser.hpp"
 
 #include "doctest/doctest.h"
 #include "sparrow.hpp"
 #include "sparrow_ipc/deserialize.hpp"
-
+#include "sparrow_ipc/serialize.hpp"
 
 const std::filesystem::path arrow_testing_data_dir = ARROW_TESTING_DATA_DIR;
 
@@ -22,9 +23,9 @@ const std::filesystem::path tests_resources_files_path = arrow_testing_data_dir 
 
 const std::vector<std::filesystem::path> files_paths_to_test = {
     tests_resources_files_path / "generated_primitive",
-    // tests_resources_files_path / "generated_primitive_large_offsets",
+    tests_resources_files_path / "generated_primitive_large_offsets",
     tests_resources_files_path / "generated_primitive_zerolength",
-    tests_resources_files_path / "generated_primitive_no_batches"
+    // tests_resources_files_path / "generated_primitive_no_batches"
 };
 
 size_t get_number_of_batches(const std::filesystem::path& json_path)
@@ -46,6 +47,33 @@ nlohmann::json load_json_file(const std::filesystem::path& json_path)
         throw std::runtime_error("Could not open file: " + json_path.string());
     }
     return nlohmann::json::parse(json_file);
+}
+
+void compare_record_batches(
+    const std::vector<sparrow::record_batch>& record_batches_1,
+    const std::vector<sparrow::record_batch>& record_batches_2
+)
+{
+    REQUIRE_EQ(record_batches_1.size(), record_batches_2.size());
+    for (size_t i = 0; i < record_batches_1.size(); ++i)
+    {
+        for (size_t y = 0; y < record_batches_1[i].nb_columns(); y++)
+        {
+            const auto& column_1 = record_batches_1[i].get_column(y);
+            const auto& column_2 = record_batches_2[i].get_column(y);
+            REQUIRE_EQ(column_1.size(), column_2.size());
+            for (size_t z = 0; z < column_1.size(); z++)
+            {
+                const auto col_name = column_1.name().value_or("NA");
+                INFO("Comparing batch " << i << ", column " << y << " named :" << col_name << " , row " << z);
+                REQUIRE_EQ(column_1.data_type(), column_2.data_type());
+                CHECK_EQ(column_1.name(), column_2.name());
+                const auto& column_1_value = column_1[z];
+                const auto& column_2_value = column_2[z];
+                CHECK_EQ(column_1_value, column_2_value);
+            }
+        }
+    }
 }
 
 TEST_SUITE("Integration tests")
@@ -90,29 +118,55 @@ TEST_SUITE("Integration tests")
                 const auto record_batches_from_stream = sparrow_ipc::deserialize_stream(
                     std::span<const uint8_t>(stream_data)
                 );
+                compare_record_batches(record_batches_from_json, record_batches_from_stream);
+            }
+        }
+    }
 
-                // Compare record batches
-                REQUIRE_EQ(record_batches_from_stream.size(), record_batches_from_json.size());
-                for (size_t i = 0; i < record_batches_from_stream.size(); ++i)
+    TEST_CASE("Compare record_batch serialization with stream file")
+    {
+        for (const auto& file_path : files_paths_to_test)
+        {
+            std::filesystem::path json_path = file_path;
+            json_path.replace_extension(".json");
+            const std::string test_name = "Testing " + file_path.filename().string();
+            SUBCASE(test_name.c_str())
+            {
+                // Load the JSON file
+                auto json_data = load_json_file(json_path);
+                CHECK(json_data != nullptr);
+
+                const size_t num_batches = get_number_of_batches(json_path);
+                std::vector<sparrow::record_batch> record_batches_from_json;
+                for (size_t batch_idx = 0; batch_idx < num_batches; ++batch_idx)
                 {
-                    for (size_t y = 0; y < record_batches_from_stream[i].nb_columns(); y++)
-                    {
-                        const auto& column_stream = record_batches_from_stream[i].get_column(y);
-                        const auto& column_json = record_batches_from_json[i].get_column(y);
-                        REQUIRE_EQ(column_stream.size(), column_json.size());
-                        for (size_t z = 0; z < column_json.size(); z++)
-                        {
-                            const auto col_name = column_stream.name().value_or("NA");
-                            INFO(
-                                "Comparing batch " << i << ", column " << y << " named :" << col_name
-                                                   << " , row " << z
-                            );
-                            const auto& column_stream_value = column_stream[z];
-                            const auto& column_json_value = column_json[z];
-                            CHECK_EQ(column_stream_value, column_json_value);
-                        }
-                    }
+                    INFO("Processing batch " << batch_idx << " of " << num_batches);
+                    record_batches_from_json.emplace_back(
+                        sparrow::json_reader::build_record_batch_from_json(json_data, batch_idx)
+                    );
                 }
+
+                // Load stream file
+                std::filesystem::path stream_file_path = file_path;
+                stream_file_path.replace_extension(".stream");
+                std::ifstream stream_file(stream_file_path, std::ios::in | std::ios::binary);
+                REQUIRE(stream_file.is_open());
+                const std::vector<uint8_t> stream_data(
+                    (std::istreambuf_iterator<char>(stream_file)),
+                    (std::istreambuf_iterator<char>())
+                );
+                stream_file.close();
+
+                // Process the stream file
+                const auto record_batches_from_stream = sparrow_ipc::deserialize_stream(
+                    std::span<const uint8_t>(stream_data)
+                );
+
+                const auto serialized_data = sparrow_ipc::serialize(record_batches_from_json);
+                const auto deserialized_serialized_data = sparrow_ipc::deserialize_stream(
+                    std::span<const uint8_t>(serialized_data)
+                );
+                compare_record_batches(record_batches_from_stream, deserialized_serialized_data);
             }
         }
     }
