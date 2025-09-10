@@ -47,9 +47,8 @@ jobs:
 
       - name: Run tests
         working-directory: build
-        env:
-          CTEST_OUTPUT_ON_FAILURE: 1
-        run: cmake --build . --config ${{ matrix.build_type }} --target run_tests_with_junit_report
+        run: |
+          cmake --build . --config ${{ matrix.build_type }} --target run_tests_with_junit_report
 
   windows_build_fetch_from_source:
     runs-on: windows-latest
