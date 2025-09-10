@@ -97,6 +97,7 @@ set(SPARROW_IPC_HEADERS
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/deserialize_primitive_array.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/deserialize_utils.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/deserialize.hpp
+    ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/serialize.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/encapsulated_message.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/magic_values.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/metadata.hpp
@@ -111,6 +112,7 @@ set(SPARROW_IPC_SRC
     ${SPARROW_IPC_SOURCE_DIR}/deserialize_fixedsizebinary_array.cpp
     ${SPARROW_IPC_SOURCE_DIR}/deserialize_utils.cpp
     ${SPARROW_IPC_SOURCE_DIR}/deserialize.cpp
+    ${SPARROW_IPC_SOURCE_DIR}/serialize.cpp
     ${SPARROW_IPC_SOURCE_DIR}/encapsulated_message.cpp
     ${SPARROW_IPC_SOURCE_DIR}/metadata.cpp
     ${SPARROW_IPC_SOURCE_DIR}/utils.cpp

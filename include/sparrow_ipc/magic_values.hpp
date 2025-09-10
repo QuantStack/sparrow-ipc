@@ -6,7 +6,6 @@
 
 namespace sparrow_ipc
 {
-
     /**
      * Continuation value defined in the Arrow IPC specification:
      * https://arrow.apache.org/docs/format/Columnar.html#encapsulated-message-format
