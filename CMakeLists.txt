@@ -44,8 +44,17 @@ endif()
 OPTION(SPARROW_IPC_BUILD_TESTS "Build sparrow-ipc test suite" OFF)
 MESSAGE(STATUS "🔧 Build tests: ${SPARROW_IPC_BUILD_TESTS}")
 
-OPTION(BUILD_DOCS  "Build sparrow-ipc documentation" OFF)
-MESSAGE(STATUS "🔧 Build docs: ${BUILD_DOCS}")
+OPTION(SPARROW_IPC_BUILD_DOCS  "Build sparrow-ipc documentation" OFF)
+MESSAGE(STATUS "🔧 Build docs: ${SPARROW_IPC_BUILD_DOCS}")
+
+# Code coverage
+# =============
+OPTION(SPARROW_IPC_ENABLE_COVERAGE "Enable sparrow-ipc test coverage" OFF)
+MESSAGE(STATUS "🔧 Enable coverage: ${SPARROW_IPC_ENABLE_COVERAGE}")
+
+if(SPARROW_IPC_ENABLE_COVERAGE)
+    include(code_coverage)
+endif()
 
 set(SPARROW_IPC_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
 set(SPARROW_IPC_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
@@ -166,7 +175,7 @@ endif()
 
 # Docs
 # ====
-if(BUILD_DOCS)
+if(SPARROW_IPC_BUILD_DOCS)
     message(STATUS "📚 Create docs targets")
     add_subdirectory(docs)
 endif()

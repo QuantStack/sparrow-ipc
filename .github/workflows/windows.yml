@@ -32,7 +32,6 @@ jobs:
       - name: Configure using cmake
         run: |
           cmake -S ./ -B ./build \
-          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
           -DCMAKE_INSTALL_PREFIX=%CONDA_PREFIX% \
           -DCMAKE_PREFIX_PATH=%CONDA_PREFIX% \
           -DSPARROW_IPC_BUILD_SHARED=${{ matrix.build_shared }} \
@@ -40,16 +39,16 @@ jobs:
 
       - name: Build sparrow-ipc
         working-directory: build
-        run: cmake --build . --target sparrow-ipc
+        run: cmake --build . --config ${{ matrix.build_type }} --target sparrow-ipc
 
       - name: Build tests
         working-directory: build
-        run: cmake --build . --target test_sparrow_ipc_lib
+        run: cmake --build . --config ${{ matrix.build_type }} --target test_sparrow_ipc_lib
 
       - name: Run tests
         working-directory: build
         run: |
-          cmake --build . --target run_tests
+          cmake --build . --config ${{ matrix.build_type }} --target run_tests_with_junit_report
 
   windows_build_fetch_from_source:
     runs-on: windows-latest
@@ -61,22 +60,45 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Enable tests coverage
+        if: matrix.build_type == 'Debug'
+        run: |
+          choco install opencppcoverage
+          echo "TEST_COVERAGE_ACTIVATION=-DSPARROW_IPC_ENABLE_COVERAGE=ON" >> $GITHUB_ENV
+
       - name: Configure using cmake
         run: |
           cmake -S ./ -B ./build \
-          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
           -DSPARROW_IPC_BUILD_SHARED=${{ matrix.build_shared }} \
           -DSPARROW_IPC_BUILD_TESTS=ON \
-          -DFETCH_DEPENDENCIES_WITH_CMAKE=MISSING
+          -DFETCH_DEPENDENCIES_WITH_CMAKE=MISSING \
+          $TEST_COVERAGE_ACTIVATION
 
       - name: Build sparrow-ipc
         working-directory: build
-        run: cmake --build . --target sparrow-ipc
+        run: cmake --build . --config ${{ matrix.build_type }} --target sparrow-ipc
 
       - name: Build tests
         working-directory: build
-        run: cmake --build . --target test_sparrow_ipc_lib
+        run: cmake --build . --config ${{ matrix.build_type }} --target test_sparrow_ipc_lib
 
       - name: Run tests
         working-directory: build
-        run: cmake --build . --target run_tests_with_junit_report
+        run: cmake --build . --config ${{ matrix.build_type }} --target run_tests_with_junit_report
+
+      - name: Tests coverage
+        if: matrix.build_type == 'Debug'
+        working-directory: build
+        run: |
+          cmake --build . --config Debug --target sparrow_ipc_generate_cobertura
+
+      - name: Upload coverage to Codecov
+        if: matrix.build_type == 'Debug'
+        uses: codecov/codecov-action@v5
+        with:
+          directory: ./build/coverage_reports/
+          fail_ci_if_error: true
+          files: ./cobertura.xml
+          flags: unittests
+          token: ${{ secrets.CODECOV_TOKEN }}
+          verbose: true
