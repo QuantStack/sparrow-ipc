@@ -8,7 +8,7 @@ dependencies:
   - cxx-compiler
   # Libraries dependencies
   - flatbuffers
-  - sparrow >=1.1.0
+  - sparrow-devel >=1.1.1
   - doctest
   # Documentation dependencies
   - doxygen
