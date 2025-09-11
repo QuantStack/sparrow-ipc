@@ -52,7 +52,7 @@ endif()
 find_package_or_fetch(
     PACKAGE_NAME sparrow
     GIT_REPOSITORY https://github.com/man-group/sparrow.git
-    TAG 1.1.0
+    TAG 1.1.1
 )
 unset(CREATE_JSON_READER_TARGET)
 
