@@ -29,6 +29,9 @@ if(WIN32)
         COMMAND ${CMAKE_COMMAND} -E copy
             "$<TARGET_FILE:sparrow-ipc>"
             "$<TARGET_FILE_DIR:${test_target}>"
+        COMMAND ${CMAKE_COMMAND} -E copy
+            "$<TARGET_FILE:sparrow::json_reader>"
+            "$<TARGET_FILE_DIR:${test_target}>"
         COMMENT "Copying sparrow and sparrow-ipc DLLs to executable directory"
     )
 endif()
