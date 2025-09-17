@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.28)
 
-project(sparrow-ipc CXX)
+project(sparrow-ipc LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20 CACHE STRING "C++ Standard")
 set(CMAKE_CXX_STANDARD_REQUIRED ON CACHE BOOL "C++ Standard Required")
@@ -15,6 +15,9 @@ include(external_dependencies)
 
 set(SPARROW_IPC_COMPILE_DEFINITIONS "" CACHE STRING "List of public compile definitions of the sparrow-ipc target")
 
+set(SPARROW_IPC_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
+set(SPARROW_IPC_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
+
 # Linter options
 # =============
 OPTION(ACTIVATE_LINTER "Create targets to run clang-format" OFF)
@@ -26,6 +29,38 @@ if(ACTIVATE_LINTER)
     include(clang-tidy)
 endif()
 
+# Versionning
+# ===========
+file(STRINGS "${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/config/sparrow_ipc_version.hpp" sparrow_ipc_version_defines
+    REGEX "constexpr int SPARROW_IPC_VERSION_(MAJOR|MINOR|PATCH)")
+
+foreach(ver ${sparrow_ipc_version_defines})
+    if(ver MATCHES "constexpr int SPARROW_VERSION_(MAJOR|MINOR|PATCH) = ([0-9]+);$")
+        set(PROJECT_VERSION_${CMAKE_MATCH_1} "${CMAKE_MATCH_2}" CACHE INTERNAL "")
+    endif()
+endforeach()
+
+set(CMAKE_PROJECT_VERSION
+    ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH})
+
+message(STATUS "Building sparrow_ipc v${CMAKE_PROJECT_VERSION}")
+
+# Binary version
+# See the following URL for explanations about the binary versionning
+# https://www.gnu.org/software/libtool/manual/html_node/Updating-version-info.html#Updating-version-info
+file(STRINGS "${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/config/sparrow_ipc_version.hpp" sparrow_ipc_version_defines
+    REGEX "constexpr int SPARROW_IPC_BINARY_(CURRENT|REVISION|AGE)")
+
+foreach(ver ${sparrow_ipc_version_defines})
+    if(ver MATCHES "constexpr int SPARROW_IPC_BINARY_(CURRENT|REVISION|AGE) = ([0-9]+);$")
+        set(SPARROW_IPC_BINARY_${CMAKE_MATCH_1} "${CMAKE_MATCH_2}" CACHE INTERNAL "")
+    endif()
+endforeach()
+
+set(SPARROW_IPC_BINARY_VERSION
+    ${SPARROW_IPC_BINARY_CURRENT}.${SPARROW_IPC_BINARY_REVISION}.${SPARROW_IPC_BINARY_AGE})
+
+message(STATUS "sparrow_ipc binary version: v${SPARROW_IPC_BINARY_VERSION}")
 
 # Build options
 # =============
@@ -60,16 +95,33 @@ set(SPARROW_IPC_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
 set(SPARROW_IPC_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
 set(SPARROW_IPC_HEADERS
-    ${SPARROW_IPC_INCLUDE_DIR}/config/config.hpp
-    ${SPARROW_IPC_INCLUDE_DIR}/serialize.hpp
-    ${SPARROW_IPC_INCLUDE_DIR}/serialize_primitive_array.hpp
-    ${SPARROW_IPC_INCLUDE_DIR}/serialize_null_array.hpp
-    ${SPARROW_IPC_INCLUDE_DIR}/utils.hpp
+    ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/arrow_interface/arrow_array_schema_common_release.hpp
+    ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/arrow_interface/arrow_array.hpp
+    ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/arrow_interface/arrow_array/private_data.hpp
+    ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/arrow_interface/arrow_schema.hpp
+    ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/arrow_interface/arrow_schema/private_data.hpp
+    ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/config/config.hpp
+    ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/deserialize_variable_size_binary_array.hpp
+    ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/deserialize_fixedsizebinary_array.hpp
+    ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/deserialize_primitive_array.hpp
+    ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/deserialize_utils.hpp
+    ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/deserialize.hpp
+    ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/encapsulated_message.hpp
+    ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/magic_values.hpp
+    ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/metadata.hpp
+    ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/utils.hpp
 )
 
 set(SPARROW_IPC_SRC
-    ${SPARROW_IPC_SOURCE_DIR}/serialize.cpp
-    ${SPARROW_IPC_SOURCE_DIR}/serialize_null_array.cpp
+    ${SPARROW_IPC_SOURCE_DIR}/arrow_interface/arrow_array.cpp
+    ${SPARROW_IPC_SOURCE_DIR}/arrow_interface/arrow_array/private_data.cpp
+    ${SPARROW_IPC_SOURCE_DIR}/arrow_interface/arrow_schema.cpp
+    ${SPARROW_IPC_SOURCE_DIR}/arrow_interface/arrow_schema/private_data.cpp
+    ${SPARROW_IPC_SOURCE_DIR}/deserialize_fixedsizebinary_array.cpp
+    ${SPARROW_IPC_SOURCE_DIR}/deserialize_utils.cpp
+    ${SPARROW_IPC_SOURCE_DIR}/deserialize.cpp
+    ${SPARROW_IPC_SOURCE_DIR}/encapsulated_message.cpp
+    ${SPARROW_IPC_SOURCE_DIR}/metadata.cpp
     ${SPARROW_IPC_SOURCE_DIR}/utils.cpp
 )
 
@@ -126,11 +178,14 @@ add_custom_command(
 
 add_custom_target(generate_flatbuffers_headers
     DEPENDS ${FLATBUFFERS_GENERATED_HEADERS}
+    COMMENT "Ensuring FlatBuffers headers are generated"
 )
 
 # Interface target for generated headers
 add_library(flatbuffers_interface INTERFACE)
-target_include_directories(flatbuffers_interface INTERFACE ${FLATBUFFERS_GENERATED_DIR})
+target_include_directories(flatbuffers_interface INTERFACE 
+    $<BUILD_INTERFACE:${FLATBUFFERS_GENERATED_DIR}>
+    $<INSTALL_INTERFACE:include/flatbuffers_generated>)
 add_dependencies(flatbuffers_interface generate_flatbuffers_headers)
 
 add_library(sparrow-ipc ${SPARROW_IPC_LIBRARY_TYPE} ${SPARROW_IPC_SRC} ${SPARROW_IPC_HEADERS})
@@ -150,19 +205,20 @@ else()
     target_compile_definitions(sparrow-ipc PRIVATE SPARROW_IPC_EXPORTS)
 endif()
 
-target_include_directories(sparrow-ipc
+target_include_directories(sparrow-ipc 
     PUBLIC
-        ${SPARROW_IPC_INCLUDE_DIR}
+        $<BUILD_INTERFACE:${SPARROW_IPC_INCLUDE_DIR}>
+        $<INSTALL_INTERFACE:include>
     PRIVATE
-        ${SPARROW_IPC_SOURCE_DIR} )
+        $<BUILD_INTERFACE:${FLATBUFFERS_GENERATED_DIR}>)
 
 target_link_libraries(sparrow-ipc 
     PUBLIC
         sparrow::sparrow
         flatbuffers::flatbuffers
-    PRIVATE
-        flatbuffers_interface)
+        )
 
+# Ensure generated headers are available when building sparrow-ipc
 add_dependencies(sparrow-ipc generate_flatbuffers_headers)
 
 # Tests
