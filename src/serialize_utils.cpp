@@ -1,8 +1,7 @@
-#include "sparrow_ipc/serialize.hpp"
-
 #include <iterator>
 
 #include "sparrow_ipc/magic_values.hpp"
+#include "sparrow_ipc/serialize.hpp"
 #include "sparrow_ipc/utils.hpp"
 
 namespace sparrow_ipc
@@ -85,7 +84,6 @@ namespace sparrow_ipc
     flatbuffers::FlatBufferBuilder get_schema_message_builder(const sparrow::record_batch& record_batch)
     {
         flatbuffers::FlatBufferBuilder schema_builder;
-        record_batch.columns();
         const auto fields_vec = create_children(schema_builder, record_batch.columns());
         const auto schema_offset = org::apache::arrow::flatbuf::CreateSchema(
             schema_builder,

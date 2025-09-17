@@ -20,19 +20,18 @@ namespace sparrow_ipc::utils
     SPARROW_IPC_API std::pair<org::apache::arrow::flatbuf::Type, flatbuffers::Offset<void>>
     get_flatbuffer_type(flatbuffers::FlatBufferBuilder& builder, std::string_view format_str);
 
-
     /**
      * @brief Checks if all record batches in a collection have consistent structure.
-     * 
+     *
      * This function verifies that all record batches in the provided collection have:
      * - The same number of columns
      * - Matching data types for corresponding columns (same column index)
-     * 
+     *
      * @tparam R Container type that holds sparrow::record_batch objects
      * @param record_batches Collection of record batches to check for consistency
      * @return true if all record batches have consistent structure or if the collection is empty,
      *         false if any structural inconsistencies are found
-     * 
+     *
      * @note An empty collection is considered consistent and returns true
      * @note The number of rows per record batch is not required to be the same
      */
@@ -45,7 +44,6 @@ namespace sparrow_ipc::utils
             return true;
         }
         const sparrow::record_batch& first_rb = record_batches[0];
-        const size_t first_rb_nb_rows = first_rb.nb_rows();
         const size_t first_rb_nb_columns = first_rb.nb_columns();
         for (const sparrow::record_batch& rb : record_batches)
         {
