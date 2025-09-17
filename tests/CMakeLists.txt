@@ -8,6 +8,7 @@ set(SPARROW_IPC_TESTS_SRC
     test_arrow_array.cpp
     test_arrow_schema.cpp
     test_deserialization_with_files.cpp
+    test_serialize_utils.cpp
     test_utils.cpp
 )
 

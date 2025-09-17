@@ -367,6 +367,4 @@ namespace sparrow_ipc
      */
     [[nodiscard]] SPARROW_IPC_API std::vector<uint8_t>
     serialize_record_batch(const sparrow::record_batch& record_batch);
-
-
 }
