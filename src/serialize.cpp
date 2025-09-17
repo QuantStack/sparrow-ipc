@@ -7,6 +7,7 @@
 
 namespace sparrow_ipc
 {
+
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<org::apache::arrow::flatbuf::KeyValue>>>
     create_metadata(flatbuffers::FlatBufferBuilder& builder, const ArrowSchema& arrow_schema)
     {
@@ -96,7 +97,7 @@ namespace sparrow_ipc
             org::apache::arrow::flatbuf::MetadataVersion::V5,
             org::apache::arrow::flatbuf::MessageHeader::Schema,
             schema_offset.Union(),
-            0,  // body length IS 0 for schema messages
+            0,  // body length is 0 for schema messages
             0   // custom metadata
         );
         schema_builder.Finish(schema_message_offset);
