@@ -18,7 +18,7 @@ class SparrowIPCRecipe(ConanFile):
     topics = ("arrow", "apache arrow", "columnar format", "dataframe", "ipc", "serialization", "deserialization", "flatbuffers")
     package_type = "library"
     settings = "os", "arch", "compiler", "build_type"
-    exports_sources = "include/*", "src/*", "cmake/*", "docs/*", "CMakeLists.txt", "sparrow-ipcConfig.cmake.in", "LICENSE"
+    exports_sources = "include/*", "src/*", "cmake/*", "docs/*", "CMakeLists.txt", "LICENSE"
     options = {
         "shared": [True, False],
         "fPIC": [True, False],

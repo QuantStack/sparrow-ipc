@@ -4,7 +4,7 @@
 
 #include "doctest/doctest.h"
 
-#include "config/sparrow_ipc_version.hpp"
+#include "sparrow_ipc/config/sparrow_ipc_version.hpp"
 
 TEST_CASE("versions exist and are readable")
 {
