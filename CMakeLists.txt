@@ -264,7 +264,7 @@ include(CMakePackageConfigHelpers)
 set(SPARROW_IPC_CMAKECONFIG_INSTALL_DIR "${CMAKE_INSTALL_DATADIR}/cmake/${PROJECT_NAME}" CACHE
     STRING "install path for sparrow-ipcConfig.cmake")
 
-configure_package_config_file(${PROJECT_NAME}Config.cmake.in
+configure_package_config_file(cmake/${PROJECT_NAME}Config.cmake.in
     "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
     INSTALL_DESTINATION ${SPARROW_IPC_CMAKECONFIG_INSTALL_DIR})
 
