@@ -2,7 +2,9 @@
 
 #include <algorithm>
 #include <array>
-#include <istream>
+#include <cstdint>
+#include <ranges>
+
 
 namespace sparrow_ipc
 {

@@ -1,7 +1,9 @@
 #pragma once
 
-#include "doctest/doctest.h"
-#include "sparrow.hpp"
+#include <doctest/doctest.h>
+
+#include <sparrow/record_batch.hpp>
+
 
 namespace sparrow_ipc
 {
@@ -31,8 +33,8 @@ namespace sparrow_ipc
         }
     }
 
-        // Helper function to create a simple ArrowSchema for testing
-    ArrowSchema
+    // Helper function to create a simple ArrowSchema for testing
+    inline ArrowSchema
     create_test_arrow_schema(const char* format, const char* name = "test_field", bool nullable = true)
     {
         ArrowSchema schema{};
@@ -49,7 +51,8 @@ namespace sparrow_ipc
     }
 
     // Helper function to create ArrowSchema with metadata
-    ArrowSchema create_test_arrow_schema_with_metadata(const char* format, const char* name = "test_field")
+    inline ArrowSchema
+    create_test_arrow_schema_with_metadata(const char* format, const char* name = "test_field")
     {
         auto schema = create_test_arrow_schema(format, name);
 
@@ -59,7 +62,7 @@ namespace sparrow_ipc
     }
 
     // Helper function to create a simple record batch for testing
-    sp::record_batch create_test_record_batch()
+    inline sp::record_batch create_test_record_batch()
     {
         // Create a simple record batch with integer and string columns using initializer syntax
         return sp::record_batch(

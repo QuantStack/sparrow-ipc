@@ -7,7 +7,12 @@ set(SPARROW_IPC_TESTS_SRC
     main.cpp
     test_arrow_array.cpp
     test_arrow_schema.cpp
+    test_chunk_memory_output_stream.cpp
+    test_chunk_memory_serializer.cpp
     test_de_serialization_with_files.cpp
+    test_file_output_stream.cpp
+    test_flatbuffer_utils.cpp
+    test_memory_output_streams.cpp
     test_serialize_utils.cpp
     test_utils.cpp
 )
