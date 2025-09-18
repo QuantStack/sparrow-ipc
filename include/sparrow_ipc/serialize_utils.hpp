@@ -367,4 +367,15 @@ namespace sparrow_ipc
      */
     [[nodiscard]] SPARROW_IPC_API std::vector<uint8_t>
     serialize_record_batch(const sparrow::record_batch& record_batch);
+
+    /**
+     * @brief Adds padding bytes to a buffer to ensure 8-byte alignment.
+     *
+     * This function appends zero bytes to the end of the provided buffer until
+     * its size is a multiple of 8. This is often required for proper memory
+     * alignment in binary formats such as Apache Arrow IPC.
+     *
+     * @param buffer The byte vector to which padding will be added
+     */
+    void add_padding(std::vector<uint8_t>& buffer);
 }

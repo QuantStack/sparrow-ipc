@@ -121,13 +121,7 @@ namespace sparrow_ipc
             schema_builder.GetBufferPointer(),
             schema_builder.GetBufferPointer() + schema_len
         );
-        // padding to 8 bytes
-        schema_buffer.insert(
-            schema_buffer.end(),
-            utils::align_to_8(static_cast<int64_t>(schema_buffer.size()))
-                - static_cast<int64_t>(schema_buffer.size()),
-            0
-        );
+        add_padding(schema_buffer);
         return schema_buffer;
     }
 
@@ -192,9 +186,7 @@ namespace sparrow_ipc
         for (const auto& buffer : arrow_proxy.buffers())
         {
             body.insert(body.end(), buffer.begin(), buffer.end());
-            const int64_t padding_size = utils::align_to_8(static_cast<int64_t>(buffer.size()))
-                                         - static_cast<int64_t>(buffer.size());
-            body.insert(body.end(), padding_size, 0);
+            add_padding(body);
         }
         for (const auto& child : arrow_proxy.children())
         {
@@ -295,15 +287,19 @@ namespace sparrow_ipc
             record_batch_builder.GetBufferPointer(),
             record_batch_builder.GetBufferPointer() + record_batch_len
         );
-        // padding to 8 bytes
-        output.insert(
-            output.end(),
-            utils::align_to_8(static_cast<int64_t>(output.size())) - static_cast<int64_t>(output.size()),
-            0
-        );
+        add_padding(output);
         std::vector<uint8_t> body = generate_body(record_batch);
         output.insert(output.end(), std::make_move_iterator(body.begin()), std::make_move_iterator(body.end()));
         return output;
+    }
+
+    void add_padding(std::vector<uint8_t>& buffer)
+    {
+        buffer.insert(
+            buffer.end(),
+            utils::align_to_8(static_cast<int64_t>(buffer.size())) - static_cast<int64_t>(buffer.size()),
+            0
+        );
     }
 
 }
