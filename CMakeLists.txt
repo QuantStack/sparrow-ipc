@@ -279,11 +279,13 @@ install(FILES
 
 # Install target
 set(SPARROW_IPC_EXPORTED_TARGETS sparrow-ipc)
-get_target_property(is_imported flatbuffers IMPORTED)
-if(NOT is_imported)
-    # This means `flatbuffers` was fetched using FetchContent
-    # We need to export `flatbuffers` target explicitly
-    list(APPEND SPARROW_IPC_EXPORTED_TARGETS flatbuffers)
+if (TARGET flatbuffers)
+    get_target_property(is_imported flatbuffers IMPORTED)
+    if(NOT is_imported)
+        # This means `flatbuffers` was fetched using FetchContent
+        # We need to export `flatbuffers` target explicitly
+        list(APPEND SPARROW_IPC_EXPORTED_TARGETS flatbuffers)
+    endif()
 endif()
 
 install(TARGETS ${SPARROW_IPC_EXPORTED_TARGETS}
