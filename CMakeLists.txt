@@ -278,7 +278,15 @@ install(FILES
     DESTINATION ${SPARROW_IPC_CMAKECONFIG_INSTALL_DIR})
 
 # Install target
-install(TARGETS sparrow-ipc
+set(SPARROW_IPC_EXPORTED_TARGETS sparrow-ipc)
+get_target_property(is_imported flatbuffers IMPORTED)
+if(NOT is_imported)
+    # This means `flatbuffers` was fetched using FetchContent
+    # We need to export `flatbuffers` target explicitly
+    list(APPEND SPARROW_IPC_EXPORTED_TARGETS flatbuffers)
+endif()
+
+install(TARGETS ${SPARROW_IPC_EXPORTED_TARGETS}
     EXPORT ${PROJECT_NAME}-targets)
 
 install(EXPORT ${PROJECT_NAME}-targets
