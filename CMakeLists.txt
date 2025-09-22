@@ -285,6 +285,11 @@ if (TARGET flatbuffers)
         # This means `flatbuffers` was fetched using FetchContent
         # We need to export `flatbuffers` target explicitly
         list(APPEND SPARROW_IPC_EXPORTED_TARGETS flatbuffers)
+        if(TARGET ProjectConfig)
+            # This is an internal target from the flatbuffers build system
+            # that also needs to be exported
+            list(APPEND SPARROW_IPC_EXPORTED_TARGETS ProjectConfig)
+        endif()
     endif()
 endif()
 
