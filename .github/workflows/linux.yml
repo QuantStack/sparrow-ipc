@@ -87,4 +87,4 @@ jobs:
 
       - name: Install
         working-directory: build
-        run: cmake --install .
+        run: sudo cmake --install .
