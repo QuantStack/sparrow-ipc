@@ -52,7 +52,7 @@ jobs:
 
       - name: Install
         working-directory: build
-        run: cmake --install .
+        run: cmake --install . --config ${{ matrix.build_type }}
 
   windows_build_fetch_from_source:
     runs-on: windows-latest
