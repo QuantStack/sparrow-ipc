@@ -92,7 +92,7 @@ jobs:
 
       - name: Install
         working-directory: build
-        run: cmake --install .
+        run: cmake --install . --config ${{ matrix.build_type }}
 
       - name: Tests coverage
         if: matrix.build_type == 'Debug'
