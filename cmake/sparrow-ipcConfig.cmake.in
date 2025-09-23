@@ -3,7 +3,7 @@
 #
 #   sparrow-ipc_FOUND - true if sparrow-ipc found on the system
 #   sparrow-ipc_INCLUDE_DIRS - the directory containing sparrow-ipc headers
-#   sparrow-ipc_LIBRARY - empty
+#   sparrow-ipc_LIBRARY - the location of the sparrow-ipc library (or empty if not applicable)
 
 @PACKAGE_INIT@
 

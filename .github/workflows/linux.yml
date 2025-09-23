@@ -33,8 +33,8 @@ jobs:
           cmake -G Ninja \
           -Bbuild \
           -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
-          -DCMAKE_INSTALL_PREFIX=%CONDA_PREFIX% \
-          -DCMAKE_PREFIX_PATH=%CONDA_PREFIX% \
+          -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX \
+          -DCMAKE_PREFIX_PATH=$CONDA_PREFIX \
           -DSPARROW_IPC_BUILD_SHARED=${{ matrix.build_shared }} \
           -DSPARROW_IPC_BUILD_TESTS=ON
 
@@ -49,6 +49,10 @@ jobs:
       - name: Run tests
         working-directory: build
         run: cmake --build . --target run_tests_with_junit_report
+
+      - name: Install
+        working-directory: build
+        run: cmake --install .
 
   linux_build_fetch_from_source:
     runs-on: ubuntu-latest
@@ -80,3 +84,7 @@ jobs:
       - name: Run tests
         working-directory: build
         run: cmake --build . --target run_tests_with_junit_report
+
+      - name: Install
+        working-directory: build
+        run: sudo cmake --install .

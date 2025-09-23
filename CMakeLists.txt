@@ -29,13 +29,13 @@ if(ACTIVATE_LINTER)
     include(clang-tidy)
 endif()
 
-# Versionning
-# ===========
+# Versioning
+# ==========
 file(STRINGS "${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/config/sparrow_ipc_version.hpp" sparrow_ipc_version_defines
     REGEX "constexpr int SPARROW_IPC_VERSION_(MAJOR|MINOR|PATCH)")
 
 foreach(ver ${sparrow_ipc_version_defines})
-    if(ver MATCHES "constexpr int SPARROW_VERSION_(MAJOR|MINOR|PATCH) = ([0-9]+);$")
+    if(ver MATCHES "constexpr int SPARROW_IPC_VERSION_(MAJOR|MINOR|PATCH) = ([0-9]+);$")
         set(PROJECT_VERSION_${CMAKE_MATCH_1} "${CMAKE_MATCH_2}" CACHE INTERNAL "")
     endif()
 endforeach()
@@ -43,10 +43,10 @@ endforeach()
 set(CMAKE_PROJECT_VERSION
     ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH})
 
-message(STATUS "Building sparrow_ipc v${CMAKE_PROJECT_VERSION}")
+message(STATUS "Building sparrow-ipc v${CMAKE_PROJECT_VERSION}")
 
 # Binary version
-# See the following URL for explanations about the binary versionning
+# See the following URL for more info on the binary versioning
 # https://www.gnu.org/software/libtool/manual/html_node/Updating-version-info.html#Updating-version-info
 file(STRINGS "${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/config/sparrow_ipc_version.hpp" sparrow_ipc_version_defines
     REGEX "constexpr int SPARROW_IPC_BINARY_(CURRENT|REVISION|AGE)")
@@ -60,7 +60,7 @@ endforeach()
 set(SPARROW_IPC_BINARY_VERSION
     ${SPARROW_IPC_BINARY_CURRENT}.${SPARROW_IPC_BINARY_REVISION}.${SPARROW_IPC_BINARY_AGE})
 
-message(STATUS "sparrow_ipc binary version: v${SPARROW_IPC_BINARY_VERSION}")
+message(STATUS "sparrow-ipc binary version: v${SPARROW_IPC_BINARY_VERSION}")
 
 # Build options
 # =============
@@ -101,6 +101,7 @@ set(SPARROW_IPC_HEADERS
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/arrow_interface/arrow_schema.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/arrow_interface/arrow_schema/private_data.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/config/config.hpp
+    ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/config/sparrow_ipc_version.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/deserialize_variable_size_binary_array.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/deserialize_fixedsizebinary_array.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/deserialize_primitive_array.hpp
@@ -200,8 +201,26 @@ target_compile_definitions(sparrow-ipc
         ${SPARROW_IPC_COMPILE_DEFINITIONS})
 
 if(UNIX)
+    # CMake does not compute the version number of so files as libtool
+    # does on Linux. Strictly speaking, we should exclude FreeBSD and
+    # Apple from this, but that would require having different version
+    # numbers depending on the platform. We prefer to follow the
+    # libtool pattern everywhere.
+    math(EXPR SPARROW_IPC_BINARY_COMPATIBLE "${SPARROW_IPC_BINARY_CURRENT} - ${SPARROW_IPC_BINARY_AGE}")
+    set_target_properties(
+        sparrow-ipc
+        PROPERTIES
+        VERSION "${SPARROW_IPC_BINARY_COMPATIBLE}.${SPARROW_IPC_BINARY_REVISION}.${SPARROW_IPC_BINARY_AGE}"
+        SOVERSION ${SPARROW_IPC_BINARY_COMPATIBLE}
+    )
     target_compile_options(sparrow-ipc PRIVATE "-fvisibility=hidden")
 else()
+    set_target_properties(
+        sparrow-ipc
+        PROPERTIES
+        VERSION ${SPARROW_IPC_BINARY_VERSION}
+        SOVERSION ${SPARROW_IPC_BINARY_CURRENT}
+    )
     target_compile_definitions(sparrow-ipc PRIVATE SPARROW_IPC_EXPORTS)
 endif()
 
@@ -235,3 +254,60 @@ if(SPARROW_IPC_BUILD_DOCS)
     message(STATUS "📚 Create docs targets")
     add_subdirectory(docs)
 endif()
+
+# Installation
+# ============
+include(GNUInstallDirs)
+include(CMakePackageConfigHelpers)
+
+# Install CMake configuration files
+set(SPARROW_IPC_CMAKECONFIG_INSTALL_DIR "${CMAKE_INSTALL_DATADIR}/cmake/${PROJECT_NAME}" CACHE
+    STRING "install path for sparrow-ipcConfig.cmake")
+
+configure_package_config_file(cmake/${PROJECT_NAME}Config.cmake.in
+    "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
+    INSTALL_DESTINATION ${SPARROW_IPC_CMAKECONFIG_INSTALL_DIR})
+
+write_basic_package_version_file(${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
+    VERSION ${CMAKE_PROJECT_VERSION}
+    COMPATIBILITY AnyNewerVersion)
+
+install(FILES
+    ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
+    ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
+    DESTINATION ${SPARROW_IPC_CMAKECONFIG_INSTALL_DIR})
+
+# Install target
+set(SPARROW_IPC_EXPORTED_TARGETS sparrow-ipc)
+if (TARGET flatbuffers)
+    get_target_property(is_imported flatbuffers IMPORTED)
+    if(NOT is_imported)
+        # This means `flatbuffers` was fetched using FetchContent
+        # We need to export `flatbuffers` target explicitly
+        list(APPEND SPARROW_IPC_EXPORTED_TARGETS flatbuffers)
+        if(TARGET ProjectConfig)
+            # This is an internal target from the flatbuffers build system
+            # that also needs to be exported
+            list(APPEND SPARROW_IPC_EXPORTED_TARGETS ProjectConfig)
+        endif()
+    endif()
+endif()
+
+install(TARGETS ${SPARROW_IPC_EXPORTED_TARGETS}
+    EXPORT ${PROJECT_NAME}-targets)
+
+install(EXPORT ${PROJECT_NAME}-targets
+    FILE ${PROJECT_NAME}Targets.cmake
+    NAMESPACE sparrow-ipc::
+    DESTINATION ${SPARROW_IPC_CMAKECONFIG_INSTALL_DIR})
+
+# Makes the project importable from the build directory
+export(EXPORT ${PROJECT_NAME}-targets
+    FILE "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Targets.cmake"
+    NAMESPACE sparrow-ipc::)
+
+# Install headers
+install(DIRECTORY ${SPARROW_IPC_INCLUDE_DIR}
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    PATTERN ".clang-*" EXCLUDE
+    PATTERN "README.md" EXCLUDE)
