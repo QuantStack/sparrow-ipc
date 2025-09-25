@@ -106,14 +106,18 @@ set(SPARROW_IPC_HEADERS
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/deserialize_fixedsizebinary_array.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/deserialize_primitive_array.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/deserialize_utils.hpp
+    ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/deserialize_variable_size_binary_array.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/deserialize.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/encapsulated_message.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/magic_values.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/metadata.hpp
+    ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/serialize_utils.hpp
+    ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/serialize.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/utils.hpp
 )
 
 set(SPARROW_IPC_SRC
+     ${SPARROW_IPC_SOURCE_DIR}/serialize_utils.cpp
     ${SPARROW_IPC_SOURCE_DIR}/arrow_interface/arrow_array.cpp
     ${SPARROW_IPC_SOURCE_DIR}/arrow_interface/arrow_array/private_data.cpp
     ${SPARROW_IPC_SOURCE_DIR}/arrow_interface/arrow_schema.cpp

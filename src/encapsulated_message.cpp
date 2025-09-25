@@ -99,7 +99,7 @@ namespace sparrow_ipc
     std::pair<encapsulated_message, std::span<const uint8_t>>
     extract_encapsulated_message(std::span<const uint8_t> data)
     {
-        if (!data.size() || data.size() < 8)
+        if (data.size() < 8)
         {
             throw std::invalid_argument("Buffer is too small to contain a valid message.");
         }

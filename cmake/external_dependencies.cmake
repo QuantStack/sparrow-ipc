@@ -40,7 +40,7 @@ function(find_package_or_fetch)
             FetchContent_MakeAvailable(${arg_PACKAGE_NAME})
             message(STATUS "\t✅ Fetched ${arg_PACKAGE_NAME}")
         else()
-            message(STATUS "📦 ${actual_pkg_name} found here: ${actual_pkg_name}_DIR")
+            message(STATUS "📦 ${actual_pkg_name} found here: ${${actual_pkg_name}_DIR}")
         endif()
     endif()
 endfunction()
@@ -52,7 +52,7 @@ endif()
 find_package_or_fetch(
     PACKAGE_NAME sparrow
     GIT_REPOSITORY https://github.com/man-group/sparrow.git
-    TAG 1.1.1
+    TAG 1.1.2
 )
 unset(CREATE_JSON_READER_TARGET)
 
