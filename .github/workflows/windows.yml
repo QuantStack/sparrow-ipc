@@ -31,9 +31,14 @@ jobs:
 
       - name: Configure using cmake
         run: |
+          if [ "${{ matrix.build_type }}" == "Release" ]; then
+            GLOB_PREFIX_PATH="$CONDA_PREFIX"
+          elif [ "${{ matrix.build_type }}" == "Debug" ]; then
+            GLOB_PREFIX_PATH="$CONDA_PREFIX/Library/debug;$CONDA_PREFIX"
+          fi
           cmake -S ./ -B ./build \
-          -DCMAKE_INSTALL_PREFIX=%CONDA_PREFIX% \
-          -DCMAKE_PREFIX_PATH=%CONDA_PREFIX% \
+          -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX \
+          -DCMAKE_PREFIX_PATH=$GLOB_PREFIX_PATH \
           -DSPARROW_IPC_BUILD_SHARED=${{ matrix.build_shared }} \
           -DSPARROW_IPC_BUILD_TESTS=ON
 
