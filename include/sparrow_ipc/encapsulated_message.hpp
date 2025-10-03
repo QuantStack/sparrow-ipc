@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <variant>
+#include <span>
 
 #include "Message_generated.h"
 
