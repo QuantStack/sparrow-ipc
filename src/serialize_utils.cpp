@@ -43,7 +43,7 @@ namespace sparrow_ipc
 
     int64_t calculate_body_size(const sparrow::record_batch& record_batch)
     {
-        return std::reduce(
+        return std::accumulate(
             record_batch.columns().begin(),
             record_batch.columns().end(),
             int64_t{0},
