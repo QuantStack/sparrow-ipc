@@ -46,7 +46,7 @@ namespace sparrow_ipc
         return std::reduce(
             record_batch.columns().begin(),
             record_batch.columns().end(),
-            0,
+            int64_t{0},
             [](int64_t acc, const sparrow::array& arr)
             {
                 const auto& arrow_proxy = sparrow::detail::array_access::get_arrow_proxy(arr);
