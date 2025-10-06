@@ -42,7 +42,7 @@ namespace sparrow_ipc
      * consists of a metadata section followed by a body section containing the actual data.
      *
      * @param record_batch The sparrow record batch to be serialized
-     * TODO add parameter compression here and every place it was added to
+     * @param compression The compression type to use when serializing
      * @return std::vector<uint8_t> A byte vector containing the complete serialized record batch
      *         in Arrow IPC format, ready for transmission or storage
      */
@@ -322,6 +322,8 @@ namespace sparrow_ipc
      * @param nodes Vector of field nodes describing the structure and null counts of columns
      * @param buffers Vector of buffer descriptors containing offset and length information
      *                for the data buffers
+     * @param body_size The body size
+     * @param compression The compression type to use when serializing
      *
      * @return A FlatBufferBuilder containing the complete serialized message ready for
      *         transmission or storage. The builder is finished and ready to be accessed
@@ -335,7 +337,7 @@ namespace sparrow_ipc
         const sparrow::record_batch& record_batch,
         const std::vector<org::apache::arrow::flatbuf::FieldNode>& nodes,
         const std::vector<org::apache::arrow::flatbuf::Buffer>& buffers,
-        int64_t body_size,
+        const int64_t body_size,
         std::optional<org::apache::arrow::flatbuf::CompressionType> compression
     );
 
@@ -350,6 +352,7 @@ namespace sparrow_ipc
      * - The record batch body containing the actual data buffers
      *
      * @param record_batch The sparrow record batch to serialize
+     * @param compression The compression type to use when serializing
      * @return std::vector<uint8_t> A byte vector containing the serialized record batch
      *         in Arrow IPC format, ready for transmission or storage
      *

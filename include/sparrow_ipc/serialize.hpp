@@ -26,6 +26,7 @@ namespace sparrow_ipc
      * @tparam R Container type that holds record batches (must support empty(), operator[], begin(), end())
      * @param record_batches Collection of record batches to serialize. All batches must have identical
      * schemas.
+     * @param compression The compression type to use when serializing
      *
      * @return std::vector<uint8_t> Binary serialized data containing schema, record batches, and
      * end-of-stream marker. Returns empty vector if input collection is empty.
