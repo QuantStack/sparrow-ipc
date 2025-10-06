@@ -35,7 +35,7 @@ namespace sparrow_ipc
 
         serializer(const sparrow::record_batch& rb, output_stream& stream);
 
-        template <std::ranges::input_range R>
+        template <std::ranges::random_access_range R>
             requires std::same_as<std::ranges::range_value_t<R>, sparrow::record_batch>
         serializer(const R& record_batches, output_stream& stream)
             : m_pstream(&stream)

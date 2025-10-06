@@ -103,7 +103,8 @@ namespace sparrow_ipc
         }
 
         // Calculate schema message size (only once)
-        std::size_t total_size = calculate_schema_message_size(record_batches[0]);
+        auto it = std::ranges::begin(record_batches);
+        std::size_t total_size = calculate_schema_message_size(*it);
 
         // Calculate record batch message sizes
         for (const auto& record_batch : record_batches)
