@@ -509,7 +509,7 @@ namespace sparrow_ipc
                     get_flatbuffer_type(builder, "w:32").first,
                     org::apache::arrow::flatbuf::Type::FixedSizeBinary
                 );                                                 // FIXED_WIDTH_BINARY
-                CHECK_THROWS(get_flatbuffer_type(builder, "w:"));  // Invalid FixedSizeBinary format
+                CHECK_THROWS(static_cast<void>(get_flatbuffer_type(builder, "w:")));  // Invalid FixedSizeBinary format
             }
 
             SUBCASE("Unsupported type returns Null")
