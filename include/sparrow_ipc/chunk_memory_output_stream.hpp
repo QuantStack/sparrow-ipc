@@ -11,11 +11,11 @@ namespace sparrow_ipc
         requires std::ranges::random_access_range<R>
                  && std::ranges::random_access_range<std::ranges::range_value_t<R>>
                  && std::same_as<typename std::ranges::range_value_t<R>::value_type, uint8_t>
-    class chuncked_memory_output_stream final : public output_stream
+    class chunked_memory_output_stream final : public output_stream
     {
     public:
 
-        explicit chuncked_memory_output_stream(R& chunks)
+        explicit chunked_memory_output_stream(R& chunks)
             : m_chunks(&chunks) {};
 
         std::size_t write(std::span<const std::uint8_t> span) override

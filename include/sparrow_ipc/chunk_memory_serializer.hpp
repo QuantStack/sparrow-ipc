@@ -16,14 +16,14 @@ namespace sparrow_ipc
 
         chunk_serializer(
             const sparrow::record_batch& rb,
-            chuncked_memory_output_stream<std::vector<std::vector<uint8_t>>>& stream
+            chunked_memory_output_stream<std::vector<std::vector<uint8_t>>>& stream
         );
 
         template <std::ranges::input_range R>
             requires std::same_as<std::ranges::range_value_t<R>, sparrow::record_batch>
         chunk_serializer(
             const R& record_batches,
-            chuncked_memory_output_stream<std::vector<std::vector<uint8_t>>>& stream
+            chunked_memory_output_stream<std::vector<std::vector<uint8_t>>>& stream
         )
             : m_pstream(&stream)
         {
@@ -68,7 +68,7 @@ namespace sparrow_ipc
     private:
 
         std::vector<sparrow::data_type> m_dtypes;
-        chuncked_memory_output_stream<std::vector<std::vector<uint8_t>>>* m_pstream;
+        chunked_memory_output_stream<std::vector<std::vector<uint8_t>>>* m_pstream;
         bool m_ended{false};
     };
 }

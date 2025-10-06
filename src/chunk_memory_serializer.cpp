@@ -7,7 +7,7 @@ namespace sparrow_ipc
 {
     chunk_serializer::chunk_serializer(
         const sparrow::record_batch& rb,
-        chuncked_memory_output_stream<std::vector<std::vector<uint8_t>>>& stream
+        chunked_memory_output_stream<std::vector<std::vector<uint8_t>>>& stream
     )
         : m_pstream(&stream)
         , m_dtypes(get_column_dtypes(rb))

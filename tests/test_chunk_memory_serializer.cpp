@@ -19,7 +19,7 @@ namespace sparrow_ipc
             {
                 auto rb = create_test_record_batch();
                 std::vector<std::vector<uint8_t>> chunks;
-                chuncked_memory_output_stream stream(chunks);
+                chunked_memory_output_stream stream(chunks);
 
                 chunk_serializer serializer(rb, stream);
 
@@ -34,7 +34,7 @@ namespace sparrow_ipc
             {
                 auto empty_batch = sp::record_batch({});
                 std::vector<std::vector<uint8_t>> chunks;
-                chuncked_memory_output_stream stream(chunks);
+                chunked_memory_output_stream stream(chunks);
 
                 chunk_serializer serializer(empty_batch, stream);
 
@@ -61,7 +61,7 @@ namespace sparrow_ipc
 
                 std::vector<sp::record_batch> record_batches = {rb1, rb2};
                 std::vector<std::vector<uint8_t>> chunks;
-                chuncked_memory_output_stream stream(chunks);
+                chunked_memory_output_stream stream(chunks);
 
                 chunk_serializer serializer(record_batches, stream);
 
@@ -76,7 +76,7 @@ namespace sparrow_ipc
             {
                 std::vector<sp::record_batch> empty_batches;
                 std::vector<std::vector<uint8_t>> chunks;
-                chuncked_memory_output_stream stream(chunks);
+                chunked_memory_output_stream stream(chunks);
 
                 CHECK_THROWS_AS(
                     chunk_serializer serializer(empty_batches, stream),
@@ -89,7 +89,7 @@ namespace sparrow_ipc
                 auto rb = create_test_record_batch();
                 std::vector<sp::record_batch> record_batches = {rb};
                 std::vector<std::vector<uint8_t>> chunks;
-                chuncked_memory_output_stream stream(chunks);
+                chunked_memory_output_stream stream(chunks);
 
                 chunk_serializer serializer(record_batches, stream);
 
@@ -104,7 +104,7 @@ namespace sparrow_ipc
             {
                 auto rb1 = create_test_record_batch();
                 std::vector<std::vector<uint8_t>> chunks;
-                chuncked_memory_output_stream stream(chunks);
+                chunked_memory_output_stream stream(chunks);
 
                 chunk_serializer serializer(rb1, stream);
                 CHECK_EQ(chunks.size(), 2);  // Schema + rb1
@@ -125,7 +125,7 @@ namespace sparrow_ipc
             {
                 auto rb1 = create_test_record_batch();
                 std::vector<std::vector<uint8_t>> chunks;
-                chuncked_memory_output_stream stream(chunks);
+                chunked_memory_output_stream stream(chunks);
 
                 chunk_serializer serializer(rb1, stream);
 
@@ -148,7 +148,7 @@ namespace sparrow_ipc
             {
                 auto rb1 = create_test_record_batch();
                 std::vector<std::vector<uint8_t>> chunks;
-                chuncked_memory_output_stream stream(chunks);
+                chunked_memory_output_stream stream(chunks);
 
                 chunk_serializer serializer(rb1, stream);
                 CHECK_EQ(chunks.size(), 2);
@@ -179,7 +179,7 @@ namespace sparrow_ipc
             {
                 auto rb1 = create_test_record_batch();
                 std::vector<std::vector<uint8_t>> chunks;
-                chuncked_memory_output_stream stream(chunks);
+                chunked_memory_output_stream stream(chunks);
 
                 chunk_serializer serializer(rb1, stream);
 
@@ -198,7 +198,7 @@ namespace sparrow_ipc
             {
                 auto rb1 = create_test_record_batch();
                 std::vector<std::vector<uint8_t>> chunks;
-                chuncked_memory_output_stream stream(chunks);
+                chunked_memory_output_stream stream(chunks);
 
                 chunk_serializer serializer(rb1, stream);
                 size_t initial_size = chunks.size();
@@ -216,7 +216,7 @@ namespace sparrow_ipc
             {
                 auto rb = create_test_record_batch();
                 std::vector<std::vector<uint8_t>> chunks;
-                chuncked_memory_output_stream stream(chunks);
+                chunked_memory_output_stream stream(chunks);
 
                 chunk_serializer serializer(rb, stream);
                 size_t initial_size = chunks.size();
@@ -231,7 +231,7 @@ namespace sparrow_ipc
             {
                 auto rb1 = create_test_record_batch();
                 std::vector<std::vector<uint8_t>> chunks;
-                chuncked_memory_output_stream stream(chunks);
+                chunked_memory_output_stream stream(chunks);
 
                 chunk_serializer serializer(rb1, stream);
                 serializer.end();
@@ -244,7 +244,7 @@ namespace sparrow_ipc
             {
                 auto rb1 = create_test_record_batch();
                 std::vector<std::vector<uint8_t>> chunks;
-                chuncked_memory_output_stream stream(chunks);
+                chunked_memory_output_stream stream(chunks);
 
                 chunk_serializer serializer(rb1, stream);
                 serializer.end();
@@ -260,7 +260,7 @@ namespace sparrow_ipc
             {
                 auto rb = create_test_record_batch();
                 std::vector<std::vector<uint8_t>> chunks;
-                chuncked_memory_output_stream stream(chunks);
+                chunked_memory_output_stream stream(chunks);
 
                 size_t size_before = stream.size();
                 chunk_serializer serializer(rb, stream);
@@ -280,7 +280,7 @@ namespace sparrow_ipc
             SUBCASE("Handle many record batches efficiently")
             {
                 std::vector<std::vector<uint8_t>> chunks;
-                chuncked_memory_output_stream stream(chunks);
+                chunked_memory_output_stream stream(chunks);
 
                 std::vector<sp::record_batch> batches;
                 const int num_batches = 100;
@@ -320,7 +320,7 @@ namespace sparrow_ipc
                 );
 
                 std::vector<std::vector<uint8_t>> chunks;
-                chuncked_memory_output_stream stream(chunks);
+                chunked_memory_output_stream stream(chunks);
 
                 chunk_serializer serializer(rb, stream);
 
@@ -339,7 +339,7 @@ namespace sparrow_ipc
 
                 // Setup chunked stream
                 std::vector<std::vector<uint8_t>> chunks;
-                chuncked_memory_output_stream stream(chunks);
+                chunked_memory_output_stream stream(chunks);
 
                 // Create serializer with initial batch
                 chunk_serializer serializer(rb1, stream);
