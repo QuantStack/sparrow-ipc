@@ -8,7 +8,8 @@
 
 namespace sparrow_ipc
 {
-//     enum class CompressionType // TODO class ? enum cf. mamba?
+// TODO use these later if needed for wrapping purposes (flatbuffers/lz4)
+//     enum class CompressionType
 //     {
 //         NONE,
 //         LZ4,
@@ -17,7 +18,5 @@ namespace sparrow_ipc
 
 //     CompressionType to_compression_type(org::apache::arrow::flatbuf::CompressionType compression_type);
 
-    std::vector<uint8_t> compress(org::apache::arrow::flatbuf::CompressionType compression_type, std::span<const uint8_t> data);
-//     std::vector<uint8_t> decompress(CompressionType type, std::span<const uint8_t> data);
-
+    std::vector<std::uint8_t> compress(org::apache::arrow::flatbuf::CompressionType compression_type, std::span<const std::uint8_t> data);
 }

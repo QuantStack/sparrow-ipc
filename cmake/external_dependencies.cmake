@@ -93,19 +93,15 @@ if(NOT TARGET flatbuffers::flatbuffers)
 endif()
 unset(FLATBUFFERS_BUILD_TESTS CACHE)
 
-###############################
-#TODO need to add fetch for zstd
-# find_package_or_fetch(
-#     PACKAGE_NAME lz4
-#     GIT_REPOSITORY https://github.com/lz4/lz4.git
-#     TAG v1.10.0
-# )
-find_package(lz4 REQUIRED) 
+find_package_or_fetch(
+    PACKAGE_NAME lz4
+    GIT_REPOSITORY https://github.com/lz4/lz4.git
+    TAG v1.10.0
+)
 # if(NOT TARGET lz4::lz4)
 #     add_library(lz4::lz4 ALIAS lz4)
 # endif()
 
-###############################
 if(SPARROW_IPC_BUILD_TESTS)
     find_package_or_fetch(
         PACKAGE_NAME doctest
