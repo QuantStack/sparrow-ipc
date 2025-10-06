@@ -177,7 +177,7 @@ namespace sparrow_ipc
      *
      * @param stream The output stream where padding bytes will be added
      */
-    void add_padding(output_stream& stream);
+    SPARROW_IPC_API void add_padding(output_stream& stream);
 
-    std::vector<sparrow::data_type> get_column_dtypes(const sparrow::record_batch& rb);
+    SPARROW_IPC_API std::vector<sparrow::data_type> get_column_dtypes(const sparrow::record_batch& rb);
 }

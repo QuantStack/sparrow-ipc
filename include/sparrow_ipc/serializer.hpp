@@ -29,7 +29,7 @@ namespace sparrow_ipc
      * - Stream reservation to minimize memory reallocations
      * - Lazy evaluation of size calculations using lambda functions
      */
-    class serializer
+    class SPARROW_IPC_API serializer
     {
     public:
 

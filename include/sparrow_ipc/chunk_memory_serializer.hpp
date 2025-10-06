@@ -6,10 +6,11 @@
 #include "sparrow_ipc/memory_output_stream.hpp"
 #include "sparrow_ipc/serialize.hpp"
 #include "sparrow_ipc/serialize_utils.hpp"
+#include "sparrow_ipc/config/config.hpp"
 
 namespace sparrow_ipc
 {
-    class chunk_serializer
+    class SPARROW_IPC_API chunk_serializer
     {
     public:
 

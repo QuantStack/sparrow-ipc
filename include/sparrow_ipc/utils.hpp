@@ -11,7 +11,7 @@
 namespace sparrow_ipc::utils
 {
     // Aligns a value to the next multiple of 8, as required by the Arrow IPC format for message bodies
-    size_t align_to_8(const size_t n);
+    SPARROW_IPC_API size_t align_to_8(const size_t n);
 
     /**
      * @brief Checks if all record batches in a collection have consistent structure.
