@@ -40,7 +40,7 @@ namespace sparrow_ipc
      * consists of a metadata section followed by a body section containing the actual data.
      *
      * @param record_batch The sparrow record batch to be serialized
-     * TODO add parameter compression here and every place it was added to
+     * @param compression The compression type to use when serializing
      * @param stream The output stream where the serialized record batch will be written
      */
     SPARROW_IPC_API void
