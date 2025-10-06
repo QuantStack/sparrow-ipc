@@ -11,6 +11,8 @@ dependencies:
   - nlohmann_json
   - sparrow-devel
   - sparrow-json-reader
+  - lz4
+  #- zstd
   - doctest
   # Documentation dependencies
   - doxygen

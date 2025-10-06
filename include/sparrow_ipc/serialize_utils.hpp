@@ -9,6 +9,7 @@
 #include "sparrow_ipc/any_output_stream.hpp"
 #include "sparrow_ipc/config/config.hpp"
 #include "sparrow_ipc/utils.hpp"
+#include "compression.hpp"
 
 namespace sparrow_ipc
 {
@@ -39,10 +40,11 @@ namespace sparrow_ipc
      * consists of a metadata section followed by a body section containing the actual data.
      *
      * @param record_batch The sparrow record batch to be serialized
+     * TODO add parameter compression here and every place it was added to
      * @param stream The output stream where the serialized record batch will be written
      */
     SPARROW_IPC_API void
-    serialize_record_batch(const sparrow::record_batch& record_batch, any_output_stream& stream);
+    serialize_record_batch(const sparrow::record_batch& record_batch, any_output_stream& stream, std::optional<org::apache::arrow::flatbuf::CompressionType> compression);
 
     /**
      * @brief Calculates the total serialized size of a schema message.
@@ -114,6 +116,8 @@ namespace sparrow_ipc
 
         return total_size;
     }
+
+    void fill_body_and_get_buffers_compressed(const sparrow::arrow_proxy& arrow_proxy, std::vector<uint8_t>& body, std::vector<org::apache::arrow::flatbuf::Buffer>& flatbuf_buffers, int64_t& offset, org::apache::arrow::flatbuf::CompressionType compression_type);
 
     /**
      * @brief Fills the body vector with serialized data from an arrow proxy and its children.

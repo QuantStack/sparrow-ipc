@@ -35,7 +35,7 @@ namespace sparrow_ipc
      */
     template <std::ranges::input_range R>
         requires std::same_as<std::ranges::range_value_t<R>, sparrow::record_batch>
-    void serialize_record_batches_to_ipc_stream(const R& record_batches, any_output_stream& stream)
+    void serialize_record_batches_to_ipc_stream(const R& record_batches, any_output_stream& stream, std::optional<org::apache::arrow::flatbuf::CompressionType> compression)
     {
         if (record_batches.empty())
         {
@@ -51,7 +51,7 @@ namespace sparrow_ipc
         serialize_schema_message(record_batches[0], stream);
         for (const auto& rb : record_batches)
         {
-            serialize_record_batch(rb, stream);
+            serialize_record_batch(rb, stream, compression);
         }
         stream.write(end_of_stream);
     }

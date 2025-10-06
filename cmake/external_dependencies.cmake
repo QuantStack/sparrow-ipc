@@ -93,6 +93,19 @@ if(NOT TARGET flatbuffers::flatbuffers)
 endif()
 unset(FLATBUFFERS_BUILD_TESTS CACHE)
 
+###############################
+#TODO need to add fetch for zstd
+# find_package_or_fetch(
+#     PACKAGE_NAME lz4
+#     GIT_REPOSITORY https://github.com/lz4/lz4.git
+#     TAG v1.10.0
+# )
+find_package(lz4 REQUIRED) 
+# if(NOT TARGET lz4::lz4)
+#     add_library(lz4::lz4 ALIAS lz4)
+# endif()
+
+###############################
 if(SPARROW_IPC_BUILD_TESTS)
     find_package_or_fetch(
         PACKAGE_NAME doctest
@@ -123,10 +136,18 @@ if(SPARROW_IPC_BUILD_TESTS)
     )
     message(STATUS "\t✅ Fetched arrow-testing")
 
-    # Iterate over all the files in the arrow-testing-data source directiory. When it's a gz, extract in place.
-    file(GLOB_RECURSE arrow_testing_data_targz_files CONFIGURE_DEPENDS
+    # Fetch all the files in the cpp-21.0.0 directory
+    file(GLOB_RECURSE arrow_testing_data_targz_files_cpp_21 CONFIGURE_DEPENDS
         "${arrow-testing_SOURCE_DIR}/data/arrow-ipc-stream/integration/cpp-21.0.0/*.json.gz"
     )
+    # Fetch all the files in the 2.0.0-compression directory
+    file(GLOB_RECURSE arrow_testing_data_targz_files_compression CONFIGURE_DEPENDS
+        "${arrow-testing_SOURCE_DIR}/data/arrow-ipc-stream/integration/2.0.0-compression/*.json.gz"
+    )
+
+    # Combine lists of files
+    list(APPEND arrow_testing_data_targz_files ${arrow_testing_data_targz_files_cpp_21} ${arrow_testing_data_targz_files_compression})
+    # Iterate over all the files in the arrow-testing-data source directory. When it's a gz, extract in place.
     foreach(file_path IN LISTS arrow_testing_data_targz_files)
             cmake_path(GET file_path PARENT_PATH parent_dir)
             cmake_path(GET file_path STEM filename)
@@ -142,5 +163,4 @@ if(SPARROW_IPC_BUILD_TESTS)
                 endif()
             endif()
     endforeach()
-
 endif()
