@@ -109,6 +109,10 @@ namespace sparrow_ipc
             m_pstream->reserve(reserve_function);
             for (const auto& rb : record_batches)
             {
+                if (get_column_dtypes(rb) != m_dtypes)
+                {
+                    throw std::invalid_argument("Record batch schema does not match serializer schema");
+                }
                 serialize_record_batch(rb, *m_pstream);
             }
         }
