@@ -10,6 +10,7 @@
 #include "sparrow_ipc/config/config.hpp"
 #include "sparrow_ipc/magic_values.hpp"
 #include "sparrow_ipc/utils.hpp"
+#include "compression.hpp"
 
 namespace sparrow_ipc
 {
@@ -41,35 +42,21 @@ namespace sparrow_ipc
      * consists of a metadata section followed by a body section containing the actual data.
      *
      * @param record_batch The sparrow record batch to be serialized
+     * TODO add parameter compression here and every place it was added to
      * @return std::vector<uint8_t> A byte vector containing the complete serialized record batch
      *         in Arrow IPC format, ready for transmission or storage
      */
     [[nodiscard]] SPARROW_IPC_API std::vector<uint8_t>
-    serialize_record_batch(const sparrow::record_batch& record_batch);
+    serialize_record_batch(const sparrow::record_batch& record_batch, std::optional<org::apache::arrow::flatbuf::CompressionType> compression);
 
     template <std::ranges::input_range R>
         requires std::same_as<std::ranges::range_value_t<R>, sparrow::record_batch>
-    /**
-     * @brief Serializes a collection of record batches into a single byte vector.
-     *
-     * This function takes a range or container of record batches and serializes each one
-     * individually, then concatenates all the serialized data into a single output vector.
-     * The serialization is performed by calling serialize_record_batch() for each record batch
-     * in the input collection.
-     *
-     * @tparam R The type of the record batch container/range (must be iterable)
-     * @param record_batches A collection of record batches to be serialized
-     * @return std::vector<uint8_t> A byte vector containing the serialized data of all record batches
-     *
-     * @note The function uses move iterators to efficiently transfer the serialized data
-     *       from individual record batches to the output vector.
-     */
-    [[nodiscard]] std::vector<uint8_t> serialize_record_batches_without_schema_message(const R& record_batches)
+    [[nodiscard]] std::vector<uint8_t> serialize_record_batches_without_schema_message(const R& record_batches, std::optional<org::apache::arrow::flatbuf::CompressionType> compression)
     {
         std::vector<uint8_t> output;
         for (const auto& record_batch : record_batches)
         {
-            const auto rb_serialized = serialize_record_batch(record_batch);
+            const auto rb_serialized = serialize_record_batch(record_batch, compression);
             output.insert(
                 output.end(),
                 std::make_move_iterator(rb_serialized.begin()),
@@ -215,6 +202,8 @@ namespace sparrow_ipc
         std::vector<org::apache::arrow::flatbuf::FieldNode>& nodes
     );
 
+    void fill_body_and_get_buffers_compressed(const sparrow::arrow_proxy& arrow_proxy, std::vector<uint8_t>& body, std::vector<org::apache::arrow::flatbuf::Buffer>& flatbuf_buffers, int64_t& offset, org::apache::arrow::flatbuf::CompressionType compression_type);
+
     /**
      * @brief Creates a vector of Apache Arrow FieldNode objects from a record batch.
      *
@@ -345,7 +334,9 @@ namespace sparrow_ipc
     [[nodiscard]] SPARROW_IPC_API flatbuffers::FlatBufferBuilder get_record_batch_message_builder(
         const sparrow::record_batch& record_batch,
         const std::vector<org::apache::arrow::flatbuf::FieldNode>& nodes,
-        const std::vector<org::apache::arrow::flatbuf::Buffer>& buffers
+        const std::vector<org::apache::arrow::flatbuf::Buffer>& buffers,
+        int64_t body_size,
+        std::optional<org::apache::arrow::flatbuf::CompressionType> compression
     );
 
     /**
@@ -366,7 +357,7 @@ namespace sparrow_ipc
      *       includes both metadata and data portions of the record batch
      */
     [[nodiscard]] SPARROW_IPC_API std::vector<uint8_t>
-    serialize_record_batch(const sparrow::record_batch& record_batch);
+    serialize_record_batch(const sparrow::record_batch& record_batch, std::optional<org::apache::arrow::flatbuf::CompressionType> compression);
 
     /**
      * @brief Adds padding bytes to a buffer to ensure 8-byte alignment.

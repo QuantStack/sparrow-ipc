@@ -38,7 +38,7 @@ namespace sparrow_ipc
      */
     template <std::ranges::input_range R>
         requires std::same_as<std::ranges::range_value_t<R>, sparrow::record_batch>
-    std::vector<uint8_t> serialize(const R& record_batches)
+    std::vector<uint8_t> serialize(const R& record_batches, std::optional<org::apache::arrow::flatbuf::CompressionType> compression)
     {
         if (record_batches.empty())
         {
@@ -51,7 +51,7 @@ namespace sparrow_ipc
             );
         }
         std::vector<uint8_t> serialized_schema = serialize_schema_message(record_batches[0]);
-        std::vector<uint8_t> serialized_record_batches = serialize_record_batches_without_schema_message(record_batches);
+        std::vector<uint8_t> serialized_record_batches = serialize_record_batches_without_schema_message(record_batches, compression);
         serialized_schema.insert(
             serialized_schema.end(),
             std::make_move_iterator(serialized_record_batches.begin()),
