@@ -1,3 +1,5 @@
+#include <lz4frame.h>
+
 #include "sparrow_ipc/flatbuffer_utils.hpp"
 #include "sparrow_ipc/magic_values.hpp"
 #include "sparrow_ipc/serialize.hpp"

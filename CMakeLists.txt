@@ -18,6 +18,8 @@ set(SPARROW_IPC_COMPILE_DEFINITIONS "" CACHE STRING "List of public compile defi
 set(SPARROW_IPC_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
 set(SPARROW_IPC_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
+# set(ENV{PKG_CONFIG_PATH} "$ENV{CONDA_PREFIX}/lib/pkgconfig:$ENV{PKG_CONFIG_PATH}")
+
 # Linter options
 # =============
 OPTION(ACTIVATE_LINTER "Create targets to run clang-format" OFF)
@@ -108,10 +110,10 @@ set(SPARROW_IPC_HEADERS
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/chunk_memory_serializer.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/config/config.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/config/sparrow_ipc_version.hpp
+    ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/compression.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/deserialize_fixedsizebinary_array.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/deserialize_primitive_array.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/deserialize_utils.hpp
-    ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/deserialize_variable_size_binary_array.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/deserialize_variable_size_binary_array.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/deserialize.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/encapsulated_message.hpp
@@ -132,6 +134,7 @@ set(SPARROW_IPC_SRC
     ${SPARROW_IPC_SOURCE_DIR}/arrow_interface/arrow_schema.cpp
     ${SPARROW_IPC_SOURCE_DIR}/arrow_interface/arrow_schema/private_data.cpp
     ${SPARROW_IPC_SOURCE_DIR}/chunk_memory_serializer.cpp
+    ${SPARROW_IPC_SOURCE_DIR}/compression.cpp
     ${SPARROW_IPC_SOURCE_DIR}/deserialize_fixedsizebinary_array.cpp
     ${SPARROW_IPC_SOURCE_DIR}/deserialize_utils.cpp
     ${SPARROW_IPC_SOURCE_DIR}/deserialize.cpp
@@ -253,7 +256,13 @@ target_link_libraries(sparrow-ipc
     PUBLIC
         sparrow::sparrow
         flatbuffers::flatbuffers
+    PRIVATE
+        lz4::lz4
         )
+
+target_include_directories(sparrow-ipc PRIVATE ${LZ4_INCLUDE_DIRS})
+target_link_libraries(sparrow-ipc PRIVATE ${LZ4_LIBRARIES})
+
 
 # Ensure generated headers are available when building sparrow-ipc
 add_dependencies(sparrow-ipc generate_flatbuffers_headers)
