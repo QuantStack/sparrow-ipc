@@ -18,8 +18,6 @@ set(SPARROW_IPC_COMPILE_DEFINITIONS "" CACHE STRING "List of public compile defi
 set(SPARROW_IPC_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
 set(SPARROW_IPC_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
-# set(ENV{PKG_CONFIG_PATH} "$ENV{CONDA_PREFIX}/lib/pkgconfig:$ENV{PKG_CONFIG_PATH}")
-
 # Linter options
 # =============
 OPTION(ACTIVATE_LINTER "Create targets to run clang-format" OFF)
@@ -262,7 +260,6 @@ target_link_libraries(sparrow-ipc
 
 target_include_directories(sparrow-ipc PRIVATE ${LZ4_INCLUDE_DIRS})
 target_link_libraries(sparrow-ipc PRIVATE ${LZ4_LIBRARIES})
-
 
 # Ensure generated headers are available when building sparrow-ipc
 add_dependencies(sparrow-ipc generate_flatbuffers_headers)
