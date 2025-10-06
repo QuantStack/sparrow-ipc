@@ -46,7 +46,7 @@ class SparrowIPCRecipe(ConanFile):
         self.requires("sparrow/1.0.0")
         self.requires(f"flatbuffers/{self._flatbuffers_version}")
         self.requires("lz4/1.9.4")
-        self.requires("zstd/1.5.5")
+        #self.requires("zstd/1.5.5")
         if self.options.get_safe("build_tests"):
             self.test_requires("doctest/2.4.12")
 

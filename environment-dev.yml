@@ -12,7 +12,7 @@ dependencies:
   - sparrow-devel
   - sparrow-json-reader
   - lz4
-  #- zstd
+  # Testing dependencies
   - doctest
   # Documentation dependencies
   - doxygen
