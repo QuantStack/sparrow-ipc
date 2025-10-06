@@ -8,9 +8,9 @@
 
 #include "Message_generated.h"
 #include "sparrow_ipc/config/config.hpp"
+#include "sparrow_ipc/compression.hpp"
 #include "sparrow_ipc/magic_values.hpp"
 #include "sparrow_ipc/utils.hpp"
-#include "compression.hpp"
 
 namespace sparrow_ipc
 {
@@ -51,6 +51,22 @@ namespace sparrow_ipc
 
     template <std::ranges::input_range R>
         requires std::same_as<std::ranges::range_value_t<R>, sparrow::record_batch>
+    /**
+     * @brief Serializes a collection of record batches into a single byte vector.
+     *
+     * This function takes a range or container of record batches and serializes each one
+     * individually, then concatenates all the serialized data into a single output vector.
+     * The serialization is performed by calling serialize_record_batch() for each record batch
+     * in the input collection.
+     *
+     * @tparam R The type of the record batch container/range (must be iterable)
+     * @param record_batches A collection of record batches to be serialized
+     * @param compression The compression type to use when serializing
+     * @return std::vector<uint8_t> A byte vector containing the serialized data of all record batches
+     *
+     * @note The function uses move iterators to efficiently transfer the serialized data
+     *       from individual record batches to the output vector.
+     */
     [[nodiscard]] std::vector<uint8_t> serialize_record_batches_without_schema_message(const R& record_batches, std::optional<org::apache::arrow::flatbuf::CompressionType> compression)
     {
         std::vector<uint8_t> output;
