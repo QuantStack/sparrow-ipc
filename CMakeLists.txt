@@ -258,9 +258,6 @@ target_link_libraries(sparrow-ipc
         lz4::lz4
         )
 
-target_include_directories(sparrow-ipc PRIVATE ${LZ4_INCLUDE_DIRS})
-target_link_libraries(sparrow-ipc PRIVATE ${LZ4_LIBRARIES})
-
 # Ensure generated headers are available when building sparrow-ipc
 add_dependencies(sparrow-ipc generate_flatbuffers_headers)
 
