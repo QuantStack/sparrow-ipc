@@ -11,8 +11,8 @@ endif()
 
 function(find_package_or_fetch)
     set(options)
-    set(oneValueArgs CONAN_PKG_NAME PACKAGE_NAME GIT_REPOSITORY TAG)
-    set(multiValueArgs)
+    set(oneValueArgs CONAN_PKG_NAME PACKAGE_NAME GIT_REPOSITORY TAG SOURCE_SUBDIR)
+    set(multiValueArgs CMAKE_ARGS)
     cmake_parse_arguments(PARSE_ARGV 0 arg
         "${options}" "${oneValueArgs}" "${multiValueArgs}"
     )
@@ -30,7 +30,14 @@ function(find_package_or_fetch)
         if(FETCH_DEPENDENCIES_WITH_CMAKE STREQUAL "ON" OR FETCH_DEPENDENCIES_WITH_CMAKE STREQUAL "MISSING")
             if(NOT ${actual_pkg_name}_FOUND)
                 message(STATUS "📦 Fetching ${arg_PACKAGE_NAME}")
-                FetchContent_Declare(
+                # Apply CMAKE_ARGS before fetching
+                foreach(cmake_arg ${arg_CMAKE_ARGS})
+                    string(REGEX MATCH "^([^=]+)=(.*)$" _ ${cmake_arg})
+                    if(CMAKE_MATCH_1)
+                        set(${CMAKE_MATCH_1} ${CMAKE_MATCH_2} CACHE BOOL "" FORCE)
+                    endif()
+                endforeach()
+                set(fetch_args
                     ${arg_PACKAGE_NAME}
                     GIT_SHALLOW TRUE
                     GIT_REPOSITORY ${arg_GIT_REPOSITORY}
@@ -38,6 +45,10 @@ function(find_package_or_fetch)
                     GIT_PROGRESS TRUE
                     SYSTEM
                     EXCLUDE_FROM_ALL)
+                if(arg_SOURCE_SUBDIR)
+                    list(APPEND fetch_args SOURCE_SUBDIR ${arg_SOURCE_SUBDIR})
+                endif()
+                FetchContent_Declare(${fetch_args})
                 FetchContent_MakeAvailable(${arg_PACKAGE_NAME})
                 message(STATUS "\t✅ Fetched ${arg_PACKAGE_NAME}")
             else()
@@ -93,14 +104,24 @@ if(NOT TARGET flatbuffers::flatbuffers)
 endif()
 unset(FLATBUFFERS_BUILD_TESTS CACHE)
 
+# Fetching lz4
+# Disable bundled mode to allow shared libraries if needed
+# lz4 is built as static by default if bundled
+# set(LZ4_BUNDLED_MODE OFF CACHE BOOL "" FORCE)
+# set(BUILD_SHARED_LIBS ON CACHE BOOL "" FORCE)
 find_package_or_fetch(
     PACKAGE_NAME lz4
     GIT_REPOSITORY https://github.com/lz4/lz4.git
     TAG v1.10.0
+    SOURCE_SUBDIR build/cmake
+    CMAKE_ARGS
+        "LZ4_BUILD_CLI=OFF"
+        "LZ4_BUILD_LEGACY_LZ4C=OFF"
 )
-# if(NOT TARGET lz4::lz4)
-#     add_library(lz4::lz4 ALIAS lz4)
-# endif()
+
+if(NOT TARGET lz4::lz4)
+    add_library(lz4::lz4 ALIAS lz4)
+endif()
 
 if(SPARROW_IPC_BUILD_TESTS)
     find_package_or_fetch(
