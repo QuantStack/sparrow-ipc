@@ -321,6 +321,25 @@ if (TARGET flatbuffers)
     endif()
 endif()
 
+if (TARGET lz4)
+    get_target_property(is_imported lz4 IMPORTED)
+    if(NOT is_imported)
+        # This means `lz4` was fetched using FetchContent
+        # We need to export `lz4` target explicitly
+        list(APPEND SPARROW_IPC_EXPORTED_TARGETS lz4)
+    endif()
+endif()
+
+if (TARGET lz4_static)
+    get_target_property(is_imported lz4_static IMPORTED)
+    if(NOT is_imported)
+        # `lz4_static` is needed as this is the actual library
+        # and `lz4` is an interface pointing to it.
+        # If `lz4_shared` is used instead for some reason, modify this accordingly
+        list(APPEND SPARROW_IPC_EXPORTED_TARGETS lz4_static)
+    endif()
+endif()
+
 install(TARGETS ${SPARROW_IPC_EXPORTED_TARGETS}
     EXPORT ${PROJECT_NAME}-targets)
 
