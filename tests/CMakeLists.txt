@@ -27,25 +27,23 @@ target_link_libraries(${test_target}
 )
 
 if(WIN32)
-    if(${SPARROW_IPC_BUILD_SHARED})
-        find_package(date) # For copying DLLs
-        add_custom_command(
-            TARGET ${test_target} POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy
-                "$<TARGET_FILE:sparrow::sparrow>"
-                "$<TARGET_FILE_DIR:${test_target}>"
-            COMMAND ${CMAKE_COMMAND} -E copy
-                "$<TARGET_FILE:sparrow-ipc>"
-                "$<TARGET_FILE_DIR:${test_target}>"
-            COMMAND ${CMAKE_COMMAND} -E copy
-                "$<TARGET_FILE:sparrow::json_reader>"
-                "$<TARGET_FILE_DIR:${test_target}>"
-            COMMAND ${CMAKE_COMMAND} -E copy
-                "$<TARGET_FILE:date::date-tz>"
-                "$<TARGET_FILE_DIR:${test_target}>"
-            COMMENT "Copying sparrow and sparrow-ipc DLLs to executable directory"
-        )
-    endif()
+    find_package(date) # For copying DLLs
+    add_custom_command(
+        TARGET ${test_target} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy
+            "$<TARGET_FILE:sparrow::sparrow>"
+            "$<TARGET_FILE_DIR:${test_target}>"
+        COMMAND ${CMAKE_COMMAND} -E copy
+            "$<TARGET_FILE:sparrow-ipc>"
+            "$<TARGET_FILE_DIR:${test_target}>"
+        COMMAND ${CMAKE_COMMAND} -E copy
+            "$<TARGET_FILE:sparrow::json_reader>"
+            "$<TARGET_FILE_DIR:${test_target}>"
+        COMMAND ${CMAKE_COMMAND} -E copy
+            "$<TARGET_FILE:date::date-tz>"
+            "$<TARGET_FILE_DIR:${test_target}>"
+        COMMENT "Copying sparrow and sparrow-ipc DLLs to executable directory"
+    )
 endif()
 
 target_include_directories(${test_target}

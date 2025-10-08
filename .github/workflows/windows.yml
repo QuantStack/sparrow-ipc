@@ -39,7 +39,6 @@ jobs:
           cmake -S ./ -B ./build \
           -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX \
           -DCMAKE_PREFIX_PATH=$GLOB_PREFIX_PATH \
-          -DCMAKE_LIBRARY_PATH=$GLOB_PREFIX_PATH \
           -DSPARROW_IPC_BUILD_SHARED=${{ matrix.build_shared }} \
           -DSPARROW_IPC_BUILD_TESTS=ON
 
