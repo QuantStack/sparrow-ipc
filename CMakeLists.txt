@@ -100,6 +100,8 @@ set(SPARROW_IPC_HEADERS
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/arrow_interface/arrow_array/private_data.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/arrow_interface/arrow_schema.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/arrow_interface/arrow_schema/private_data.hpp
+    ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/chunk_memory_output_stream.hpp
+    ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/chunk_memory_serializer.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/config/config.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/config/sparrow_ipc_version.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/deserialize_variable_size_binary_array.hpp
@@ -109,24 +111,34 @@ set(SPARROW_IPC_HEADERS
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/deserialize_variable_size_binary_array.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/deserialize.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/encapsulated_message.hpp
+    ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/file_output_stream.hpp
+    ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/flatbuffer_utils.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/magic_values.hpp
+    ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/memory_output_stream.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/metadata.hpp
+    ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/output_stream.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/serialize_utils.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/serialize.hpp
+    ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/serializer.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/utils.hpp
 )
 
 set(SPARROW_IPC_SRC
-     ${SPARROW_IPC_SOURCE_DIR}/serialize_utils.cpp
     ${SPARROW_IPC_SOURCE_DIR}/arrow_interface/arrow_array.cpp
     ${SPARROW_IPC_SOURCE_DIR}/arrow_interface/arrow_array/private_data.cpp
     ${SPARROW_IPC_SOURCE_DIR}/arrow_interface/arrow_schema.cpp
     ${SPARROW_IPC_SOURCE_DIR}/arrow_interface/arrow_schema/private_data.cpp
+    ${SPARROW_IPC_SOURCE_DIR}/chunk_memory_serializer.cpp
     ${SPARROW_IPC_SOURCE_DIR}/deserialize_fixedsizebinary_array.cpp
     ${SPARROW_IPC_SOURCE_DIR}/deserialize_utils.cpp
     ${SPARROW_IPC_SOURCE_DIR}/deserialize.cpp
     ${SPARROW_IPC_SOURCE_DIR}/encapsulated_message.cpp
+    ${SPARROW_IPC_SOURCE_DIR}/file_output_stream.cpp
+    ${SPARROW_IPC_SOURCE_DIR}/flatbuffer_utils.cpp
     ${SPARROW_IPC_SOURCE_DIR}/metadata.cpp
+    ${SPARROW_IPC_SOURCE_DIR}/serialize_utils.cpp
+    ${SPARROW_IPC_SOURCE_DIR}/serialize.cpp
+    ${SPARROW_IPC_SOURCE_DIR}/serializer.cpp
     ${SPARROW_IPC_SOURCE_DIR}/utils.cpp
 )
 
