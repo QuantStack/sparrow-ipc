@@ -102,6 +102,7 @@ set(SPARROW_IPC_HEADERS
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/arrow_interface/arrow_schema/private_data.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/config/config.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/config/sparrow_ipc_version.hpp
+    ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/compression.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/deserialize_variable_size_binary_array.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/deserialize_fixedsizebinary_array.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/deserialize_primitive_array.hpp
@@ -122,6 +123,7 @@ set(SPARROW_IPC_SRC
     ${SPARROW_IPC_SOURCE_DIR}/arrow_interface/arrow_array/private_data.cpp
     ${SPARROW_IPC_SOURCE_DIR}/arrow_interface/arrow_schema.cpp
     ${SPARROW_IPC_SOURCE_DIR}/arrow_interface/arrow_schema/private_data.cpp
+    ${SPARROW_IPC_SOURCE_DIR}/compression.cpp
     ${SPARROW_IPC_SOURCE_DIR}/deserialize_fixedsizebinary_array.cpp
     ${SPARROW_IPC_SOURCE_DIR}/deserialize_utils.cpp
     ${SPARROW_IPC_SOURCE_DIR}/deserialize.cpp
@@ -239,6 +241,8 @@ target_link_libraries(sparrow-ipc
     PUBLIC
         sparrow::sparrow
         flatbuffers::flatbuffers
+    PRIVATE
+        lz4::lz4
         )
 
 # Ensure generated headers are available when building sparrow-ipc
@@ -294,6 +298,25 @@ if (TARGET flatbuffers)
             # that also needs to be exported
             list(APPEND SPARROW_IPC_EXPORTED_TARGETS ProjectConfig)
         endif()
+    endif()
+endif()
+
+if (TARGET lz4)
+    get_target_property(is_imported lz4 IMPORTED)
+    if(NOT is_imported)
+        # This means `lz4` was fetched using FetchContent
+        # We need to export `lz4` target explicitly
+        list(APPEND SPARROW_IPC_EXPORTED_TARGETS lz4)
+    endif()
+endif()
+
+if (TARGET lz4_static)
+    get_target_property(is_imported lz4_static IMPORTED)
+    if(NOT is_imported)
+        # `lz4_static` is needed as this is the actual library
+        # and `lz4` is an interface pointing to it.
+        # If `lz4_shared` is used instead for some reason, modify this accordingly
+        list(APPEND SPARROW_IPC_EXPORTED_TARGETS lz4_static)
     endif()
 endif()
 

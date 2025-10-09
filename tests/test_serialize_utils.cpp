@@ -292,7 +292,8 @@ namespace sparrow_ipc
             auto record_batch = create_test_record_batch();
             auto nodes = create_fieldnodes(record_batch);
             auto buffers = get_buffers(record_batch);
-            auto builder = get_record_batch_message_builder(record_batch, nodes, buffers);
+            auto body_size = calculate_body_size(record_batch);
+            auto builder = get_record_batch_message_builder(record_batch, nodes, buffers, body_size, std::nullopt);
             CHECK_GT(builder.GetSize(), 0);
             CHECK_NE(builder.GetBufferPointer(), nullptr);
         }
@@ -303,7 +304,7 @@ namespace sparrow_ipc
         SUBCASE("Valid record batch")
         {
             auto record_batch = create_test_record_batch();
-            auto serialized = serialize_record_batch(record_batch);
+            auto serialized = serialize_record_batch(record_batch, std::nullopt);
             CHECK_GT(serialized.size(), 0);
 
             // Check that it starts with continuation bytes
@@ -335,7 +336,7 @@ namespace sparrow_ipc
         SUBCASE("Empty record batch")
         {
             auto empty_batch = sp::record_batch({});
-            auto serialized = serialize_record_batch(empty_batch);
+            auto serialized = serialize_record_batch(empty_batch, std::nullopt);
             CHECK_GT(serialized.size(), 0);
             CHECK_GE(serialized.size(), continuation.size());
         }
@@ -348,7 +349,7 @@ namespace sparrow_ipc
             auto record_batch = create_test_record_batch();
 
             auto schema_serialized = serialize_schema_message(record_batch);
-            auto record_batch_serialized = serialize_record_batch(record_batch);
+            auto record_batch_serialized = serialize_record_batch(record_batch, std::nullopt);
 
             CHECK_GT(schema_serialized.size(), 0);
             CHECK_GT(record_batch_serialized.size(), 0);

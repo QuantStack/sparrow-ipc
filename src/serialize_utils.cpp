@@ -181,6 +181,34 @@ namespace sparrow_ipc
         return buffers;
     }
 
+    // TODO to be factorized later after testing using arrow testing files
+    void fill_body_and_get_buffers_compressed(const sparrow::arrow_proxy& arrow_proxy, std::vector<uint8_t>& body, std::vector<org::apache::arrow::flatbuf::Buffer>& flatbuf_buffers, int64_t& offset, org::apache::arrow::flatbuf::CompressionType compression_type)
+    {
+        const auto& buffers = arrow_proxy.buffers();
+        for (const auto& buffer : buffers)
+        {
+            if (buffer.size() > 0)
+            {
+                auto compressed_buffer = compress(compression_type, {buffer.data(), buffer.size()});
+                int64_t uncompressed_size = buffer.size();
+                body.insert(body.end(), reinterpret_cast<const uint8_t*>(&uncompressed_size), reinterpret_cast<const uint8_t*>(&uncompressed_size) + sizeof(uncompressed_size));
+                body.insert(body.end(), compressed_buffer.begin(), compressed_buffer.end());
+                add_padding(body);
+
+                flatbuf_buffers.emplace_back(offset, sizeof(uncompressed_size) + compressed_buffer.size());
+                offset = body.size();
+            }
+            else
+            {
+                flatbuf_buffers.emplace_back(offset, 0);
+            }
+        }
+        for (const auto& child : arrow_proxy.children())
+        {
+            fill_body_and_get_buffers_compressed(child, body, flatbuf_buffers, offset, compression_type);
+        }
+    }
+
     void fill_body(const sparrow::arrow_proxy& arrow_proxy, std::vector<uint8_t>& body)
     {
         for (const auto& buffer : arrow_proxy.buffers())
@@ -236,23 +264,29 @@ namespace sparrow_ipc
     flatbuffers::FlatBufferBuilder get_record_batch_message_builder(
         const sparrow::record_batch& record_batch,
         const std::vector<org::apache::arrow::flatbuf::FieldNode>& nodes,
-        const std::vector<org::apache::arrow::flatbuf::Buffer>& buffers
+        const std::vector<org::apache::arrow::flatbuf::Buffer>& buffers,
+        const int64_t body_size,
+        std::optional<org::apache::arrow::flatbuf::CompressionType> compression
     )
     {
         flatbuffers::FlatBufferBuilder record_batch_builder;
 
         auto nodes_offset = record_batch_builder.CreateVectorOfStructs(nodes);
         auto buffers_offset = record_batch_builder.CreateVectorOfStructs(buffers);
+        flatbuffers::Offset<org::apache::arrow::flatbuf::BodyCompression> compression_offset = 0;
+        if (compression)
+        {
+            compression_offset = org::apache::arrow::flatbuf::CreateBodyCompression(record_batch_builder, compression.value(), org::apache::arrow::flatbuf::BodyCompressionMethod::BUFFER);
+        }
         const auto record_batch_offset = org::apache::arrow::flatbuf::CreateRecordBatch(
             record_batch_builder,
             static_cast<int64_t>(record_batch.nb_rows()),
             nodes_offset,
             buffers_offset,
-            0,  // TODO: Compression
+            compression_offset,
             0   // TODO :variadic buffer Counts
         );
 
-        const int64_t body_size = calculate_body_size(record_batch);
         const auto record_batch_message_offset = org::apache::arrow::flatbuf::CreateMessage(
             record_batch_builder,
             org::apache::arrow::flatbuf::MetadataVersion::V5,
@@ -265,14 +299,37 @@ namespace sparrow_ipc
         return record_batch_builder;
     }
 
-    std::vector<uint8_t> serialize_record_batch(const sparrow::record_batch& record_batch)
+    std::vector<uint8_t> serialize_record_batch(const sparrow::record_batch& record_batch, std::optional<org::apache::arrow::flatbuf::CompressionType> compression)
     {
         std::vector<org::apache::arrow::flatbuf::FieldNode> nodes = create_fieldnodes(record_batch);
-        std::vector<org::apache::arrow::flatbuf::Buffer> flatbuf_buffers = get_buffers(record_batch);
+
+        std::vector<uint8_t> body;
+        std::vector<org::apache::arrow::flatbuf::Buffer> flatbuf_buffers;
+        int64_t body_size = 0;
+
+        if (compression)
+        {
+            int64_t offset = 0;
+            for (const auto& column : record_batch.columns())
+            {
+                const auto& arrow_proxy = sparrow::detail::array_access::get_arrow_proxy(column);
+                fill_body_and_get_buffers_compressed(arrow_proxy, body, flatbuf_buffers, offset, compression.value());
+            }
+            body_size = body.size();
+        }
+        else
+        {
+            body = generate_body(record_batch);
+            flatbuf_buffers = get_buffers(record_batch);
+            body_size = calculate_body_size(record_batch);
+        }
+
         flatbuffers::FlatBufferBuilder record_batch_builder = get_record_batch_message_builder(
             record_batch,
             nodes,
-            flatbuf_buffers
+            flatbuf_buffers,
+            body_size,
+            compression
         );
         std::vector<uint8_t> output;
         output.insert(output.end(), continuation.begin(), continuation.end());
@@ -288,7 +345,6 @@ namespace sparrow_ipc
             record_batch_builder.GetBufferPointer() + record_batch_len
         );
         add_padding(output);
-        std::vector<uint8_t> body = generate_body(record_batch);
         output.insert(output.end(), std::make_move_iterator(body.begin()), std::make_move_iterator(body.end()));
         return output;
     }

@@ -49,7 +49,6 @@ namespace sparrow_ipc
         const std::vector<std::optional<std::vector<sparrow::metadata_pair>>>& field_metadata
     )
     {
-        const size_t length = static_cast<size_t>(record_batch.length());
         size_t buffer_index = 0;
 
         std::vector<sparrow::array> arrays;
