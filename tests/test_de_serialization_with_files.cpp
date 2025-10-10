@@ -33,8 +33,8 @@ const std::vector<std::filesystem::path> files_paths_to_test = {
 };
 
 const std::vector<std::filesystem::path> files_paths_to_test_with_compression = {
-    tests_resources_files_path_with_compression / "generated_lz4"
-//     tests_resources_files_path_with_compression/ "generated_uncompressible_lz4"
+    tests_resources_files_path_with_compression / "generated_lz4",
+    tests_resources_files_path_with_compression/ "generated_uncompressible_lz4"
 //     tests_resources_files_path_with_compression / "generated_zstd"
 //     tests_resources_files_path_with_compression/ "generated_uncompressible_zstd"
 };
@@ -67,10 +67,12 @@ void compare_record_batches(
 )
 {
     REQUIRE_EQ(record_batches_1.size(), record_batches_2.size());
+//     std::cout << "record_batches1 size: " << record_batches_1.size() <<  " record_batches2 size: " << record_batches_2.size() << std::endl;
     for (size_t i = 0; i < record_batches_1.size(); ++i)
     {
         for (size_t y = 0; y < record_batches_1[i].nb_columns(); y++)
         {
+//             std::cout << "record_batches1 nb cols: " << record_batches_1[i].nb_columns() <<  " record_batches2 nb cols: " << record_batches_2[i].nb_columns() << std::endl;
             const auto& column_1 = record_batches_1[i].get_column(y);
             const auto& column_2 = record_batches_2[i].get_column(y);
             REQUIRE_EQ(column_1.size(), column_2.size());
@@ -79,9 +81,11 @@ void compare_record_batches(
             {
                 const auto col_name = column_1.name().value_or("NA");
                 INFO("Comparing batch " << i << ", column " << y << " named :" << col_name << " , row " << z);
+//                 std::cout << "Comparing batch " << i << ", column " << y << " named :" << col_name << " , row " << z << std::endl;
                 REQUIRE_EQ(column_1.data_type(), column_2.data_type());
                 const auto& column_1_value = column_1[z];
                 const auto& column_2_value = column_2[z];
+//                 std::cout << "column_1_value :" << column_1_value << " and " << column_2_value  << std::endl;
                 CHECK_EQ(column_1_value, column_2_value);
             }
         }
@@ -186,7 +190,7 @@ TEST_SUITE("Integration tests")
         }
     }
 
-    TEST_CASE("Serialization with LZ4 compression")
+    TEST_CASE("Compare record_batch serialization with stream file using LZ4 compression")
     {
         for (const auto& file_path : files_paths_to_test_with_compression)
         {
@@ -224,14 +228,12 @@ TEST_SUITE("Integration tests")
                 const auto record_batches_from_stream = sparrow_ipc::deserialize_stream(
                     std::span<const uint8_t>(stream_data)
                 );
-
-                const auto serialized_data = sparrow_ipc::serialize(record_batches_from_json, std::nullopt);
-//                 const auto deserialized_serialized_data = sparrow_ipc::deserialize_stream(
-//                     std::span<const uint8_t>(serialized_data)
-//                 );
-//                 compare_record_batches(record_batches_from_stream, deserialized_serialized_data);
+                const auto serialized_data = sparrow_ipc::serialize(record_batches_from_json, org::apache::arrow::flatbuf::CompressionType::LZ4_FRAME);
+                const auto deserialized_serialized_data = sparrow_ipc::deserialize_stream(
+                    std::span<const uint8_t>(serialized_data)
+                );
+                compare_record_batches(record_batches_from_stream, deserialized_serialized_data);
             }
-
         }
     }
 }

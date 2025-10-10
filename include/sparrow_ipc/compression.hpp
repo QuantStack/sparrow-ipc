@@ -19,4 +19,5 @@ namespace sparrow_ipc
 //     CompressionType to_compression_type(org::apache::arrow::flatbuf::CompressionType compression_type);
 
     std::vector<std::uint8_t> compress(org::apache::arrow::flatbuf::CompressionType compression_type, std::span<const std::uint8_t> data);
+    std::vector<std::uint8_t> decompress(org::apache::arrow::flatbuf::CompressionType compression_type, std::span<const std::uint8_t> data);
 }
