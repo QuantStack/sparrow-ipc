@@ -125,23 +125,6 @@ namespace sparrow_ipc
         [[nodiscard]] size_t size() const;
 
         /**
-         * @brief Flushes buffered data to the underlying destination.
-         */
-        void flush();
-
-        /**
-         * @brief Closes the stream and releases resources.
-         */
-        void close();
-
-        /**
-         * @brief Checks if the stream is open.
-         *
-         * @return true if open, false otherwise
-         */
-        [[nodiscard]] bool is_open() const;
-
-        /**
          * @brief Gets a reference to the underlying stream cast to the specified type.
          *
          * @tparam TStream The expected concrete type of the underlying stream
@@ -177,9 +160,6 @@ namespace sparrow_ipc
             virtual void reserve(std::size_t size) = 0;
             virtual void reserve(const std::function<std::size_t()>& calculate_reserve_size) = 0;
             [[nodiscard]] virtual size_t size() const = 0;
-            virtual void flush() = 0;
-            virtual void close() = 0;
-            [[nodiscard]] virtual bool is_open() const = 0;
         };
 
         /**
@@ -209,12 +189,6 @@ namespace sparrow_ipc
             void reserve(const std::function<std::size_t()>& calculate_reserve_size) final;
 
             [[nodiscard]] size_t size() const final;
-
-            void flush() final;
-
-            void close() final;
-
-            [[nodiscard]] bool is_open() const final;
 
             TStream& get_stream();
 
@@ -360,41 +334,6 @@ namespace sparrow_ipc
         else
         {
             return m_size;
-        }
-    }
-
-    template <typename TStream>
-    void any_output_stream::stream_model<TStream>::flush()
-    {
-        if constexpr (requires(TStream& t) { t.flush(); })
-        {
-            m_stream->flush();
-        }
-        // If no flush method, do nothing
-    }
-
-    template <typename TStream>
-    void any_output_stream::stream_model<TStream>::close()
-    {
-        if constexpr (requires(TStream& t) { t.close(); })
-        {
-            m_stream->close();
-        }
-        // If no close method, do nothing
-    }
-
-    template <typename TStream>
-    bool any_output_stream::stream_model<TStream>::is_open() const
-    {
-        if constexpr (requires(const TStream& t) {
-                          { t.is_open() } -> std::convertible_to<bool>;
-                      })
-        {
-            return m_stream->is_open();
-        }
-        else
-        {
-            return true;  // Assume open if no method available
         }
     }
 

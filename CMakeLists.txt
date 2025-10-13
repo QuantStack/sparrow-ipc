@@ -105,10 +105,10 @@ set(SPARROW_IPC_HEADERS
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/chunk_memory_serializer.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/config/config.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/config/sparrow_ipc_version.hpp
-    ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/deserialize_variable_size_binary_array.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/deserialize_fixedsizebinary_array.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/deserialize_primitive_array.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/deserialize_utils.hpp
+    ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/deserialize_variable_size_binary_array.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/deserialize_variable_size_binary_array.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/deserialize.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/encapsulated_message.hpp
@@ -121,7 +121,6 @@ set(SPARROW_IPC_HEADERS
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/serialize.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/serializer.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/utils.hpp
-    ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/concepts.hpp
 )
 
 set(SPARROW_IPC_SRC

@@ -1,8 +1,10 @@
+#include <sstream>
 #include <vector>
 
 #include <doctest/doctest.h>
 #include <sparrow/record_batch.hpp>
 
+#include "sparrow_ipc/any_output_stream.hpp"
 #include "sparrow_ipc/memory_output_stream.hpp"
 #include "sparrow_ipc/serializer.hpp"
 #include "sparrow_ipc_tests_helpers.hpp"
@@ -11,37 +13,52 @@ namespace sparrow_ipc
 {
     namespace sp = sparrow;
 
+    // Stream wrapper types for testing
+    struct memory_stream_wrapper
+    {
+        using buffer_type = std::vector<uint8_t>;
+        buffer_type buffer;
+        memory_output_stream<buffer_type> stream{buffer};
+        
+        auto& get_stream() { return stream; }
+        size_t size() const { return buffer.size(); }
+    };
+
+    struct ostringstream_wrapper
+    {
+        std::ostringstream oss;
+        
+        auto& get_stream() { return oss; }
+        size_t size() { return static_cast<size_t>(oss.tellp()); }
+    };
+
     TEST_SUITE("serializer")
     {
-        TEST_CASE("construction and write single record batch")
+        TEST_CASE_TEMPLATE("construction and write single record batch", StreamWrapper, memory_stream_wrapper, ostringstream_wrapper)
         {
             SUBCASE("Valid record batch")
             {
                 auto rb = create_test_record_batch();
-                std::vector<uint8_t> buffer;
-                memory_output_stream stream(buffer);
-                serializer ser(stream);
+                StreamWrapper wrapper;
+                serializer ser(wrapper.get_stream());
                 ser.write(rb);
 
                 // After writing first record batch, should have schema + record batch
-                CHECK_GT(buffer.size(), 0);
-                CHECK_GT(stream.size(), 0);
+                CHECK_GT(wrapper.size(), 0);
             }
 
             SUBCASE("Empty record batch")
             {
                 auto empty_batch = sp::record_batch({});
-                std::vector<uint8_t> buffer;
-                memory_output_stream stream(buffer);
-
-                serializer ser(stream);
+                StreamWrapper wrapper;
+                serializer ser(wrapper.get_stream());
                 ser.write(empty_batch);
 
-                CHECK_GT(buffer.size(), 0);
+                CHECK_GT(wrapper.size(), 0);
             }
         }
 
-        TEST_CASE("construction and write range of record batches")
+        TEST_CASE_TEMPLATE("construction and write range of record batches", StreamWrapper, memory_stream_wrapper, ostringstream_wrapper)
         {
             SUBCASE("Valid record batches")
             {
@@ -58,43 +75,36 @@ namespace sparrow_ipc
                 );
 
                 std::vector<sp::record_batch> record_batches = {rb1, rb2};
-                std::vector<uint8_t> buffer;
-                memory_output_stream stream(buffer);
-
-                serializer ser(stream);
+                StreamWrapper wrapper;
+                serializer ser(wrapper.get_stream());
                 ser.write(record_batches);
 
                 // Should have schema + 2 record batches
-                CHECK_GT(buffer.size(), 0);
-                CHECK_GT(stream.size(), 0);
+                CHECK_GT(wrapper.size(), 0);
             }
 
             SUBCASE("Reserve is called correctly")
             {
                 auto rb = create_test_record_batch();
                 std::vector<sp::record_batch> record_batches = {rb};
-                std::vector<uint8_t> buffer;
-                memory_output_stream stream(buffer);
-
-                serializer ser(stream);
+                StreamWrapper wrapper;
+                serializer ser(wrapper.get_stream());
                 ser.write(record_batches);
 
                 // Verify that buffer has been written
-                CHECK_GT(buffer.size(), 0);
+                CHECK_GT(wrapper.size(), 0);
             }
         }
 
-        TEST_CASE("write single record batch")
+        TEST_CASE_TEMPLATE("write single record batch", StreamWrapper, memory_stream_wrapper, ostringstream_wrapper)
         {
             SUBCASE("Write after construction with single batch")
             {
                 auto rb1 = create_test_record_batch();
-                std::vector<uint8_t> buffer;
-                memory_output_stream stream(buffer);
-
-                serializer ser(stream);
+                StreamWrapper wrapper;
+                serializer ser(wrapper.get_stream());
                 ser.write(rb1);
-                size_t size_after_construction = buffer.size();
+                size_t size_after_construction = wrapper.size();
 
                 // Create compatible record batch
                 auto rb2 = sp::record_batch(
@@ -104,18 +114,16 @@ namespace sparrow_ipc
 
                 ser.write(rb2);
 
-                CHECK_GT(buffer.size(), size_after_construction);
+                CHECK_GT(wrapper.size(), size_after_construction);
             }
 
             SUBCASE("Multiple writes")
             {
                 auto rb1 = create_test_record_batch();
-                std::vector<uint8_t> buffer;
-                memory_output_stream stream(buffer);
-
-                serializer ser(stream);
+                StreamWrapper wrapper;
+                serializer ser(wrapper.get_stream());
                 ser.write(rb1);
-                size_t initial_size = buffer.size();
+                size_t initial_size = wrapper.size();
 
                 for (int i = 0; i < 3; ++i)
                 {
@@ -126,16 +134,14 @@ namespace sparrow_ipc
                     ser.write(rb);
                 }
 
-                CHECK_GT(buffer.size(), initial_size);
+                CHECK_GT(wrapper.size(), initial_size);
             }
 
             SUBCASE("Mismatched schema throws exception")
             {
                 auto rb1 = create_test_record_batch();
-                std::vector<uint8_t> buffer;
-                memory_output_stream stream(buffer);
-
-                serializer ser(stream);
+                StreamWrapper wrapper;
+                serializer ser(wrapper.get_stream());
                 ser.write(rb1);
 
                 // Create record batch with different schema
@@ -147,17 +153,15 @@ namespace sparrow_ipc
             }
         }
 
-        TEST_CASE("write range of record batches")
+        TEST_CASE_TEMPLATE("write range of record batches", StreamWrapper, memory_stream_wrapper, ostringstream_wrapper)
         {
             SUBCASE("Write range after construction")
             {
                 auto rb1 = create_test_record_batch();
-                std::vector<uint8_t> buffer;
-                memory_output_stream stream(buffer);
-
-                serializer ser(stream);
+                StreamWrapper wrapper;
+                serializer ser(wrapper.get_stream());
                 ser.write(rb1);
-                size_t initial_size = buffer.size();
+                size_t initial_size = wrapper.size();
 
                 auto array1 = sp::primitive_array<int32_t>({10, 20});
                 auto array2 = sp::string_array(std::vector<std::string>{"a", "b"});
@@ -176,52 +180,46 @@ namespace sparrow_ipc
                 std::vector<sp::record_batch> new_batches = {rb2, rb3};
                 ser.write(new_batches);
 
-                CHECK_GT(buffer.size(), initial_size);
+                CHECK_GT(wrapper.size(), initial_size);
             }
 
             SUBCASE("Reserve is called during range write")
             {
                 auto rb1 = create_test_record_batch();
-                std::vector<uint8_t> buffer;
-                memory_output_stream stream(buffer);
-
-                serializer ser(stream);
+                StreamWrapper wrapper;
+                serializer ser(wrapper.get_stream());
                 ser.write(rb1);
 
                 auto rb2 = create_test_record_batch();
                 auto rb3 = create_test_record_batch();
                 std::vector<sp::record_batch> new_batches = {rb2, rb3};
 
-                size_t size_before = buffer.size();
+                size_t size_before = wrapper.size();
                 ser.write(new_batches);
 
                 // Reserve should have been called, buffer should have grown
-                CHECK_GT(buffer.size(), size_before);
+                CHECK_GT(wrapper.size(), size_before);
             }
 
             SUBCASE("Empty range write does nothing")
             {
                 auto rb1 = create_test_record_batch();
-                std::vector<uint8_t> buffer;
-                memory_output_stream stream(buffer);
-
-                serializer ser(stream);
+                StreamWrapper wrapper;
+                serializer ser(wrapper.get_stream());
                 ser.write(rb1);
-                size_t initial_size = buffer.size();
+                size_t initial_size = wrapper.size();
 
                 std::vector<sp::record_batch> empty_batches;
                 ser.write(empty_batches);
 
-                CHECK_EQ(buffer.size(), initial_size);
+                CHECK_EQ(wrapper.size(), initial_size);
             }
 
             SUBCASE("Mismatched schema in range throws exception")
             {
                 auto rb1 = create_test_record_batch();
-                std::vector<uint8_t> buffer;
-                memory_output_stream stream(buffer);
-
-                serializer ser(stream);
+                StreamWrapper wrapper;
+                serializer ser(wrapper.get_stream());
                 ser.write(rb1);
 
                 auto rb2 = create_test_record_batch();
@@ -234,31 +232,27 @@ namespace sparrow_ipc
             }
         }
 
-        TEST_CASE("end serialization")
+        TEST_CASE_TEMPLATE("end serialization", StreamWrapper, memory_stream_wrapper, ostringstream_wrapper)
         {
             SUBCASE("End after construction")
             {
                 auto rb = create_test_record_batch();
-                std::vector<uint8_t> buffer;
-                memory_output_stream stream(buffer);
-
-                serializer ser(stream);
+                StreamWrapper wrapper;
+                serializer ser(wrapper.get_stream());
                 ser.write(rb);
-                size_t initial_size = buffer.size();
+                size_t initial_size = wrapper.size();
 
                 ser.end();
 
                 // End should add end-of-stream marker
-                CHECK_GT(buffer.size(), initial_size);
+                CHECK_GT(wrapper.size(), initial_size);
             }
 
             SUBCASE("Cannot write after end")
             {
                 auto rb1 = create_test_record_batch();
-                std::vector<uint8_t> buffer;
-                memory_output_stream stream(buffer);
-
-                serializer ser(stream);
+                StreamWrapper wrapper;
+                serializer ser(wrapper.get_stream());
                 ser.write(rb1);
                 ser.end();
 
@@ -269,10 +263,8 @@ namespace sparrow_ipc
             SUBCASE("Cannot write range after end")
             {
                 auto rb1 = create_test_record_batch();
-                std::vector<uint8_t> buffer;
-                memory_output_stream stream(buffer);
-
-                serializer ser(stream);
+                StreamWrapper wrapper;
+                serializer ser(wrapper.get_stream());
                 ser.write(rb1);
                 ser.end();
 
@@ -281,35 +273,31 @@ namespace sparrow_ipc
             }
         }
 
-        TEST_CASE("stream size tracking")
+        TEST_CASE_TEMPLATE("stream size tracking", StreamWrapper, memory_stream_wrapper, ostringstream_wrapper)
         {
             SUBCASE("Size increases with each operation")
             {
                 auto rb = create_test_record_batch();
-                std::vector<uint8_t> buffer;
-                memory_output_stream stream(buffer);
-
-                size_t size_before = stream.size();
-                serializer ser(stream);
+                StreamWrapper wrapper;
+                size_t size_before = wrapper.size();
+                serializer ser(wrapper.get_stream());
                 ser.write(rb);
-                size_t size_after_construction = stream.size();
+                size_t size_after_construction = wrapper.size();
 
                 CHECK_GT(size_after_construction, size_before);
 
                 ser.write(rb);
-                size_t size_after_write = stream.size();
+                size_t size_after_write = wrapper.size();
 
                 CHECK_GT(size_after_write, size_after_construction);
             }
         }
 
-        TEST_CASE("large number of record batches")
+        TEST_CASE_TEMPLATE("large number of record batches", StreamWrapper, memory_stream_wrapper, ostringstream_wrapper)
         {
             SUBCASE("Handle many record batches efficiently")
             {
-                std::vector<uint8_t> buffer;
-                memory_output_stream stream(buffer);
-
+                StreamWrapper wrapper;
                 std::vector<sp::record_batch> batches;
                 const int num_batches = 100;
 
@@ -319,16 +307,15 @@ namespace sparrow_ipc
                     batches.push_back(sp::record_batch({{"col", sp::array(std::move(array))}}));
                 }
 
-                serializer ser(stream);
+                serializer ser(wrapper.get_stream());
                 ser.write(batches);
 
                 // Should have schema + all batches
-                CHECK_GT(buffer.size(), 0);
-                CHECK_GT(stream.size(), 0);
+                CHECK_GT(wrapper.size(), 0);
             }
         }
 
-        TEST_CASE("different column types")
+        TEST_CASE_TEMPLATE("different column types", StreamWrapper, memory_stream_wrapper, ostringstream_wrapper)
         {
             SUBCASE("Multiple primitive types")
             {
@@ -342,27 +329,23 @@ namespace sparrow_ipc
                      {"float_col", sp::array(std::move(float_array))}}
                 );
 
-                std::vector<uint8_t> buffer;
-                memory_output_stream stream(buffer);
-
-                serializer ser(stream);
+                StreamWrapper wrapper;
+                serializer ser(wrapper.get_stream());
                 ser.write(rb);
 
-                CHECK_GT(buffer.size(), 0);
+                CHECK_GT(wrapper.size(), 0);
             }
         }
 
-        TEST_CASE("operator<< with single record batch")
+        TEST_CASE_TEMPLATE("operator<< with single record batch", StreamWrapper, memory_stream_wrapper, ostringstream_wrapper)
         {
             SUBCASE("Single batch write using <<")
             {
                 auto rb1 = create_test_record_batch();
-                std::vector<uint8_t> buffer;
-                memory_output_stream stream(buffer);
-
-                serializer ser(stream);
+                StreamWrapper wrapper;
+                serializer ser(wrapper.get_stream());
                 ser << rb1;
-                size_t size_after_construction = buffer.size();
+                size_t size_after_construction = wrapper.size();
 
                 auto rb2 = sp::record_batch(
                     {{"int_col", sp::array(sp::primitive_array<int32_t>({6, 7, 8}))},
@@ -371,18 +354,16 @@ namespace sparrow_ipc
 
                 ser << rb2;
 
-                CHECK_GT(buffer.size(), size_after_construction);
+                CHECK_GT(wrapper.size(), size_after_construction);
             }
 
             SUBCASE("Chaining multiple single batch writes")
             {
                 auto rb1 = create_test_record_batch();
-                std::vector<uint8_t> buffer;
-                memory_output_stream stream(buffer);
-
-                serializer ser(stream);
+                StreamWrapper wrapper;
+                serializer ser(wrapper.get_stream());
                 ser << rb1;
-                size_t initial_size = buffer.size();
+                size_t initial_size = wrapper.size();
 
                 auto rb2 = sp::record_batch(
                     {{"int_col", sp::array(sp::primitive_array<int32_t>({10, 20}))},
@@ -401,16 +382,14 @@ namespace sparrow_ipc
 
                 ser << rb2 << rb3 << rb4;
 
-                CHECK_GT(buffer.size(), initial_size);
+                CHECK_GT(wrapper.size(), initial_size);
             }
 
             SUBCASE("Cannot use << after end")
             {
                 auto rb1 = create_test_record_batch();
-                std::vector<uint8_t> buffer;
-                memory_output_stream stream(buffer);
-
-                serializer ser(stream);
+                StreamWrapper wrapper;
+                serializer ser(wrapper.get_stream());
                 ser << rb1;
                 ser.end();
 
@@ -421,10 +400,8 @@ namespace sparrow_ipc
             SUBCASE("Mismatched schema with << throws exception")
             {
                 auto rb1 = create_test_record_batch();
-                std::vector<uint8_t> buffer;
-                memory_output_stream stream(buffer);
-
-                serializer ser(stream);
+                StreamWrapper wrapper;
+                serializer ser(wrapper.get_stream());
                 ser << rb1;
 
                 auto rb2 = sp::record_batch(
@@ -435,17 +412,15 @@ namespace sparrow_ipc
             }
         }
 
-        TEST_CASE("operator<< with range of record batches")
+        TEST_CASE_TEMPLATE("operator<< with range of record batches", StreamWrapper, memory_stream_wrapper, ostringstream_wrapper)
         {
             SUBCASE("Range write using <<")
             {
                 auto rb1 = create_test_record_batch();
-                std::vector<uint8_t> buffer;
-                memory_output_stream stream(buffer);
-
-                serializer ser(stream);
+                StreamWrapper wrapper;
+                serializer ser(wrapper.get_stream());
                 ser << rb1;
-                size_t initial_size = buffer.size();
+                size_t initial_size = wrapper.size();
 
                 std::vector<sp::record_batch> batches;
                 for (int i = 0; i < 3; ++i)
@@ -459,18 +434,16 @@ namespace sparrow_ipc
 
                 ser << batches;
 
-                CHECK_GT(buffer.size(), initial_size);
+                CHECK_GT(wrapper.size(), initial_size);
             }
 
             SUBCASE("Chaining range and single batch writes")
             {
                 auto rb1 = create_test_record_batch();
-                std::vector<uint8_t> buffer;
-                memory_output_stream stream(buffer);
-
-                serializer ser(stream);
+                StreamWrapper wrapper;
+                serializer ser(wrapper.get_stream());
                 ser << rb1;
-                size_t initial_size = buffer.size();
+                size_t initial_size = wrapper.size();
 
                 std::vector<sp::record_batch> batches;
                 for (int i = 0; i < 2; ++i)
@@ -489,18 +462,16 @@ namespace sparrow_ipc
 
                 ser << batches << rb2;
 
-                CHECK_GT(buffer.size(), initial_size);
+                CHECK_GT(wrapper.size(), initial_size);
             }
 
             SUBCASE("Mixed chaining with multiple ranges")
             {
                 auto rb1 = create_test_record_batch();
-                std::vector<uint8_t> buffer;
-                memory_output_stream stream(buffer);
-
-                serializer ser(stream);
+                StreamWrapper wrapper;
+                serializer ser(wrapper.get_stream());
                 ser << rb1;
-                size_t initial_size = buffer.size();
+                size_t initial_size = wrapper.size();
 
                 std::vector<sp::record_batch> batches1;
                 batches1.push_back(sp::record_batch(
@@ -521,16 +492,14 @@ namespace sparrow_ipc
 
                 ser << batches1 << rb2 << batches2;
 
-                CHECK_GT(buffer.size(), initial_size);
+                CHECK_GT(wrapper.size(), initial_size);
             }
 
             SUBCASE("Cannot use << with range after end")
             {
                 auto rb1 = create_test_record_batch();
-                std::vector<uint8_t> buffer;
-                memory_output_stream stream(buffer);
-
-                serializer ser(stream);
+                StreamWrapper wrapper;
+                serializer ser(wrapper.get_stream());
                 ser << rb1;
                 ser.end();
 
@@ -541,10 +510,8 @@ namespace sparrow_ipc
             SUBCASE("Mismatched schema in range with << throws exception")
             {
                 auto rb1 = create_test_record_batch();
-                std::vector<uint8_t> buffer;
-                memory_output_stream stream(buffer);
-
-                serializer ser(stream);
+                StreamWrapper wrapper;
+                serializer ser(wrapper.get_stream());
                 ser << rb1;
 
                 auto rb2 = create_test_record_batch();
@@ -557,7 +524,7 @@ namespace sparrow_ipc
             }
         }
 
-        TEST_CASE("workflow example with << operator")
+        TEST_CASE_TEMPLATE("workflow example with << operator", StreamWrapper, memory_stream_wrapper, ostringstream_wrapper)
         {
             SUBCASE("Typical usage pattern with streaming syntax")
             {
@@ -565,13 +532,12 @@ namespace sparrow_ipc
                 auto rb1 = create_test_record_batch();
 
                 // Setup stream
-                std::vector<uint8_t> buffer;
-                memory_output_stream stream(buffer);
+                StreamWrapper wrapper;
 
                 // Create serializer and write initial batch
-                serializer ser(stream);
+                serializer ser(wrapper.get_stream());
                 ser << rb1;
-                size_t size_after_init = buffer.size();
+                size_t size_after_init = wrapper.size();
                 CHECK_GT(size_after_init, 0);
 
                 // Stream more batches
@@ -581,7 +547,7 @@ namespace sparrow_ipc
                 );
                 
                 ser << rb2;
-                size_t size_after_rb2 = buffer.size();
+                size_t size_after_rb2 = wrapper.size();
                 CHECK_GT(size_after_rb2, size_after_init);
 
                 // Stream range of batches
@@ -596,7 +562,7 @@ namespace sparrow_ipc
                 }
                 
                 ser << more_batches;
-                size_t size_after_range = buffer.size();
+                size_t size_after_range = wrapper.size();
                 CHECK_GT(size_after_range, size_after_rb2);
 
                 // Mix single and range in one chain
@@ -604,12 +570,12 @@ namespace sparrow_ipc
                 std::vector<sp::record_batch> final_batches = {create_test_record_batch()};
                 
                 ser << rb3 << final_batches;
-                size_t size_after_chain = buffer.size();
+                size_t size_after_chain = wrapper.size();
                 CHECK_GT(size_after_chain, size_after_range);
 
                 // End serialization
                 ser.end();
-                CHECK_GT(buffer.size(), size_after_chain);
+                CHECK_GT(wrapper.size(), size_after_chain);
             }
         }
     }
