@@ -4,8 +4,6 @@
 #include <sparrow/record_batch.hpp>
 
 #include "sparrow_ipc/any_output_stream.hpp"
-#include "sparrow_ipc/concepts.hpp"
-#include "sparrow_ipc/output_stream.hpp"
 #include "sparrow_ipc/serialize_utils.hpp"
 
 namespace sparrow_ipc
@@ -42,7 +40,7 @@ namespace sparrow_ipc
          * @param stream Reference to the stream object that will be used for serialization operations.
          *               The serializer stores a pointer to this stream for later use.
          */
-        template <streamable TStream>
+        template <writable_stream TStream>
         serializer(TStream& stream)
             : m_stream(stream)
         {
@@ -87,7 +85,6 @@ namespace sparrow_ipc
             {
                 throw std::runtime_error("Cannot append to a serializer that has been ended");
             }
-
 
             const auto reserve_function = [&record_batches, this]()
             {

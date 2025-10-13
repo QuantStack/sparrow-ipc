@@ -6,7 +6,6 @@
 
 #include "Message_generated.h"
 #include "sparrow_ipc/any_output_stream.hpp"
-#include "sparrow_ipc/concepts.hpp"
 #include "sparrow_ipc/config/config.hpp"
 #include "sparrow_ipc/magic_values.hpp"
 #include "sparrow_ipc/output_stream.hpp"

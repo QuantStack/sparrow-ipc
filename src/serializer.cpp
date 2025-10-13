@@ -1,9 +1,8 @@
 #include "sparrow_ipc/serializer.hpp"
 
+#include <memory>
 #include <ranges>
-
-#include "sparrow_ipc/serialize.hpp"
-#include "sparrow_ipc/serialize_utils.hpp"
+#include "sparrow_ipc/magic_values.hpp"
 
 namespace sparrow_ipc
 {
@@ -38,10 +37,6 @@ namespace sparrow_ipc
             return;
         }
         m_stream.write(end_of_stream);
-        // if constexpr (requires { m_stream.flush(); })
-        // {
-        //     m_pstream->flush();
-        // }
         m_ended = true;
     }
 }

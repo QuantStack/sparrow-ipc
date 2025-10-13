@@ -150,24 +150,6 @@ TEST_SUITE("any_output_stream")
         CHECK_EQ(stream.size(), 4);
     }
 
-    TEST_CASE("Flush and close")
-    {
-        SUBCASE("Memory stream")
-        {
-            std::vector<uint8_t> buffer;
-            sparrow_ipc::memory_output_stream mem_stream(buffer);
-            sparrow_ipc::any_output_stream stream(mem_stream);
-
-            stream.write(std::vector<uint8_t>{1, 2, 3});
-            
-            CHECK_NOTHROW(stream.flush());
-            CHECK(stream.is_open());
-            
-            CHECK_NOTHROW(stream.close());
-            CHECK(stream.is_open());  // Memory stream stays open
-        }
-    }
-
     TEST_CASE("Type recovery with get()")
     {
         std::vector<uint8_t> buffer;

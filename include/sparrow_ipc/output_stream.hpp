@@ -24,22 +24,50 @@ namespace sparrow_ipc
         virtual ~output_stream() = default;
 
         /**
-         * @brief Writes a span of bytes to the output stream.
+         * @brief Writes character data to the output stream.
          *
-         * This method attempts to write all bytes from the provided span to the
-         * underlying destination. It returns the number of bytes actually written,
-         * which may be less than the requested size in case of errors or partial writes.
+         * This method writes the specified number of characters from a C-style string
+         * to the underlying destination.
          *
-         * @param span A span of bytes to write
-         * @return Number of bytes successfully written
+         * @param s Pointer to the character data to write
+         * @param count Number of characters to write
+         * @return Reference to this stream for method chaining
          * @throws std::runtime_error if a write error occurs
          */
         virtual output_stream& write(const char* s, std::streamsize count) = 0;
 
+        /**
+         * @brief Writes a span of bytes to the output stream.
+         *
+         * This method attempts to write all bytes from the provided span to the
+         * underlying destination.
+         *
+         * @param span A span of bytes to write
+         * @return Reference to this stream for method chaining
+         * @throws std::runtime_error if a write error occurs
+         */
         virtual output_stream& write(std::span<const std::uint8_t> span) = 0;
 
+        /**
+         * @brief Writes a byte value repeated a specified number of times.
+         *
+         * This method writes the same byte value multiple times to the stream,
+         * useful for padding or filling operations.
+         *
+         * @param value The byte value to write
+         * @param count Number of times to write the value
+         * @return Reference to this stream for method chaining
+         * @throws std::runtime_error if a write error occurs
+         */
         virtual output_stream& write(uint8_t value, std::size_t count) = 0;
 
+        /**
+         * @brief Writes a single character to the output stream.
+         *
+         * @param value The character value to write
+         * @return Reference to this stream for method chaining
+         * @throws std::runtime_error if a write error occurs
+         */
         virtual output_stream& put(char value) = 0;
 
         /**
@@ -50,40 +78,27 @@ namespace sparrow_ipc
          * allocation or buffer management.
          *
          * @param size Number of bytes to reserve
-         * @return true if reservation was successful or not needed, false otherwise
+         * @note Implementations that don't support reservation can provide a no-op implementation
          */
         virtual void reserve(std::size_t size) = 0;
 
+        /**
+         * @brief Reserves capacity using a lazy calculation function.
+         *
+         * This method allows deferred calculation of the required capacity, which can
+         * be useful when the exact size depends on expensive computations that should
+         * only be performed if the stream supports reservation.
+         *
+         * @param calculate_reserve_size Function that calculates the number of bytes to reserve
+         * @note Implementations that don't support reservation can provide a no-op implementation
+         */
         virtual void reserve(const std::function<std::size_t()>& calculate_reserve_size) = 0;
 
+        /**
+         * @brief Gets the current size of the stream.
+         *
+         * @return The current number of bytes written to the stream
+         */
         [[nodiscard]] virtual size_t size() const = 0;
-
-        /**
-         * @brief Flushes any buffered data to the underlying destination.
-         *
-         * Ensures that all previously written data is committed to the
-         * underlying storage or transmitted.
-         *
-         * @throws std::runtime_error if flush operation fails
-         */
-        virtual void flush() = 0;
-
-        /**
-         * @brief Closes the output stream and releases any resources.
-         *
-         * After calling close(), no further operations should be performed
-         * on the stream. After calling close(), is_open() should return false.
-         * Multiple calls to close() should be safe.
-         *
-         * @throws std::runtime_error if close operation fails
-         */
-        virtual void close() = 0;
-
-        /**
-         * @brief Checks if the stream is still open and writable.
-         *
-         * @return true if the stream is open, false if closed or in error state
-         */
-        [[nodiscard]] virtual bool is_open() const = 0;
     };
 }  // namespace sparrow_ipc

@@ -19,8 +19,6 @@ namespace sparrow_ipc
             {
                 std::vector<uint8_t> buffer;
                 memory_output_stream stream(buffer);
-
-                CHECK(stream.is_open());
                 CHECK_EQ(stream.size(), 0);
             }
 
@@ -28,8 +26,6 @@ namespace sparrow_ipc
             {
                 std::vector<uint8_t> buffer = {1, 2, 3, 4, 5};
                 memory_output_stream stream(buffer);
-
-                CHECK(stream.is_open());
                 CHECK_EQ(stream.size(), 5);
             }
         }
@@ -174,40 +170,6 @@ namespace sparrow_ipc
             CHECK_EQ(buffer.size(), 3);
         }
 
-        TEST_CASE("stream lifecycle")
-        {
-            std::vector<uint8_t> buffer;
-            memory_output_stream stream(buffer);
-
-            SUBCASE("Stream is initially open")
-            {
-                CHECK(stream.is_open());
-            }
-
-            SUBCASE("Flush operation")
-            {
-                uint8_t data[] = {1, 2, 3};
-                std::span<const uint8_t> span(data, 3);
-                stream.write(span);
-
-                // Flush should not throw or change state for memory stream
-                CHECK_NOTHROW(stream.flush());
-                CHECK(stream.is_open());
-                CHECK_EQ(stream.size(), 3);
-            }
-
-            SUBCASE("Close operation")
-            {
-                uint8_t data[] = {1, 2, 3};
-                std::span<const uint8_t> span(data, 3);
-                stream.write(span);
-
-                // Close should not throw for memory stream
-                CHECK_NOTHROW(stream.close());
-                CHECK(stream.is_open());  // Memory stream should remain open
-                CHECK_EQ(stream.size(), 3);
-            }
-        }
 
         TEST_CASE("large data handling")
         {

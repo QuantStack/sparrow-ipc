@@ -20,7 +20,6 @@ namespace sparrow_ipc
                 std::vector<std::vector<uint8_t>> chunks;
                 chunked_memory_output_stream stream(chunks);
 
-                CHECK(stream.is_open());
                 CHECK_EQ(stream.size(), 0);
                 CHECK_EQ(chunks.size(), 0);
             }
@@ -30,7 +29,6 @@ namespace sparrow_ipc
                 std::vector<std::vector<uint8_t>> chunks = {{1, 2, 3}, {4, 5, 6, 7}, {8, 9}};
                 chunked_memory_output_stream stream(chunks);
 
-                CHECK(stream.is_open());
                 CHECK_EQ(stream.size(), 9);
                 CHECK_EQ(chunks.size(), 3);
             }
@@ -341,52 +339,7 @@ namespace sparrow_ipc
                 CHECK_EQ(chunks.size(), 4);
             }
         }
-
-        TEST_CASE("stream lifecycle")
-        {
-            std::vector<std::vector<uint8_t>> chunks;
-            chunked_memory_output_stream stream(chunks);
-
-            SUBCASE("Stream is always open")
-            {
-                CHECK(stream.is_open());
-
-                uint8_t data[] = {1, 2, 3};
-                stream.write(std::span<const uint8_t>(data, 3));
-                CHECK(stream.is_open());
-
-                stream.flush();
-                CHECK(stream.is_open());
-
-                stream.close();
-                CHECK(stream.is_open());
-            }
-
-            SUBCASE("Flush operation")
-            {
-                uint8_t data[] = {1, 2, 3};
-                stream.write(std::span<const uint8_t>(data, 3));
-
-                // Flush should not throw or change state
-                CHECK_NOTHROW(stream.flush());
-                CHECK(stream.is_open());
-                CHECK_EQ(stream.size(), 3);
-                CHECK_EQ(chunks.size(), 1);
-            }
-
-            SUBCASE("Close operation")
-            {
-                uint8_t data[] = {1, 2, 3};
-                stream.write(std::span<const uint8_t>(data, 3));
-
-                // Close should not throw
-                CHECK_NOTHROW(stream.close());
-                CHECK(stream.is_open());
-                CHECK_EQ(stream.size(), 3);
-                CHECK_EQ(chunks.size(), 1);
-            }
-        }
-
+        
         TEST_CASE("large data handling")
         {
             std::vector<std::vector<uint8_t>> chunks;
