@@ -14,25 +14,6 @@
 
 namespace sparrow_ipc
 {
-    namespace
-    {
-        struct DecompressedBuffers
-        {
-            std::vector<uint8_t> validity_buffer;
-            std::vector<uint8_t> data_buffer;
-        };
-
-        void release_decompressed_buffers(ArrowArray* array)
-        {
-            if (array->private_data)
-            {
-                delete static_cast<DecompressedBuffers*>(array->private_data);
-                array->private_data = nullptr;
-            }
-            array->release = nullptr;
-        }
-    }
-
     template <typename T>
     [[nodiscard]] sparrow::primitive_array<T> deserialize_non_owning_primitive_array(
         const org::apache::arrow::flatbuf::RecordBatch& record_batch,
@@ -43,19 +24,15 @@ namespace sparrow_ipc
     )
     {
         const auto compression = record_batch.compression();
-        DecompressedBuffers* decompressed_buffers_owner = nullptr;
 
         // Validity buffer
         const auto validity_buffer_metadata = record_batch.buffers()->Get(buffer_index++);
         auto validity_buffer_span = body.subspan(validity_buffer_metadata->offset(), validity_buffer_metadata->length());
+        std::vector<std::vector<std::uint8_t>> decompressed_buffers;
         if (compression)
         {
-            if (!decompressed_buffers_owner)
-            {
-                decompressed_buffers_owner = new DecompressedBuffers();
-            }
-            decompressed_buffers_owner->validity_buffer = decompress(compression->codec(), validity_buffer_span);
-            validity_buffer_span = decompressed_buffers_owner->validity_buffer;
+            decompressed_buffers.emplace_back(decompress(compression->codec(), validity_buffer_span));
+            validity_buffer_span = decompressed_buffers.back();
         }
         auto bitmap_ptr = const_cast<uint8_t*>(validity_buffer_span.data());
         const sparrow::dynamic_bitset_view<const std::uint8_t> bitmap_view{
@@ -73,12 +50,8 @@ namespace sparrow_ipc
         auto data_buffer_span = body.subspan(primitive_buffer_metadata->offset(), primitive_buffer_metadata->length());
         if (compression)
         {
-            if (!decompressed_buffers_owner)
-            {
-                decompressed_buffers_owner = new DecompressedBuffers();
-            }
-            decompressed_buffers_owner->data_buffer = decompress(compression->codec(), data_buffer_span);
-            data_buffer_span = decompressed_buffers_owner->data_buffer;
+            decompressed_buffers.emplace_back(decompress(compression->codec(), data_buffer_span));
+            data_buffer_span = decompressed_buffers.back();
         }
         auto primitives_ptr = const_cast<uint8_t*>(data_buffer_span.data());
 
@@ -95,24 +68,35 @@ namespace sparrow_ipc
             nullptr
         );
 
-        std::vector<std::uint8_t*> buffers = {bitmap_ptr, primitives_ptr};
-        ArrowArray array = make_non_owning_arrow_array(
-            record_batch.length(),
-            null_count,
-            0,
-            std::move(buffers),
-            0,
-            nullptr,
-            nullptr
-        );
-
-        if (decompressed_buffers_owner)
+        ArrowArray array;
+        if (compression)
         {
-            array.private_data = decompressed_buffers_owner;
-            array.release = release_decompressed_buffers;
+            array = make_owning_arrow_array(
+                record_batch.length(),
+                null_count,
+                0,
+                std::move(decompressed_buffers),
+                0,
+                nullptr,
+                nullptr
+            );
+        }
+        else
+        {
+            std::vector<std::uint8_t*> buffers = {bitmap_ptr, primitives_ptr};
+            array = make_non_owning_arrow_array(
+                record_batch.length(),
+                null_count,
+                0,
+                std::move(buffers),
+                0,
+                nullptr,
+                nullptr
+            );
         }
 
         sparrow::arrow_proxy ap{std::move(array), std::move(schema)};
         return sparrow::primitive_array<T>{std::move(ap)};
     }
 }
+
