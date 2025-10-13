@@ -27,11 +27,7 @@ namespace sparrow_ipc
 
             SUBCASE("Construction with existing chunks")
             {
-                std::vector<std::vector<uint8_t>> chunks = {
-                    {1, 2, 3},
-                    {4, 5, 6, 7},
-                    {8, 9}
-                };
+                std::vector<std::vector<uint8_t>> chunks = {{1, 2, 3}, {4, 5, 6, 7}, {8, 9}};
                 chunked_memory_output_stream stream(chunks);
 
                 CHECK(stream.is_open());
@@ -50,9 +46,8 @@ namespace sparrow_ipc
                 uint8_t data[] = {42};
                 std::span<const uint8_t> span(data, 1);
 
-                auto written = stream.write(span);
+                stream.write(span);
 
-                CHECK_EQ(written, 1);
                 CHECK_EQ(stream.size(), 1);
                 CHECK_EQ(chunks.size(), 1);
                 CHECK_EQ(chunks[0].size(), 1);
@@ -67,9 +62,8 @@ namespace sparrow_ipc
                 uint8_t data[] = {1, 2, 3, 4, 5};
                 std::span<const uint8_t> span(data, 5);
 
-                auto written = stream.write(span);
+                stream.write(span);
 
-                CHECK_EQ(written, 5);
                 CHECK_EQ(stream.size(), 5);
                 CHECK_EQ(chunks.size(), 1);
                 CHECK_EQ(chunks[0].size(), 5);
@@ -86,9 +80,8 @@ namespace sparrow_ipc
 
                 std::span<const uint8_t> empty_span;
 
-                auto written = stream.write(empty_span);
+                stream.write(empty_span);
 
-                CHECK_EQ(written, 0);
                 CHECK_EQ(stream.size(), 0);
                 CHECK_EQ(chunks.size(), 1);
                 CHECK_EQ(chunks[0].size(), 0);
@@ -132,9 +125,8 @@ namespace sparrow_ipc
                 chunked_memory_output_stream stream(chunks);
 
                 std::vector<uint8_t> buffer = {1, 2, 3, 4, 5};
-                auto written = stream.write(std::move(buffer));
+                stream.write(std::move(buffer));
 
-                CHECK_EQ(written, 5);
                 CHECK_EQ(stream.size(), 5);
                 CHECK_EQ(chunks.size(), 1);
                 CHECK_EQ(chunks[0].size(), 5);
@@ -171,9 +163,8 @@ namespace sparrow_ipc
                 chunked_memory_output_stream stream(chunks);
 
                 std::vector<uint8_t> empty_buffer;
-                auto written = stream.write(std::move(empty_buffer));
+                stream.write(std::move(empty_buffer));
 
-                CHECK_EQ(written, 0);
                 CHECK_EQ(stream.size(), 0);
                 CHECK_EQ(chunks.size(), 1);
                 CHECK_EQ(chunks[0].size(), 0);
@@ -187,9 +178,8 @@ namespace sparrow_ipc
                 std::vector<std::vector<uint8_t>> chunks;
                 chunked_memory_output_stream stream(chunks);
 
-                auto written = stream.write(static_cast<uint8_t>(255), 5);
+                stream.write(static_cast<uint8_t>(255), 5);
 
-                CHECK_EQ(written, 5);
                 CHECK_EQ(stream.size(), 5);
                 CHECK_EQ(chunks.size(), 1);
                 CHECK_EQ(chunks[0].size(), 5);
@@ -204,9 +194,8 @@ namespace sparrow_ipc
                 std::vector<std::vector<uint8_t>> chunks;
                 chunked_memory_output_stream stream(chunks);
 
-                auto written = stream.write(static_cast<uint8_t>(42), 0);
+                stream.write(static_cast<uint8_t>(42), 0);
 
-                CHECK_EQ(written, 0);
                 CHECK_EQ(stream.size(), 0);
                 CHECK_EQ(chunks.size(), 1);
                 CHECK_EQ(chunks[0].size(), 0);
@@ -313,11 +302,7 @@ namespace sparrow_ipc
 
             SUBCASE("Size with pre-existing chunks")
             {
-                std::vector<std::vector<uint8_t>> chunks = {
-                    {1, 2, 3},
-                    {4, 5},
-                    {6, 7, 8, 9}
-                };
+                std::vector<std::vector<uint8_t>> chunks = {{1, 2, 3}, {4, 5}, {6, 7, 8, 9}};
                 chunked_memory_output_stream stream(chunks);
 
                 CHECK_EQ(stream.size(), 9);
@@ -413,9 +398,8 @@ namespace sparrow_ipc
                 std::vector<uint8_t> large_data(large_size);
                 std::iota(large_data.begin(), large_data.end(), 0);
 
-                auto written = stream.write(std::move(large_data));
+                stream.write(std::move(large_data));
 
-                CHECK_EQ(written, large_size);
                 CHECK_EQ(stream.size(), large_size);
                 CHECK_EQ(chunks.size(), 1);
                 CHECK_EQ(chunks[0].size(), large_size);
@@ -454,9 +438,8 @@ namespace sparrow_ipc
             SUBCASE("Large repeated value write")
             {
                 const size_t count = 50000;
-                auto written = stream.write(static_cast<uint8_t>(123), count);
+                stream.write(static_cast<uint8_t>(123), count);
 
-                CHECK_EQ(written, count);
                 CHECK_EQ(stream.size(), count);
                 CHECK_EQ(chunks.size(), 1);
                 CHECK_EQ(chunks[0].size(), count);
@@ -475,9 +458,8 @@ namespace sparrow_ipc
                 std::vector<std::vector<uint8_t>> chunks;
                 chunked_memory_output_stream stream(chunks);
 
-                auto written = stream.write(std::numeric_limits<uint8_t>::max(), 255);
+                stream.write(std::numeric_limits<uint8_t>::max(), 255);
 
-                CHECK_EQ(written, 255);
                 CHECK_EQ(stream.size(), 255);
                 CHECK_EQ(chunks.size(), 1);
                 for (size_t i = 0; i < 255; ++i)
@@ -491,9 +473,8 @@ namespace sparrow_ipc
                 std::vector<std::vector<uint8_t>> chunks;
                 chunked_memory_output_stream stream(chunks);
 
-                auto written = stream.write(static_cast<uint8_t>(0), 100);
+                stream.write(static_cast<uint8_t>(0), 100);
 
-                CHECK_EQ(written, 100);
                 CHECK_EQ(stream.size(), 100);
                 CHECK_EQ(chunks.size(), 1);
                 for (size_t i = 0; i < 100; ++i)

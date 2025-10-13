@@ -1,4 +1,4 @@
-#include <concepts>
+
 #include <cstdint>
 #include <ranges>
 
@@ -15,16 +15,28 @@ namespace sparrow_ipc
         memory_output_stream(R& buffer)
             : m_buffer(&buffer) {};
 
-        std::size_t write(std::span<const std::uint8_t> span) override
+        memory_output_stream& write(const char* s, std::streamsize count) final
         {
-            m_buffer->insert(m_buffer->end(), span.begin(), span.end());
-            return span.size();
+            m_buffer->insert(m_buffer->end(), s, s + count);
+            return *this;
         }
 
-        std::size_t write(uint8_t value, std::size_t count) override
+        memory_output_stream& write(std::span<const std::uint8_t> span) final
+        {
+            m_buffer->insert(m_buffer->end(), span.begin(), span.end());
+            return *this;
+        }
+
+        memory_output_stream& write(uint8_t value, std::size_t count) final
         {
             m_buffer->insert(m_buffer->end(), count, value);
-            return count;
+            return *this;
+        }
+
+        memory_output_stream& put(char value) final
+        {
+            m_buffer->push_back(static_cast<uint8_t>(value));
+            return *this;
         }
 
         void reserve(std::size_t size) override
@@ -37,7 +49,7 @@ namespace sparrow_ipc
             m_buffer->reserve(calculate_reserve_size());
         }
 
-        size_t size() const override
+        [[nodiscard]] size_t size() const override
         {
             return m_buffer->size();
         }
@@ -52,7 +64,7 @@ namespace sparrow_ipc
             // Implementation for closing the stream
         }
 
-        bool is_open() const override
+        [[nodiscard]] bool is_open() const override
         {
             return true;
         }

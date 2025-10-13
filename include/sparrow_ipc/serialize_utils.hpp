@@ -6,6 +6,7 @@
 #include <sparrow/record_batch.hpp>
 
 #include "Message_generated.h"
+#include "sparrow_ipc/any_output_stream.hpp"
 #include "sparrow_ipc/config/config.hpp"
 #include "sparrow_ipc/output_stream.hpp"
 #include "sparrow_ipc/utils.hpp"
@@ -23,7 +24,7 @@ namespace sparrow_ipc
      * @param stream The output stream where the serialized schema message will be written
      */
     SPARROW_IPC_API void
-    serialize_schema_message(const sparrow::record_batch& record_batch, output_stream& stream);
+    serialize_schema_message(const sparrow::record_batch& record_batch, any_output_stream& stream);
 
     /**
      * @brief Serializes a record batch into a binary format following the Arrow IPC specification.
@@ -42,7 +43,7 @@ namespace sparrow_ipc
      * @param stream The output stream where the serialized record batch will be written
      */
     SPARROW_IPC_API void
-    serialize_record_batch(const sparrow::record_batch& record_batch, output_stream& stream);
+    serialize_record_batch(const sparrow::record_batch& record_batch, any_output_stream& stream);
 
     /**
      * @brief Calculates the total serialized size of a schema message.
@@ -130,7 +131,7 @@ namespace sparrow_ipc
      * @param arrow_proxy The arrow proxy containing buffers and potential child proxies to serialize
      * @param stream The output stream where the serialized body data will be written
      */
-    SPARROW_IPC_API void fill_body(const sparrow::arrow_proxy& arrow_proxy, output_stream& stream);
+    SPARROW_IPC_API void fill_body(const sparrow::arrow_proxy& arrow_proxy, any_output_stream& stream);
 
     /**
      * @brief Generates a serialized body from a record batch.
@@ -142,7 +143,7 @@ namespace sparrow_ipc
      * @param record_batch The record batch containing columns to be serialized
      * @param stream The output stream where the serialized body will be written
      */
-    SPARROW_IPC_API void generate_body(const sparrow::record_batch& record_batch, output_stream& stream);
+    SPARROW_IPC_API void generate_body(const sparrow::record_batch& record_batch, any_output_stream& stream);
 
     /**
      * @brief Calculates the total size of the body section for an Arrow array.

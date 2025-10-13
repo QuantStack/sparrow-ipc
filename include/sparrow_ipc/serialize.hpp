@@ -1,11 +1,12 @@
 #pragma once
 
 #include <ranges>
-#include <vector>
 
 #include <sparrow/record_batch.hpp>
 
 #include "Message_generated.h"
+#include "sparrow_ipc/any_output_stream.hpp"
+#include "sparrow_ipc/concepts.hpp"
 #include "sparrow_ipc/config/config.hpp"
 #include "sparrow_ipc/magic_values.hpp"
 #include "sparrow_ipc/output_stream.hpp"
@@ -36,7 +37,7 @@ namespace sparrow_ipc
      */
     template <std::ranges::input_range R>
         requires std::same_as<std::ranges::range_value_t<R>, sparrow::record_batch>
-    void serialize_record_batches_to_ipc_stream(const R& record_batches, output_stream& stream)
+    void serialize_record_batches_to_ipc_stream(const R& record_batches, any_output_stream& stream)
     {
         if (record_batches.empty())
         {
@@ -73,9 +74,10 @@ namespace sparrow_ipc
      * @note The output follows Arrow IPC message format with proper alignment and
      *       includes both metadata and data portions of the record batch
      */
-    SPARROW_IPC_API void
-    serialize_record_batch(const sparrow::record_batch& record_batch, output_stream& stream);
 
+    SPARROW_IPC_API void
+    serialize_record_batch(const sparrow::record_batch& record_batch, any_output_stream& stream);
+    
     /**
      * @brief Serializes a schema message for a record batch into a byte buffer.
      *
@@ -90,6 +92,5 @@ namespace sparrow_ipc
      * @param stream The output stream where the serialized schema message will be written
      */
     SPARROW_IPC_API void
-    serialize_schema_message(const sparrow::record_batch& record_batch, output_stream& stream);
-
+    serialize_schema_message(const sparrow::record_batch& record_batch, any_output_stream& stream);
 }

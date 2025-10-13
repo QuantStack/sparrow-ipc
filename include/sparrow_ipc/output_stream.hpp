@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <functional>
+#include <ios>
 #include <span>
 
 #include "sparrow_ipc/config/config.hpp"
@@ -33,19 +34,13 @@ namespace sparrow_ipc
          * @return Number of bytes successfully written
          * @throws std::runtime_error if a write error occurs
          */
-        virtual std::size_t write(std::span<const std::uint8_t> span) = 0;
+        virtual output_stream& write(const char* s, std::streamsize count) = 0;
 
-        virtual std::size_t write(uint8_t value, std::size_t count = 1) = 0;
+        virtual output_stream& write(std::span<const std::uint8_t> span) = 0;
 
-        void add_padding()
-        {
-            const size_t current_size = size();
-            const size_t padding_needed = (8 - (current_size % 8)) % 8;
-            if (padding_needed > 0)
-            {
-                write(uint8_t{0}, padding_needed);
-            }
-        }
+        virtual output_stream& write(uint8_t value, std::size_t count) = 0;
+
+        virtual output_stream& put(char value) = 0;
 
         /**
          * @brief Reserves capacity in the output stream if supported.
@@ -61,7 +56,7 @@ namespace sparrow_ipc
 
         virtual void reserve(const std::function<std::size_t()>& calculate_reserve_size) = 0;
 
-        virtual size_t size() const = 0;
+        [[nodiscard]] virtual size_t size() const = 0;
 
         /**
          * @brief Flushes any buffered data to the underlying destination.
@@ -89,12 +84,6 @@ namespace sparrow_ipc
          *
          * @return true if the stream is open, false if closed or in error state
          */
-        virtual bool is_open() const = 0;
-
-        // Convenience method for writing single bytes
-        std::size_t write(std::uint8_t byte)
-        {
-            return write(std::span<const std::uint8_t, 1>{&byte, 1});
-        }
+        [[nodiscard]] virtual bool is_open() const = 0;
     };
 }  // namespace sparrow_ipc

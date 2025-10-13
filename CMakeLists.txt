@@ -95,6 +95,7 @@ set(SPARROW_IPC_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
 set(SPARROW_IPC_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
 set(SPARROW_IPC_HEADERS
+    ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/any_output_stream.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/arrow_interface/arrow_array_schema_common_release.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/arrow_interface/arrow_array.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/arrow_interface/arrow_array/private_data.hpp
@@ -111,7 +112,6 @@ set(SPARROW_IPC_HEADERS
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/deserialize_variable_size_binary_array.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/deserialize.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/encapsulated_message.hpp
-    ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/file_output_stream.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/flatbuffer_utils.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/magic_values.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/memory_output_stream.hpp
@@ -121,9 +121,11 @@ set(SPARROW_IPC_HEADERS
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/serialize.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/serializer.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/utils.hpp
+    ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/concepts.hpp
 )
 
 set(SPARROW_IPC_SRC
+    ${SPARROW_IPC_SOURCE_DIR}/any_output_stream.cpp
     ${SPARROW_IPC_SOURCE_DIR}/arrow_interface/arrow_array.cpp
     ${SPARROW_IPC_SOURCE_DIR}/arrow_interface/arrow_array/private_data.cpp
     ${SPARROW_IPC_SOURCE_DIR}/arrow_interface/arrow_schema.cpp
@@ -133,7 +135,6 @@ set(SPARROW_IPC_SRC
     ${SPARROW_IPC_SOURCE_DIR}/deserialize_utils.cpp
     ${SPARROW_IPC_SOURCE_DIR}/deserialize.cpp
     ${SPARROW_IPC_SOURCE_DIR}/encapsulated_message.cpp
-    ${SPARROW_IPC_SOURCE_DIR}/file_output_stream.cpp
     ${SPARROW_IPC_SOURCE_DIR}/flatbuffer_utils.cpp
     ${SPARROW_IPC_SOURCE_DIR}/metadata.cpp
     ${SPARROW_IPC_SOURCE_DIR}/serialize_utils.cpp

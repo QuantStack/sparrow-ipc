@@ -3,6 +3,7 @@
 #include <doctest/doctest.h>
 #include <sparrow.hpp>
 
+#include "sparrow_ipc/any_output_stream.hpp"
 #include "sparrow_ipc/magic_values.hpp"
 #include "sparrow_ipc/memory_output_stream.hpp"
 #include "sparrow_ipc/serialize_utils.hpp"
@@ -22,7 +23,8 @@ namespace sparrow_ipc
                 std::vector<uint8_t> serialized;
                 memory_output_stream stream(serialized);
                 auto record_batch = create_test_record_batch();
-                serialize_schema_message(record_batch, stream);
+                any_output_stream astream(stream);
+                serialize_schema_message(record_batch, astream);
 
                 CHECK_GT(serialized.size(), 0);
 
@@ -46,7 +48,8 @@ namespace sparrow_ipc
                 auto proxy = sp::detail::array_access::get_arrow_proxy(array);
                 std::vector<uint8_t> body;
                 sparrow_ipc::memory_output_stream stream(body);
-                fill_body(proxy, stream);
+                sparrow_ipc::any_output_stream astream(stream);
+                fill_body(proxy, astream);
                 CHECK_GT(body.size(), 0);
                 // Body size should be aligned
                 CHECK_EQ(body.size() % 8, 0);
@@ -60,7 +63,8 @@ namespace sparrow_ipc
                 auto record_batch = create_test_record_batch();
                 std::vector<uint8_t> serialized;
                 memory_output_stream stream(serialized);
-                generate_body(record_batch, stream);
+                any_output_stream astream(stream);
+                generate_body(record_batch, astream);
                 CHECK_GT(serialized.size(), 0);
                 CHECK_EQ(serialized.size() % 8, 0);
             }
@@ -86,7 +90,8 @@ namespace sparrow_ipc
                 CHECK_EQ(size % 8, 0);
                 std::vector<uint8_t> serialized;
                 memory_output_stream stream(serialized);
-                generate_body(record_batch, stream);
+                    any_output_stream astream(stream);
+                generate_body(record_batch, astream);
                 CHECK_EQ(size, static_cast<int64_t>(serialized.size()));
             }
         }
@@ -105,7 +110,8 @@ namespace sparrow_ipc
                 // Verify by actual serialization
                 std::vector<uint8_t> serialized;
                 memory_output_stream stream(serialized);
-                serialize_schema_message(record_batch, stream);
+                any_output_stream astream(stream);
+                serialize_schema_message(record_batch, astream  );
 
                 CHECK_EQ(estimated_size, serialized.size());
             }
@@ -120,7 +126,8 @@ namespace sparrow_ipc
 
                 std::vector<uint8_t> serialized;
                 memory_output_stream stream(serialized);
-                serialize_schema_message(record_batch, stream);
+                any_output_stream astream(stream);
+                serialize_schema_message(record_batch, astream);
 
                 CHECK_EQ(estimated_size, serialized.size());
             }
@@ -139,7 +146,8 @@ namespace sparrow_ipc
 
                 std::vector<uint8_t> serialized;
                 memory_output_stream stream(serialized);
-                serialize_record_batch(record_batch, stream);
+                any_output_stream astream(stream);
+                serialize_record_batch(record_batch, astream);
 
                 CHECK_EQ(estimated_size, serialized.size());
             }
@@ -155,7 +163,8 @@ namespace sparrow_ipc
                 // Verify by actual serialization
                 std::vector<uint8_t> serialized;
                 memory_output_stream stream(serialized);
-                serialize_record_batch(record_batch, stream);
+                any_output_stream astream(stream);
+                serialize_record_batch(record_batch, astream);
 
                 CHECK_EQ(estimated_size, serialized.size());
             }
@@ -226,59 +235,6 @@ namespace sparrow_ipc
             }
         }
 
-        TEST_CASE("memory_reservation_performance")
-        {
-            SUBCASE("Large record batch benefits from size estimation")
-            {
-                // Create a larger record batch for testing memory reservation
-                std::vector<int32_t> large_data;
-                large_data.reserve(10000);
-                for (int i = 0; i < 10000; ++i)
-                {
-                    large_data.push_back(i);
-                }
-
-                auto array = sp::primitive_array<int32_t>(large_data);
-                auto record_batch = sp::record_batch({{"large_column", sp::array(std::move(array))}});
-
-                // Test with size estimation (current implementation)
-                std::vector<uint8_t> with_estimation;
-                memory_output_stream stream_with_estimation(with_estimation);
-
-                // Reserve memory based on calculated size to avoid reallocations
-                const std::size_t total_size = calculate_record_batch_message_size(record_batch);
-                stream_with_estimation.reserve(stream_with_estimation.size() + total_size);
-
-                auto start_time = std::chrono::high_resolution_clock::now();
-                serialize_record_batch(record_batch, stream_with_estimation);
-                auto end_time = std::chrono::high_resolution_clock::now();
-                auto duration_with_estimation = end_time - start_time;
-
-                // Verify size estimation accuracy
-                auto estimated_size = calculate_record_batch_message_size(record_batch);
-                CHECK_EQ(estimated_size, with_estimation.size());
-
-                // The serialization should complete successfully
-                CHECK_GT(with_estimation.size(), 0);
-                CHECK_EQ(with_estimation.size() % 8, 0);
-
-                // Test without size estimation (no pre-reservation)
-                std::vector<uint8_t> without_estimation;
-                memory_output_stream stream_without_estimation(without_estimation);
-                auto start_time_no_est = std::chrono::high_resolution_clock::now();
-                serialize_record_batch(record_batch, stream_without_estimation);
-                auto end_time_no_est = std::chrono::high_resolution_clock::now();
-                auto duration_without_estimation = end_time_no_est - start_time_no_est;
-                DOCTEST_MESSAGE(
-                    "With estimation: "
-                    << std::chrono::duration_cast<std::chrono::microseconds>(duration_with_estimation).count()
-                    << " us, Without estimation: "
-                    << std::chrono::duration_cast<std::chrono::microseconds>(duration_without_estimation).count()
-                    << " us"
-                );
-            }
-        }
-
         TEST_CASE("serialize_record_batch")
         {
             SUBCASE("Valid record batch")
@@ -286,7 +242,8 @@ namespace sparrow_ipc
                 auto record_batch = create_test_record_batch();
                 std::vector<uint8_t> serialized;
                 memory_output_stream stream(serialized);
-                serialize_record_batch(record_batch, stream);
+                any_output_stream astream(stream);
+                serialize_record_batch(record_batch, astream);
                 CHECK_GT(serialized.size(), 0);
 
                 // Check that it starts with continuation bytes
@@ -320,7 +277,8 @@ namespace sparrow_ipc
                 auto empty_batch = sp::record_batch({});
                 std::vector<uint8_t> serialized;
                 memory_output_stream stream(serialized);
-                serialize_record_batch(empty_batch, stream);
+                any_output_stream astream(stream);
+                serialize_record_batch(empty_batch, astream);
                 CHECK_GT(serialized.size(), 0);
                 CHECK_GE(serialized.size(), continuation.size());
             }

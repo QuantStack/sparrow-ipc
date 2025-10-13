@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <numeric>
 #include <ranges>
 
 #include "sparrow_ipc/output_stream.hpp"
@@ -18,22 +19,34 @@ namespace sparrow_ipc
         explicit chunked_memory_output_stream(R& chunks)
             : m_chunks(&chunks) {};
 
-        std::size_t write(std::span<const std::uint8_t> span) override
+        chunked_memory_output_stream<R>& write(const char* s, std::streamsize count) final
+        {
+            m_chunks->emplace_back(s, s + count);
+            return *this;
+        }
+
+        chunked_memory_output_stream<R>& write(std::span<const std::uint8_t> span) final
         {
             m_chunks->emplace_back(span.begin(), span.end());
-            return span.size();
+            return *this;
         }
 
-        std::size_t write(std::vector<uint8_t>&& buffer)
+        chunked_memory_output_stream<R>& write(std::vector<uint8_t>&& buffer)
         {
             m_chunks->emplace_back(std::move(buffer));
-            return m_chunks->back().size();
+            return *this;
         }
 
-        std::size_t write(uint8_t value, std::size_t count) override
+        chunked_memory_output_stream<R>& write(uint8_t value, std::size_t count) final
         {
             m_chunks->emplace_back(count, value);
-            return count;
+            return *this;
+        }
+
+        chunked_memory_output_stream<R>& put(char value) final
+        {
+            m_chunks->emplace_back(std::vector<uint8_t>{static_cast<uint8_t>(value)});
+            return *this;
         }
 
         void reserve(std::size_t size) override
@@ -46,7 +59,7 @@ namespace sparrow_ipc
             m_chunks->reserve(calculate_reserve_size());
         }
 
-        size_t size() const override
+        [[nodiscard]] size_t size() const override
         {
             return std::accumulate(
                 m_chunks->begin(),

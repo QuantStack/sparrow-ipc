@@ -5,12 +5,12 @@
 
 namespace sparrow_ipc
 {
-    void fill_body(const sparrow::arrow_proxy& arrow_proxy, output_stream& stream)
+    void fill_body(const sparrow::arrow_proxy& arrow_proxy, any_output_stream& stream)
     {
         for (const auto& buffer : arrow_proxy.buffers())
         {
             stream.write(buffer);
-            add_padding(stream);
+            stream.add_padding();
         }
         for (const auto& child : arrow_proxy.children())
         {
@@ -18,7 +18,7 @@ namespace sparrow_ipc
         }
     }
 
-    void generate_body(const sparrow::record_batch& record_batch, output_stream& stream)
+    void generate_body(const sparrow::record_batch& record_batch, any_output_stream& stream)
     {
         for (const auto& column : record_batch.columns())
         {
@@ -53,12 +53,6 @@ namespace sparrow_ipc
                 return acc + calculate_body_size(arrow_proxy);
             }
         );
-    }
-
-    void add_padding(output_stream& stream)
-    {
-        const size_t stream_size = stream.size();
-        stream.write(0, utils::align_to_8(stream_size) - stream_size);
     }
 
     std::size_t calculate_schema_message_size(const sparrow::record_batch& record_batch)

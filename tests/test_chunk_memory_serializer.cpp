@@ -21,7 +21,8 @@ namespace sparrow_ipc
                 std::vector<std::vector<uint8_t>> chunks;
                 chunked_memory_output_stream stream(chunks);
 
-                chunk_serializer serializer(rb, stream);
+                chunk_serializer serializer(stream);
+                serializer << rb;
 
                 // After construction with single record batch, should have schema + record batch
                 CHECK_EQ(chunks.size(), 2);
@@ -36,7 +37,8 @@ namespace sparrow_ipc
                 std::vector<std::vector<uint8_t>> chunks;
                 chunked_memory_output_stream stream(chunks);
 
-                chunk_serializer serializer(empty_batch, stream);
+                chunk_serializer serializer(stream);
+                serializer << empty_batch;
 
                 CHECK_EQ(chunks.size(), 2);
                 CHECK_GT(chunks[0].size(), 0);
@@ -63,7 +65,8 @@ namespace sparrow_ipc
                 std::vector<std::vector<uint8_t>> chunks;
                 chunked_memory_output_stream stream(chunks);
 
-                chunk_serializer serializer(record_batches, stream);
+                chunk_serializer serializer(stream);
+                serializer << record_batches;
 
                 // Should have schema + 2 record batches = 3 chunks
                 CHECK_EQ(chunks.size(), 3);
@@ -72,17 +75,6 @@ namespace sparrow_ipc
                 CHECK_GT(chunks[2].size(), 0);  // Second record batch
             }
 
-            SUBCASE("Empty collection throws exception")
-            {
-                std::vector<sp::record_batch> empty_batches;
-                std::vector<std::vector<uint8_t>> chunks;
-                chunked_memory_output_stream stream(chunks);
-
-                CHECK_THROWS_AS(
-                    chunk_serializer serializer(empty_batches, stream),
-                    std::invalid_argument
-                );
-            }
 
             SUBCASE("Reserve is called correctly")
             {
@@ -91,22 +83,24 @@ namespace sparrow_ipc
                 std::vector<std::vector<uint8_t>> chunks;
                 chunked_memory_output_stream stream(chunks);
 
-                chunk_serializer serializer(record_batches, stream);
+                chunk_serializer serializer(stream);
+                serializer << record_batches;
 
                 // Verify that chunks were reserved (capacity should be >= size)
                 CHECK_GE(chunks.capacity(), chunks.size());
             }
         }
 
-        TEST_CASE("append single record batch")
+        TEST_CASE("write single record batch")
         {
-            SUBCASE("Append after construction with single batch")
+            SUBCASE("Write after construction with single batch")
             {
                 auto rb1 = create_test_record_batch();
                 std::vector<std::vector<uint8_t>> chunks;
                 chunked_memory_output_stream stream(chunks);
 
-                chunk_serializer serializer(rb1, stream);
+                chunk_serializer serializer(stream);
+                serializer << rb1;
                 CHECK_EQ(chunks.size(), 2);  // Schema + rb1
 
                 // Create compatible record batch
@@ -115,7 +109,7 @@ namespace sparrow_ipc
                      {"string_col", sp::array(sp::string_array(std::vector<std::string>{"foo", "bar", "baz"}))}}
                 );
 
-                serializer.append(rb2);
+                serializer.write(rb2);
 
                 CHECK_EQ(chunks.size(), 3);  // Schema + rb1 + rb2
                 CHECK_GT(chunks[2].size(), 0);
@@ -127,7 +121,8 @@ namespace sparrow_ipc
                 std::vector<std::vector<uint8_t>> chunks;
                 chunked_memory_output_stream stream(chunks);
 
-                chunk_serializer serializer(rb1, stream);
+                chunk_serializer serializer(stream);
+                serializer << rb1;
 
                 for (int i = 0; i < 3; ++i)
                 {
@@ -135,22 +130,23 @@ namespace sparrow_ipc
                         {{"int_col", sp::array(sp::primitive_array<int32_t>({i}))},
                          {"string_col", sp::array(sp::string_array(std::vector<std::string>{"test"}))}}
                     );
-                    serializer.append(rb);
+                    serializer.write(rb);
                 }
 
                 CHECK_EQ(chunks.size(), 5);  // Schema + 1 initial + 3 appended
             }
         }
 
-        TEST_CASE("append range of record batches")
+        TEST_CASE("write range of record batches")
         {
-            SUBCASE("Append range after construction")
+            SUBCASE("Write range after construction")
             {
                 auto rb1 = create_test_record_batch();
                 std::vector<std::vector<uint8_t>> chunks;
                 chunked_memory_output_stream stream(chunks);
 
-                chunk_serializer serializer(rb1, stream);
+                chunk_serializer serializer(stream);
+                serializer.write(rb1);
                 CHECK_EQ(chunks.size(), 2);
 
                 auto array1 = sp::primitive_array<int32_t>({10, 20});
@@ -168,7 +164,7 @@ namespace sparrow_ipc
                 );
 
                 std::vector<sp::record_batch> new_batches = {rb2, rb3};
-                serializer.append(new_batches);
+                serializer.write(new_batches);
 
                 CHECK_EQ(chunks.size(), 4);  // Schema + rb1 + rb2 + rb3
                 CHECK_GT(chunks[2].size(), 0);
@@ -181,14 +177,15 @@ namespace sparrow_ipc
                 std::vector<std::vector<uint8_t>> chunks;
                 chunked_memory_output_stream stream(chunks);
 
-                chunk_serializer serializer(rb1, stream);
+                chunk_serializer serializer(stream);
+                serializer.write(rb1);
 
                 auto rb2 = create_test_record_batch();
                 auto rb3 = create_test_record_batch();
                 std::vector<sp::record_batch> new_batches = {rb2, rb3};
 
                 size_t old_capacity = chunks.capacity();
-                serializer.append(new_batches);
+                serializer.write(new_batches);
 
                 // Reserve should have been called
                 CHECK_GE(chunks.capacity(), chunks.size());
@@ -200,11 +197,12 @@ namespace sparrow_ipc
                 std::vector<std::vector<uint8_t>> chunks;
                 chunked_memory_output_stream stream(chunks);
 
-                chunk_serializer serializer(rb1, stream);
+                chunk_serializer serializer(stream);
+                serializer.write(rb1);
                 size_t initial_size = chunks.size();
 
                 std::vector<sp::record_batch> empty_batches;
-                serializer.append(empty_batches);
+                serializer.write(empty_batches);
 
                 CHECK_EQ(chunks.size(), initial_size);
             }
@@ -218,7 +216,8 @@ namespace sparrow_ipc
                 std::vector<std::vector<uint8_t>> chunks;
                 chunked_memory_output_stream stream(chunks);
 
-                chunk_serializer serializer(rb, stream);
+                chunk_serializer serializer(stream);
+                serializer.write(rb);
                 size_t initial_size = chunks.size();
 
                 serializer.end();
@@ -233,11 +232,12 @@ namespace sparrow_ipc
                 std::vector<std::vector<uint8_t>> chunks;
                 chunked_memory_output_stream stream(chunks);
 
-                chunk_serializer serializer(rb1, stream);
+                chunk_serializer serializer(stream);
+                serializer.write(rb1);
                 serializer.end();
 
                 auto rb2 = create_test_record_batch();
-                CHECK_THROWS_AS(serializer.append(rb2), std::runtime_error);
+                CHECK_THROWS_AS(serializer.write(rb2), std::runtime_error);
             }
 
             SUBCASE("Cannot append range after end")
@@ -246,11 +246,12 @@ namespace sparrow_ipc
                 std::vector<std::vector<uint8_t>> chunks;
                 chunked_memory_output_stream stream(chunks);
 
-                chunk_serializer serializer(rb1, stream);
+                chunk_serializer serializer(stream);
+                serializer.write(rb1);
                 serializer.end();
 
                 std::vector<sp::record_batch> new_batches = {create_test_record_batch()};
-                CHECK_THROWS_AS(serializer.append(new_batches), std::runtime_error);
+                CHECK_THROWS_AS(serializer.write(new_batches), std::runtime_error);
             }
         }
 
@@ -263,12 +264,13 @@ namespace sparrow_ipc
                 chunked_memory_output_stream stream(chunks);
 
                 size_t size_before = stream.size();
-                chunk_serializer serializer(rb, stream);
+                chunk_serializer serializer(stream);
+                serializer.write(rb);
                 size_t size_after_construction = stream.size();
 
                 CHECK_GT(size_after_construction, size_before);
 
-                serializer.append(rb);
+                serializer.write(rb);
                 size_t size_after_append = stream.size();
 
                 CHECK_GT(size_after_append, size_after_construction);
@@ -291,7 +293,8 @@ namespace sparrow_ipc
                     batches.push_back(sp::record_batch({{"col", sp::array(std::move(array))}}));
                 }
 
-                chunk_serializer serializer(batches, stream);
+                chunk_serializer serializer(stream);
+                serializer.write(batches);
 
                 // Should have schema + all batches
                 CHECK_EQ(chunks.size(), num_batches + 1);
@@ -322,7 +325,8 @@ namespace sparrow_ipc
                 std::vector<std::vector<uint8_t>> chunks;
                 chunked_memory_output_stream stream(chunks);
 
-                chunk_serializer serializer(rb, stream);
+                chunk_serializer serializer(stream);
+                serializer.write(rb);
 
                 CHECK_EQ(chunks.size(), 2);  // Schema + record batch
                 CHECK_GT(chunks[0].size(), 0);
@@ -342,7 +346,8 @@ namespace sparrow_ipc
                 chunked_memory_output_stream stream(chunks);
 
                 // Create serializer with initial batch
-                chunk_serializer serializer(rb1, stream);
+                chunk_serializer serializer(stream);
+                    serializer.write(rb1);
                 CHECK_EQ(chunks.size(), 2);
 
                 // Append more batches
@@ -350,7 +355,7 @@ namespace sparrow_ipc
                     {{"int_col", sp::array(sp::primitive_array<int32_t>({10, 20}))},
                      {"string_col", sp::array(sp::string_array(std::vector<std::string>{"x", "y"}))}}
                 );
-                serializer.append(rb2);
+                serializer.write(rb2);
                 CHECK_EQ(chunks.size(), 3);
 
                 // Append range of batches
@@ -363,7 +368,7 @@ namespace sparrow_ipc
                     );
                     more_batches.push_back(rb);
                 }
-                serializer.append(more_batches);
+                serializer.write(more_batches);
                 CHECK_EQ(chunks.size(), 6);
 
                 // End serialization
@@ -375,6 +380,182 @@ namespace sparrow_ipc
                 {
                     CHECK_GT(chunk.size(), 0);
                 }
+            }
+        }
+
+        TEST_CASE("operator<< with single record batch")
+        {
+            SUBCASE("Single batch append using <<")
+            {
+                auto rb1 = create_test_record_batch();
+                std::vector<std::vector<uint8_t>> chunks;
+                chunked_memory_output_stream stream(chunks);
+
+                chunk_serializer serializer(stream);
+                serializer.write(rb1);
+                CHECK_EQ(chunks.size(), 2);  // Schema + rb1
+
+                auto rb2 = sp::record_batch(
+                    {{"int_col", sp::array(sp::primitive_array<int32_t>({6, 7, 8}))},
+                     {"string_col", sp::array(sp::string_array(std::vector<std::string>{"foo", "bar", "baz"}))}}
+                );
+
+                serializer << rb2;
+
+                CHECK_EQ(chunks.size(), 3);  // Schema + rb1 + rb2
+                CHECK_GT(chunks[2].size(), 0);
+            }
+
+            SUBCASE("Chaining multiple single batch appends")
+            {
+                auto rb1 = create_test_record_batch();
+                std::vector<std::vector<uint8_t>> chunks;
+                chunked_memory_output_stream stream(chunks);
+
+                chunk_serializer serializer(stream);
+                serializer.write(rb1);
+
+                auto rb2 = sp::record_batch(
+                    {{"int_col", sp::array(sp::primitive_array<int32_t>({10, 20}))},
+                     {"string_col", sp::array(sp::string_array(std::vector<std::string>{"a", "b"}))}}
+                );
+
+                auto rb3 = sp::record_batch(
+                    {{"int_col", sp::array(sp::primitive_array<int32_t>({30, 40}))},
+                     {"string_col", sp::array(sp::string_array(std::vector<std::string>{"c", "d"}))}}
+                );
+
+                auto rb4 = sp::record_batch(
+                    {{"int_col", sp::array(sp::primitive_array<int32_t>({50, 60}))},
+                     {"string_col", sp::array(sp::string_array(std::vector<std::string>{"e", "f"}))}}
+                );
+
+                serializer << rb2 << rb3 << rb4;
+
+                CHECK_EQ(chunks.size(), 5);  // Schema + 4 record batches
+                CHECK_GT(chunks[2].size(), 0);
+                CHECK_GT(chunks[3].size(), 0);
+                CHECK_GT(chunks[4].size(), 0);
+            }
+
+            SUBCASE("Cannot use << after end")
+            {
+                auto rb1 = create_test_record_batch();
+                std::vector<std::vector<uint8_t>> chunks;
+                chunked_memory_output_stream stream(chunks);
+
+                chunk_serializer serializer(stream);
+                serializer.write(rb1);
+                serializer.end();
+
+                auto rb2 = create_test_record_batch();
+                CHECK_THROWS_AS(serializer << rb2, std::runtime_error);
+            }
+        }
+
+        TEST_CASE("operator<< with range of record batches")
+        {
+            SUBCASE("Range append using <<")
+            {
+                auto rb1 = create_test_record_batch();
+                std::vector<std::vector<uint8_t>> chunks;
+                chunked_memory_output_stream stream(chunks);
+
+                chunk_serializer serializer(stream);
+                serializer.write(rb1);
+                CHECK_EQ(chunks.size(), 2);
+
+                std::vector<sp::record_batch> batches;
+                for (int i = 0; i < 3; ++i)
+                {
+                    auto rb = sp::record_batch(
+                        {{"int_col", sp::array(sp::primitive_array<int32_t>({i * 10}))},
+                         {"string_col", sp::array(sp::string_array(std::vector<std::string>{"test"}))}}
+                    );
+                    batches.push_back(rb);
+                }
+
+                serializer << batches;
+
+                CHECK_EQ(chunks.size(), 5);  // Schema + rb1 + 3 batches
+                for (size_t i = 0; i < chunks.size(); ++i)
+                {
+                    CHECK_GT(chunks[i].size(), 0);
+                }
+            }
+
+            SUBCASE("Chaining range and single batch appends")
+            {
+                auto rb1 = create_test_record_batch();
+                std::vector<std::vector<uint8_t>> chunks;
+                chunked_memory_output_stream stream(chunks);
+
+                chunk_serializer serializer(stream);
+                serializer.write(rb1);
+
+                std::vector<sp::record_batch> batches;
+                for (int i = 0; i < 2; ++i)
+                {
+                    auto rb = sp::record_batch(
+                        {{"int_col", sp::array(sp::primitive_array<int32_t>({i}))},
+                         {"string_col", sp::array(sp::string_array(std::vector<std::string>{"x"}))}}
+                    );
+                    batches.push_back(rb);
+                }
+
+                auto rb2 = sp::record_batch(
+                    {{"int_col", sp::array(sp::primitive_array<int32_t>({99}))},
+                     {"string_col", sp::array(sp::string_array(std::vector<std::string>{"final"}))}}
+                );
+
+                serializer << batches << rb2;
+
+                CHECK_EQ(chunks.size(), 5);  // Schema + rb1 + 2 from range + rb2
+            }
+
+            SUBCASE("Mixed chaining with multiple ranges")
+            {
+                auto rb1 = create_test_record_batch();
+                std::vector<std::vector<uint8_t>> chunks;
+                chunked_memory_output_stream stream(chunks);
+
+                chunk_serializer serializer(stream);
+                serializer.write(rb1);
+
+                std::vector<sp::record_batch> batches1;
+                batches1.push_back(sp::record_batch(
+                    {{"int_col", sp::array(sp::primitive_array<int32_t>({10}))},
+                     {"string_col", sp::array(sp::string_array(std::vector<std::string>{"a"}))}}
+                ));
+
+                std::vector<sp::record_batch> batches2;
+                batches2.push_back(sp::record_batch(
+                    {{"int_col", sp::array(sp::primitive_array<int32_t>({20}))},
+                     {"string_col", sp::array(sp::string_array(std::vector<std::string>{"b"}))}}
+                ));
+
+                auto rb2 = sp::record_batch(
+                    {{"int_col", sp::array(sp::primitive_array<int32_t>({30}))},
+                     {"string_col", sp::array(sp::string_array(std::vector<std::string>{"c"}))}}
+                );
+
+                serializer << batches1 << rb2 << batches2;
+
+                CHECK_EQ(chunks.size(), 5);  // Schema + rb1 + 1 from batches1 + rb2 + 1 from batches2
+            }
+
+            SUBCASE("Cannot use << with range after end")
+            {
+                auto rb1 = create_test_record_batch();
+                std::vector<std::vector<uint8_t>> chunks;
+                chunked_memory_output_stream stream(chunks);
+
+                chunk_serializer serializer(stream);
+                serializer.write(rb1);
+                serializer.end();
+
+                std::vector<sp::record_batch> batches = {create_test_record_batch()};
+                CHECK_THROWS_AS(serializer << batches, std::runtime_error);
             }
         }
     }
