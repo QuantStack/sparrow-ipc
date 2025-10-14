@@ -53,6 +53,10 @@ namespace sparrow_ipc::utils
     )
     {
         const auto buffer_metadata = record_batch.buffers()->Get(buffer_index++);
+        if (body.size() < (buffer_metadata->offset() + buffer_metadata->length()))
+        {
+            throw std::runtime_error("Buffer metadata exceeds body size");
+        }
         auto buffer_span = body.subspan(buffer_metadata->offset(), buffer_metadata->length());
 
         if (compression)
