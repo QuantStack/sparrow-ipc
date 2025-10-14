@@ -14,7 +14,8 @@
 #include "doctest/doctest.h"
 #include "sparrow.hpp"
 #include "sparrow_ipc/deserialize.hpp"
-#include "sparrow_ipc/serialize.hpp"
+#include "sparrow_ipc/memory_output_stream.hpp"
+#include "sparrow_ipc/serializer.hpp"
 
 const std::filesystem::path arrow_testing_data_dir = ARROW_TESTING_DATA_DIR;
 
@@ -162,7 +163,10 @@ TEST_SUITE("Integration tests")
                     std::span<const uint8_t>(stream_data)
                 );
 
-                const auto serialized_data = sparrow_ipc::serialize(record_batches_from_json);
+                std::vector<uint8_t> serialized_data;
+                sparrow_ipc::memory_output_stream stream(serialized_data);
+                sparrow_ipc::serializer serializer(stream);
+                serializer << record_batches_from_json << sparrow_ipc::end_stream;
                 const auto deserialized_serialized_data = sparrow_ipc::deserialize_stream(
                     std::span<const uint8_t>(serialized_data)
                 );
