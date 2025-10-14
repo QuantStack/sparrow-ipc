@@ -1,5 +1,5 @@
 #pragma once
-
+#include <concepts>
 #include <cstdint>
 #include <vector>
 
@@ -7,6 +7,13 @@
 
 namespace sparrow_ipc
 {
+    template <typename T>
+    concept ArrowPrivateData = requires(T& t)
+    {
+        { t.buffers_ptrs() } -> std::same_as<const void**>;
+        { t.n_buffers() } -> std::convertible_to<std::size_t>;
+    };
+
     class owning_arrow_array_private_data
     {
     public:
@@ -21,12 +28,12 @@ namespace sparrow_ipc
             }
         }
 
-        const void** buffers_ptrs() noexcept
+        [[nodiscard]] SPARROW_IPC_API const void** buffers_ptrs() noexcept
         {
             return m_buffer_pointers.data();
         }
 
-        std::size_t n_buffers() const noexcept
+        [[nodiscard]] SPARROW_IPC_API std::size_t n_buffers() const noexcept
         {
             return m_buffers.size();
         }
@@ -42,14 +49,22 @@ namespace sparrow_ipc
     public:
 
         explicit constexpr non_owning_arrow_array_private_data(std::vector<std::uint8_t*>&& buffers_pointers)
-            : m_buffers_pointers(std::move(buffers_pointers))
+            : m_buffer_pointers(std::move(buffers_pointers))
         {
         }
 
-        [[nodiscard]] SPARROW_IPC_API const void** buffers_ptrs() noexcept;
+        [[nodiscard]] SPARROW_IPC_API const void** buffers_ptrs() noexcept
+        {
+            return const_cast<const void**>(reinterpret_cast<void**>(m_buffer_pointers.data()));
+        }
+
+        [[nodiscard]] SPARROW_IPC_API std::size_t n_buffers() const noexcept
+        {
+            return m_buffer_pointers.size();
+        }
 
     private:
 
-        std::vector<std::uint8_t*> m_buffers_pointers;
+        std::vector<std::uint8_t*> m_buffer_pointers;
     };
 }

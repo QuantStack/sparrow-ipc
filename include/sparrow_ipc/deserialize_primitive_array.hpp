@@ -9,7 +9,6 @@
 #include "Message_generated.h"
 #include "sparrow_ipc/arrow_interface/arrow_array.hpp"
 #include "sparrow_ipc/arrow_interface/arrow_schema.hpp"
-#include "sparrow_ipc/compression.hpp"
 #include "sparrow_ipc/deserialize_utils.hpp"
 
 namespace sparrow_ipc
@@ -23,38 +22,6 @@ namespace sparrow_ipc
         size_t& buffer_index
     )
     {
-        const auto compression = record_batch.compression();
-
-        // Validity buffer
-        const auto validity_buffer_metadata = record_batch.buffers()->Get(buffer_index++);
-        auto validity_buffer_span = body.subspan(validity_buffer_metadata->offset(), validity_buffer_metadata->length());
-        std::vector<std::vector<std::uint8_t>> decompressed_buffers;
-        if (compression)
-        {
-            decompressed_buffers.emplace_back(decompress(compression->codec(), validity_buffer_span));
-            validity_buffer_span = decompressed_buffers.back();
-        }
-        auto bitmap_ptr = const_cast<uint8_t*>(validity_buffer_span.data());
-        const sparrow::dynamic_bitset_view<const std::uint8_t> bitmap_view{
-            bitmap_ptr,
-            static_cast<size_t>(record_batch.length())};
-        auto null_count = bitmap_view.null_count();
-        if (validity_buffer_metadata->length() == 0)
-        {
-            bitmap_ptr = nullptr;
-            null_count = 0;
-        }
-
-        // Data buffer
-        const auto primitive_buffer_metadata = record_batch.buffers()->Get(buffer_index++);
-        auto data_buffer_span = body.subspan(primitive_buffer_metadata->offset(), primitive_buffer_metadata->length());
-        if (compression)
-        {
-            decompressed_buffers.emplace_back(decompress(compression->codec(), data_buffer_span));
-            data_buffer_span = decompressed_buffers.back();
-        }
-        auto primitives_ptr = const_cast<uint8_t*>(data_buffer_span.data());
-
         const std::string_view format = data_type_to_format(
             sparrow::detail::get_data_type_from_array<sparrow::primitive_array<T>>::get()
         );
@@ -68,30 +35,50 @@ namespace sparrow_ipc
             nullptr
         );
 
+        const auto compression = record_batch.compression();
+        std::vector<std::vector<std::uint8_t>> decompressed_buffers;
+
+        auto validity_buffer_span = utils::get_and_decompress_buffer(record_batch, body, buffer_index, compression, decompressed_buffers);
+
+        uint8_t* bitmap_ptr = nullptr;
+        int64_t null_count = 0;
+
+        if (validity_buffer_span.size() > 0)
+        {
+            bitmap_ptr = const_cast<uint8_t*>(validity_buffer_span.data());
+            const sparrow::dynamic_bitset_view<const std::uint8_t> bitmap_view{
+                bitmap_ptr,
+                static_cast<size_t>(record_batch.length())};
+            null_count = bitmap_view.null_count();
+        }
+
+        auto data_buffer_span = utils::get_and_decompress_buffer(record_batch, body, buffer_index, compression, decompressed_buffers);
+
         ArrowArray array;
         if (compression)
         {
-            array = make_owning_arrow_array(
+            array = make_arrow_array<owning_arrow_array_private_data>(
                 record_batch.length(),
                 null_count,
                 0,
-                std::move(decompressed_buffers),
                 0,
                 nullptr,
-                nullptr
+                nullptr,
+                std::move(decompressed_buffers)
             );
         }
         else
         {
+            auto primitives_ptr = const_cast<uint8_t*>(data_buffer_span.data());
             std::vector<std::uint8_t*> buffers = {bitmap_ptr, primitives_ptr};
-            array = make_non_owning_arrow_array(
+            array = make_arrow_array<non_owning_arrow_array_private_data>(
                 record_batch.length(),
                 null_count,
                 0,
-                std::move(buffers),
                 0,
                 nullptr,
-                nullptr
+                nullptr,
+                std::move(buffers)
             );
         }
 
@@ -99,4 +86,3 @@ namespace sparrow_ipc
         return sparrow::primitive_array<T>{std::move(ap)};
     }
 }
-
