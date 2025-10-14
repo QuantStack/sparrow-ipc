@@ -2,6 +2,7 @@
 
 namespace sparrow_ipc
 {
+    // TODO add compression here and tests (not available for this type in apache arrow integration tests files)
     sparrow::fixed_width_binary_array deserialize_non_owning_fixedwidthbinary(
         const org::apache::arrow::flatbuf::RecordBatch& record_batch,
         std::span<const uint8_t> body,
@@ -33,14 +34,14 @@ namespace sparrow_ipc
         }
         auto buffer_ptr = const_cast<uint8_t*>(body.data() + buffer_metadata->offset());
         std::vector<std::uint8_t*> buffers = {bitmap_ptr, buffer_ptr};
-        ArrowArray array = make_non_owning_arrow_array(
+        ArrowArray array = make_arrow_array<non_owning_arrow_array_private_data>(
             record_batch.length(),
             null_count,
             0,
-            std::move(buffers),
             0,
             nullptr,
-            nullptr
+            nullptr,
+            std::move(buffers)
         );
         sparrow::arrow_proxy ap{std::move(array), std::move(schema)};
         return sparrow::fixed_width_binary_array{std::move(ap)};
