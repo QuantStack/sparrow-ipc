@@ -18,28 +18,12 @@ namespace sparrow_ipc
     {
     public:
 
-        explicit owning_arrow_array_private_data(std::vector<std::vector<std::uint8_t>>&& buffers)
-            : m_buffers(std::move(buffers))
-        {
-            m_buffer_pointers.reserve(m_buffers.size());
-            for (const auto& buffer : m_buffers)
-            {
-                m_buffer_pointers.push_back(buffer.data());
-            }
-        }
+        explicit owning_arrow_array_private_data(std::vector<std::vector<std::uint8_t>>&& buffers);
 
-        [[nodiscard]] SPARROW_IPC_API const void** buffers_ptrs() noexcept
-        {
-            return m_buffer_pointers.data();
-        }
-
-        [[nodiscard]] SPARROW_IPC_API std::size_t n_buffers() const noexcept
-        {
-            return m_buffers.size();
-        }
+        [[nodiscard]] SPARROW_IPC_API const void** buffers_ptrs() noexcept;
+        [[nodiscard]] SPARROW_IPC_API std::size_t n_buffers() const noexcept;
 
     private:
-
         std::vector<std::vector<std::uint8_t>> m_buffers;
         std::vector<const void*> m_buffer_pointers;
     };
@@ -53,18 +37,10 @@ namespace sparrow_ipc
         {
         }
 
-        [[nodiscard]] SPARROW_IPC_API const void** buffers_ptrs() noexcept
-        {
-            return const_cast<const void**>(reinterpret_cast<void**>(m_buffer_pointers.data()));
-        }
-
-        [[nodiscard]] SPARROW_IPC_API std::size_t n_buffers() const noexcept
-        {
-            return m_buffer_pointers.size();
-        }
+        [[nodiscard]] SPARROW_IPC_API const void** buffers_ptrs() noexcept;
+        [[nodiscard]] SPARROW_IPC_API std::size_t n_buffers() const noexcept;
 
     private:
-
         std::vector<std::uint8_t*> m_buffer_pointers;
     };
 }
