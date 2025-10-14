@@ -67,12 +67,10 @@ void compare_record_batches(
 )
 {
     REQUIRE_EQ(record_batches_1.size(), record_batches_2.size());
-//     std::cout << "record_batches1 size: " << record_batches_1.size() <<  " record_batches2 size: " << record_batches_2.size() << std::endl;
     for (size_t i = 0; i < record_batches_1.size(); ++i)
     {
         for (size_t y = 0; y < record_batches_1[i].nb_columns(); y++)
         {
-//             std::cout << "record_batches1 nb cols: " << record_batches_1[i].nb_columns() <<  " record_batches2 nb cols: " << record_batches_2[i].nb_columns() << std::endl;
             const auto& column_1 = record_batches_1[i].get_column(y);
             const auto& column_2 = record_batches_2[i].get_column(y);
             REQUIRE_EQ(column_1.size(), column_2.size());
@@ -81,11 +79,9 @@ void compare_record_batches(
             {
                 const auto col_name = column_1.name().value_or("NA");
                 INFO("Comparing batch " << i << ", column " << y << " named :" << col_name << " , row " << z);
-//                 std::cout << "Comparing batch " << i << ", column " << y << " named :" << col_name << " , row " << z << std::endl;
                 REQUIRE_EQ(column_1.data_type(), column_2.data_type());
                 const auto& column_1_value = column_1[z];
                 const auto& column_2_value = column_2[z];
-//                 std::cout << "column_1_value :" << column_1_value << " and " << column_2_value  << std::endl;
                 CHECK_EQ(column_1_value, column_2_value);
             }
         }
