@@ -12,6 +12,26 @@
 namespace sparrow_ipc::utils
 {
     /**
+     * @brief Extracts bitmap pointer and null count from a validity buffer span.
+     *
+     * This function calculates the number of null values represented by the bitmap.
+     *
+     * @param validity_buffer_span The validity buffer as a byte span.
+     * @param length The Arrow RecordBatch length (number of values in the array).
+     *
+     * @return A pair containing:
+     *         - First: Pointer to the bitmap data (nullptr if buffer is empty)
+     *         - Second: Count of null values in the bitmap (0 if buffer is empty)
+     *
+     * @note If the bitmap buffer is empty, returns {nullptr, 0}
+     * @note The returned pointer is a non-const cast of the original const data
+     */
+    [[nodiscard]] std::pair<std::uint8_t*, int64_t> get_bitmap_pointer_and_null_count(
+        std::span<const uint8_t> validity_buffer_span,
+        const int64_t length
+    );
+
+    /**
      * @brief Extracts bitmap pointer and null count from a RecordBatch buffer.
      *
      * This function retrieves a bitmap buffer from the specified index in the RecordBatch's
@@ -28,6 +48,7 @@ namespace sparrow_ipc::utils
      * @note If the bitmap buffer has zero length, returns {nullptr, 0}
      * @note The returned pointer is a non-const cast of the original const data
      */
+    // TODO to be removed when not used anymore (after adding compression to deserialize_fixedsizebinary_array)
     [[nodiscard]] std::pair<std::uint8_t*, int64_t> get_bitmap_pointer_and_null_count(
         const org::apache::arrow::flatbuf::RecordBatch& record_batch,
         std::span<const uint8_t> body,
