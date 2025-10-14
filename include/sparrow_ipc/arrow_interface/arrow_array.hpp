@@ -29,7 +29,7 @@ namespace sparrow_ipc
     }
 
     template <ArrowPrivateData T, typename Arg>
-    SPARROW_IPC_API void fill_arrow_array(
+    void fill_arrow_array(
         ArrowArray& array,
         int64_t length,
         int64_t null_count,
@@ -60,7 +60,7 @@ namespace sparrow_ipc
     }
 
     template <ArrowPrivateData T, typename Arg>
-    [[nodiscard]] SPARROW_IPC_API ArrowArray make_arrow_array(
+    [[nodiscard]] ArrowArray make_arrow_array(
         int64_t length,
         int64_t null_count,
         int64_t offset,
