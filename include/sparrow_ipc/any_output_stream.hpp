@@ -1,6 +1,5 @@
 #pragma once
 
-#include <array>
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
@@ -26,8 +25,8 @@ namespace sparrow_ipc
     /**
      * @brief Type-erased wrapper for any stream-like object.
      *
-     * This class provides type erasure for ANY type that supports stream operations,
-     * not just those derived from output_stream. It uses the concept-based type erasure
+     * This class provides type erasure for ANY type that supports stream operations.
+     * It uses the concept-based type erasure
      * pattern to wrap any stream-like object polymorphically.
      *
      * @details This implementation uses the classic type erasure pattern with:
@@ -37,7 +36,6 @@ namespace sparrow_ipc
      *
      * Usage:
      * @code
-     * // Works with output_stream derived classes
      * std::vector<uint8_t> buffer;
      * memory_output_stream<std::vector<uint8_t>> mem_stream(buffer);
      * any_output_stream stream1(mem_stream);

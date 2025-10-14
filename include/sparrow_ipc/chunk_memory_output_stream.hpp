@@ -1,17 +1,17 @@
 #pragma once
 
 #include <cstdint>
+#include <functional>
 #include <numeric>
 #include <ranges>
-
-#include "sparrow_ipc/output_stream.hpp"
+#include <vector>
 
 namespace sparrow_ipc
 {
     /**
      * @brief An output stream that writes data into separate memory chunks.
      *
-     * This template class implements an output_stream that stores data in discrete memory chunks
+     * This template class stores data in discrete memory chunks
      * rather than a single contiguous buffer. Each write operation creates a new chunk, making it
      * suitable for scenarios where data needs to be processed or transmitted in separate units.
      *
@@ -29,7 +29,7 @@ namespace sparrow_ipc
         requires std::ranges::random_access_range<R>
                  && std::ranges::random_access_range<std::ranges::range_value_t<R>>
                  && std::same_as<typename std::ranges::range_value_t<R>::value_type, uint8_t>
-    class chunked_memory_output_stream final : public output_stream
+    class chunked_memory_output_stream
     {
     public:
 
@@ -51,7 +51,7 @@ namespace sparrow_ipc
          * @param count Number of characters to write
          * @return Reference to this stream for method chaining
          */
-        chunked_memory_output_stream<R>& write(const char* s, std::streamsize count) final;
+        chunked_memory_output_stream<R>& write(const char* s, std::streamsize count);
 
         /**
          * @brief Writes a span of bytes as a new chunk.
@@ -61,7 +61,7 @@ namespace sparrow_ipc
          * @param span A span of bytes to write as a new chunk
          * @return Reference to this stream for method chaining
          */
-        chunked_memory_output_stream<R>& write(std::span<const std::uint8_t> span) final;
+        chunked_memory_output_stream<R>& write(std::span<const std::uint8_t> span);
 
         /**
          * @brief Writes a buffer by moving it into the chunk container.
@@ -83,7 +83,7 @@ namespace sparrow_ipc
          * @param count Number of times to repeat the value
          * @return Reference to this stream for method chaining
          */
-        chunked_memory_output_stream<R>& write(uint8_t value, std::size_t count) final;
+        chunked_memory_output_stream<R>& write(uint8_t value, std::size_t count);
 
         /**
          * @brief Writes a single character as a new chunk.
@@ -93,7 +93,7 @@ namespace sparrow_ipc
          * @param value The character value to write
          * @return Reference to this stream for method chaining
          */
-        chunked_memory_output_stream<R>& put(char value) final;
+        chunked_memory_output_stream<R>& put(char value);
 
         /**
          * @brief Reserves capacity in the chunk container.
@@ -103,7 +103,7 @@ namespace sparrow_ipc
          *
          * @param size Number of chunks to reserve space for
          */
-        void reserve(std::size_t size) override;
+        void reserve(std::size_t size);
 
         /**
          * @brief Reserves capacity using a lazy calculation function.
@@ -112,7 +112,7 @@ namespace sparrow_ipc
          *
          * @param calculate_reserve_size Function that returns the number of chunks to reserve
          */
-        void reserve(const std::function<std::size_t()>& calculate_reserve_size) override;
+        void reserve(const std::function<std::size_t()>& calculate_reserve_size);
 
         /**
          * @brief Gets the total size of all chunks.
@@ -121,7 +121,7 @@ namespace sparrow_ipc
          *
          * @return The total number of bytes across all chunks
          */
-        [[nodiscard]] size_t size() const override;
+        [[nodiscard]] size_t size() const;
 
     private:
 

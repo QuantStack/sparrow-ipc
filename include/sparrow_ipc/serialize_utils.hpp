@@ -8,7 +8,6 @@
 #include "Message_generated.h"
 #include "sparrow_ipc/any_output_stream.hpp"
 #include "sparrow_ipc/config/config.hpp"
-#include "sparrow_ipc/output_stream.hpp"
 #include "sparrow_ipc/utils.hpp"
 
 namespace sparrow_ipc
@@ -168,18 +167,6 @@ namespace sparrow_ipc
      * @return int64_t The total body size in bytes of all columns in the record batch
      */
     [[nodiscard]] SPARROW_IPC_API int64_t calculate_body_size(const sparrow::record_batch& record_batch);
-
-
-    /**
-     * @brief Adds padding bytes to an output stream to ensure 8-byte alignment.
-     *
-     * This function appends zero bytes to the end of the provided stream until
-     * its size is a multiple of 8. This is often required for proper memory
-     * alignment in binary formats such as Apache Arrow IPC.
-     *
-     * @param stream The output stream where padding bytes will be added
-     */
-    SPARROW_IPC_API void add_padding(output_stream& stream);
 
     SPARROW_IPC_API std::vector<sparrow::data_type> get_column_dtypes(const sparrow::record_batch& rb);
 }

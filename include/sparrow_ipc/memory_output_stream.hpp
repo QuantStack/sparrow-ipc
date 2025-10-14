@@ -1,8 +1,7 @@
 
 #include <cstdint>
+#include <functional>
 #include <ranges>
-
-#include "sparrow_ipc/output_stream.hpp"
 
 namespace sparrow_ipc
 {
@@ -26,7 +25,7 @@ namespace sparrow_ipc
      */
     template <typename R>
         requires std::ranges::random_access_range<R> && std::same_as<typename R::value_type, uint8_t>
-    class memory_output_stream final : public output_stream
+    class memory_output_stream
     {
     public:
 
@@ -52,7 +51,7 @@ namespace sparrow_ipc
          *
          * @note The characters are converted to uint8_t and appended to the buffer
          */
-        memory_output_stream& write(const char* s, std::streamsize count) final;
+        memory_output_stream& write(const char* s, std::streamsize count);
 
         /**
          * @brief Writes a span of bytes to the buffer.
@@ -62,7 +61,7 @@ namespace sparrow_ipc
          * @param span A span of bytes to write
          * @return Reference to this stream for method chaining
          */
-        memory_output_stream& write(std::span<const std::uint8_t> span) final;
+        memory_output_stream& write(std::span<const std::uint8_t> span);
 
         /**
          * @brief Writes a byte value repeated a specified number of times.
@@ -74,7 +73,7 @@ namespace sparrow_ipc
          * @param count Number of times to repeat the value
          * @return Reference to this stream for method chaining
          */
-        memory_output_stream& write(uint8_t value, std::size_t count) final;
+        memory_output_stream& write(uint8_t value, std::size_t count);
 
         /**
          * @brief Writes a single character to the buffer.
@@ -84,7 +83,7 @@ namespace sparrow_ipc
          * @param value The character value to write
          * @return Reference to this stream for method chaining
          */
-        memory_output_stream& put(char value) final;
+        memory_output_stream& put(char value);
 
         /**
          * @brief Reserves capacity in the underlying buffer.
@@ -94,7 +93,7 @@ namespace sparrow_ipc
          *
          * @param size Number of bytes to reserve
          */
-        void reserve(std::size_t size) override;
+        void reserve(std::size_t size);
 
         /**
          * @brief Reserves capacity using a lazy calculation function.
@@ -103,14 +102,14 @@ namespace sparrow_ipc
          *
          * @param calculate_reserve_size Function that returns the number of bytes to reserve
          */
-        void reserve(const std::function<std::size_t()>& calculate_reserve_size) override;
+        void reserve(const std::function<std::size_t()>& calculate_reserve_size);
 
         /**
          * @brief Gets the current size of the buffer.
          *
          * @return The number of bytes currently in the buffer
          */
-        [[nodiscard]] size_t size() const override;
+        [[nodiscard]] size_t size() const;
 
     private:
 

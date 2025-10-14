@@ -116,7 +116,6 @@ set(SPARROW_IPC_HEADERS
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/magic_values.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/memory_output_stream.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/metadata.hpp
-    ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/output_stream.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/serialize_utils.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/serialize.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/serializer.hpp

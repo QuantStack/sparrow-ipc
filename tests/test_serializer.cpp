@@ -4,7 +4,6 @@
 #include <doctest/doctest.h>
 #include <sparrow/record_batch.hpp>
 
-#include "sparrow_ipc/any_output_stream.hpp"
 #include "sparrow_ipc/memory_output_stream.hpp"
 #include "sparrow_ipc/serializer.hpp"
 #include "sparrow_ipc_tests_helpers.hpp"
