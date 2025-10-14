@@ -26,6 +26,8 @@ const std::vector<std::filesystem::path> files_paths_to_test = {
     tests_resources_files_path / "generated_primitive_large_offsets",
     tests_resources_files_path / "generated_primitive_zerolength",
     // tests_resources_files_path / "generated_primitive_no_batches"
+    tests_resources_files_path / "generated_decimal",
+    tests_resources_files_path / "generated_decimal_256",
 };
 
 size_t get_number_of_batches(const std::filesystem::path& json_path)

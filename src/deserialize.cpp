@@ -2,9 +2,11 @@
 
 #include <sparrow/types/data_type.hpp>
 
+#include "sparrow_ipc/deserialize_decimal_array.hpp"
 #include "sparrow_ipc/deserialize_fixedsizebinary_array.hpp"
 #include "sparrow_ipc/deserialize_primitive_array.hpp"
 #include "sparrow_ipc/deserialize_variable_size_binary_array.hpp"
+#include "sparrow_ipc/encapsulated_message.hpp"
 #include "sparrow_ipc/magic_values.hpp"
 #include "sparrow_ipc/metadata.hpp"
 
@@ -191,6 +193,69 @@ namespace sparrow_ipc
                         )
                     );
                     break;
+                case org::apache::arrow::flatbuf::Type::Decimal:
+                {
+                    const auto decimal_field = field->type_as_Decimal();
+                    const auto scale = decimal_field->scale();
+                    const auto precision = decimal_field->precision();
+                    if (decimal_field->bitWidth() == 32)
+                    {
+                        arrays.emplace_back(
+                            deserialize_non_owning_decimal<sparrow::decimal<int32_t>>(
+                                record_batch,
+                                encapsulated_message.body(),
+                                name,
+                                metadata,
+                                buffer_index,
+                                scale,
+                                precision
+                            )
+                        );
+                    }
+                    else if (decimal_field->bitWidth() == 64)
+                    {
+                        arrays.emplace_back(
+                            deserialize_non_owning_decimal<sparrow::decimal<int64_t>>(
+                                record_batch,
+                                encapsulated_message.body(),
+                                name,
+                                metadata,
+                                buffer_index,
+                                scale,
+                                precision
+                            )
+                        );
+                    }
+                    else if (decimal_field->bitWidth() == 128)
+                    {
+                        arrays.emplace_back(
+                            deserialize_non_owning_decimal<sparrow::decimal<sparrow::int128_t>>(
+                                record_batch,
+                                encapsulated_message.body(),
+                                name,
+                                metadata,
+                                buffer_index,
+                                scale,
+                                precision
+                            )
+                        );
+                    }
+                    else if (decimal_field->bitWidth() == 256)
+                    {
+                        arrays.push_back(
+                            deserialize_non_owning_decimal<sparrow::decimal<sparrow::int256_t>>(
+                                record_batch,
+                                encapsulated_message.body(),
+                                name,
+                                metadata,
+                                buffer_index,
+                                scale,
+                                precision
+                            )
+                        );
+                    }
+                    break;
+                }
                 default:
                     throw std::runtime_error("Unsupported type.");
             }
