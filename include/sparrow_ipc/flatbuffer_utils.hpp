@@ -57,7 +57,7 @@ namespace sparrow_ipc
      * @note The function checks the NULLABLE flag from the ArrowSchema flags to determine nullability
      */
     [[nodiscard]] ::flatbuffers::Offset<org::apache::arrow::flatbuf::Field>
-    create_field(flatbuffers::FlatBufferBuilder& builder, const ArrowSchema& arrow_schema);
+    create_field(flatbuffers::FlatBufferBuilder& builder, const ArrowSchema& arrow_schema, std::optional<std::string_view> name_override = std::nullopt);
 
     /**
      * @brief Creates a FlatBuffers vector of Field objects from an ArrowSchema's children.
@@ -78,7 +78,7 @@ namespace sparrow_ipc
      */
     [[nodiscard]] ::flatbuffers::Offset<
         ::flatbuffers::Vector<::flatbuffers::Offset<org::apache::arrow::flatbuf::Field>>>
-    create_children(flatbuffers::FlatBufferBuilder& builder, sparrow::record_batch::column_range columns);
+    create_children(flatbuffers::FlatBufferBuilder& builder, const sparrow::record_batch& record_batch);
 
     /**
      * @brief Creates a FlatBuffers vector of Field objects from a range of columns.
