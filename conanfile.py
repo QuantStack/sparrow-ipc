@@ -43,7 +43,7 @@ class SparrowIPCRecipe(ConanFile):
             self.options.rm_safe("fPIC")
 
     def requirements(self):
-        self.requires("sparrow/1.0.0")
+        self.requires("sparrow/1.2.0", options={"json_reader": True})
         self.requires(f"flatbuffers/{self._flatbuffers_version}")
         if self.options.get_safe("build_tests"):
             self.test_requires("doctest/2.4.12")

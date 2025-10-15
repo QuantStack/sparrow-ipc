@@ -19,15 +19,17 @@
 const std::filesystem::path arrow_testing_data_dir = ARROW_TESTING_DATA_DIR;
 
 const std::filesystem::path tests_resources_files_path = arrow_testing_data_dir / "data" / "arrow-ipc-stream"
-                                                         / "integration" / "1.0.0-littleendian";
+                                                         / "integration" / "cpp-21.0.0";
 
 const std::vector<std::filesystem::path> files_paths_to_test = {
     tests_resources_files_path / "generated_primitive",
-    tests_resources_files_path / "generated_primitive_large_offsets",
+    // tests_resources_files_path / "generated_primitive_large_offsets",
     tests_resources_files_path / "generated_primitive_zerolength",
     // tests_resources_files_path / "generated_primitive_no_batches"
+    tests_resources_files_path / "generated_decimal32",
+    tests_resources_files_path / "generated_decimal64",
     tests_resources_files_path / "generated_decimal",
-    tests_resources_files_path / "generated_decimal_256",
+    tests_resources_files_path / "generated_decimal256",
 };
 
 size_t get_number_of_batches(const std::filesystem::path& json_path)

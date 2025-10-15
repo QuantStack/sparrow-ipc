@@ -2,8 +2,10 @@
 
 #include <cstdint>
 #include <optional>
+#include <string>
 #include <string_view>
 #include <utility>
+#include <vector>
 
 #include <sparrow/record_batch.hpp>
 
@@ -19,6 +21,39 @@ namespace sparrow_ipc::utils
     // This function maps a sparrow data type to the corresponding Flatbuffers type
     SPARROW_IPC_API std::pair<org::apache::arrow::flatbuf::Type, flatbuffers::Offset<void>>
     get_flatbuffer_type(flatbuffers::FlatBufferBuilder& builder, std::string_view format_str);
+
+    /**
+     * @brief Extracts words after ':' separated by ',' from a string.
+     *
+     * This function finds the position of ':' in the input string and then
+     * splits the remaining part by ',' to extract individual words.
+     *
+     * @param str Input string to parse (e.g., "prefix:word1,word2,word3")
+     * @return std::vector<std::string_view> Vector of string views containing the extracted words
+     *         Returns an empty vector if ':' is not found or if there are no words after it
+     *
+     * @example
+     * extract_words_after_colon("d:128,10") returns {"128", "10"}
+     * extract_words_after_colon("w:256") returns {"256"}
+     * extract_words_after_colon("no_colon") returns {}
+     */
+    SPARROW_IPC_API std::vector<std::string_view> extract_words_after_colon(std::string_view str);
+
+    /**
+     * @brief Parse a string_view to int32_t using std::from_chars.
+     *
+     * This function converts a string view to a 32-bit integer using std::from_chars
+     * for efficient parsing.
+     *
+     * @param str The string view to parse
+     * @return std::optional<int32_t> The parsed integer value, or std::nullopt if parsing fails
+     *
+     * @example
+     * parse_to_int32("123") returns std::optional<int32_t>(123)
+     * parse_to_int32("abc") returns std::nullopt
+     * parse_to_int32("") returns std::nullopt
+     */
+    SPARROW_IPC_API std::optional<int32_t> parse_to_int32(std::string_view str);
 
     /**
      * @brief Checks if all record batches in a collection have consistent structure.

@@ -8,6 +8,10 @@ namespace sparrow_ipc::utils
         size_t index
     )
     {
+        if(index >= static_cast<size_t>(record_batch.buffers()->size()))
+        {
+            throw std::runtime_error("Buffer index out of range");
+        }
         const auto bitmap_metadata = record_batch.buffers()->Get(index);
         if (bitmap_metadata->length() == 0)
         {

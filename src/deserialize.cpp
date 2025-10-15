@@ -242,7 +242,7 @@ namespace sparrow_ipc
                     }
                     else if (decimal_field->bitWidth() == 256)
                     {
-                        arrays.push_back(
+                        arrays.emplace_back(
                             deserialize_non_owning_decimal<sparrow::decimal<sparrow::int256_t>>(
                                 record_batch,
                                 encapsulated_message.body(),

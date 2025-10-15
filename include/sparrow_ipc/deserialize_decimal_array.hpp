@@ -13,7 +13,7 @@
 namespace sparrow_ipc
 {
     template <sparrow::decimal_type T>
-    [[nodiscard]] T deserialize_non_owning_decimal(
+    [[nodiscard]] sparrow::decimal_array<T> deserialize_non_owning_decimal(
         const org::apache::arrow::flatbuf::RecordBatch& record_batch,
         std::span<const uint8_t> body,
         std::string_view name,
@@ -23,7 +23,7 @@ namespace sparrow_ipc
         int32_t precision
     )
     {
-        constexpr std::size_t sizeof_decimal = sizeof(T::storage_type);
+        constexpr std::size_t sizeof_decimal = sizeof(typename T::integer_type);
         std::string format_str = "d:" + std::to_string(precision) + "," + std::to_string(scale);
         if constexpr (sizeof_decimal != 16)  // We don't need to specify the size for 128-bit
                                              // decimals
@@ -46,19 +46,13 @@ namespace sparrow_ipc
             buffer_index++
         );
 
-        const auto offset_metadata = record_batch.buffers()->Get(buffer_index++);
-        if ((offset_metadata->offset() + offset_metadata->length()) > body.size())
-        {
-            throw std::runtime_error("Offset buffer exceeds body size");
-        }
-        auto offset_ptr = const_cast<uint8_t*>(body.data() + offset_metadata->offset());
         const auto buffer_metadata = record_batch.buffers()->Get(buffer_index++);
-        if ((buffer_metadata->offset() + buffer_metadata->length()) > body.size())
+        if ((body.size() < (buffer_metadata->offset() + buffer_metadata->length())))
         {
             throw std::runtime_error("Data buffer exceeds body size");
         }
         auto buffer_ptr = const_cast<uint8_t*>(body.data() + buffer_metadata->offset());
-        std::vector<std::uint8_t*> buffers = {bitmap_ptr, offset_ptr, buffer_ptr};
+        std::vector<std::uint8_t*> buffers = {bitmap_ptr, buffer_ptr};
         ArrowArray array = make_non_owning_arrow_array(
             record_batch.length(),
             null_count,
@@ -69,6 +63,6 @@ namespace sparrow_ipc
             nullptr
         );
         sparrow::arrow_proxy ap{std::move(array), std::move(schema)};
-        return T{std::move(ap)};
+        return sparrow::decimal_array<T>(std::move(ap));
     }
 }
