@@ -88,26 +88,6 @@ namespace sparrow_ipc
         ::flatbuffers::Vector<::flatbuffers::Offset<org::apache::arrow::flatbuf::Field>>>
     create_children(flatbuffers::FlatBufferBuilder& builder, const sparrow::record_batch& record_batch);
 
-    /**
-     * @brief Creates a FlatBuffers vector of Field objects from an ArrowSchema's children.
-     *
-     * This function iterates through all children of the given ArrowSchema and converts
-     * each child to a FlatBuffers Field object. The resulting fields are collected into
-     * a FlatBuffers vector.
-     *
-     * @param builder Reference to the FlatBufferBuilder used for creating FlatBuffers objects
-     * @param arrow_schema The ArrowSchema containing the children to convert
-     *
-     * @return A FlatBuffers offset to a vector of Field objects, or 0 if no children exist
-     *
-     * @throws std::invalid_argument If any child pointer in the ArrowSchema is null
-     *
-     * @note The function reserves space for all children upfront for performance optimization
-     * @note Returns 0 (null offset) when the schema has no children, otherwise returns a valid vector offset
-     */
-    [[nodiscard]] ::flatbuffers::Offset<
-        ::flatbuffers::Vector<::flatbuffers::Offset<org::apache::arrow::flatbuf::Field>>>
-    create_children(flatbuffers::FlatBufferBuilder& builder, const sparrow::record_batch& record_batch);
 
     /**
      * @brief Creates a FlatBuffers vector of Field objects from an ArrowSchema's children.

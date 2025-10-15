@@ -8,6 +8,7 @@ target_link_libraries(write_and_read_streams
     PRIVATE
         sparrow-ipc
         sparrow::sparrow
+        arrow-testing-data 
 )
 
 # Set C++ standard to match the main project
