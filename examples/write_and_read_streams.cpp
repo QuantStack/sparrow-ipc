@@ -23,121 +23,138 @@ namespace sp = sparrow;
 std::random_device rd;
 std::mt19937 gen(rd());
 
-/**
- * Helper function to create a record batch with the same schema but random values
- * All batches have: int32 column, float column, bool column, and string column
- */
-sp::record_batch create_random_record_batch(size_t num_rows)
+namespace utils
 {
-    // Helper lambda to generate a vector with random values
-    auto generate_vector = [num_rows](auto generator) {
-        using T = decltype(generator());
-        std::vector<T> values(num_rows);
-        std::generate(values.begin(), values.end(), generator);
-        return values;
-    };
-
-    // Create integer column with random values
-    std::uniform_int_distribution<int32_t> int_dist(0, 1000);
-    auto int_array = sp::primitive_array<int32_t>(
-        generate_vector([&]() { return int_dist(gen); })
-    );
-
-    // Create float column with random values
-    std::uniform_real_distribution<float> float_dist(-100.0f, 100.0f);
-    auto float_array = sp::primitive_array<float>(
-        generate_vector([&]() { return float_dist(gen); })
-    );
-
-    // Create boolean column with random values
-    std::uniform_int_distribution<int> bool_dist(0, 1);
-    auto bool_array = sp::primitive_array<bool>(
-        generate_vector([&]() { return static_cast<bool>(bool_dist(gen)); })
-    );
-
-    // Create string column with random values
-    const std::vector<std::string> sample_strings =
-        {"alpha", "beta", "gamma", "delta", "epsilon", "zeta", "eta", "theta", "iota", "kappa"};
-    std::uniform_int_distribution<size_t> str_dist(0, sample_strings.size() - 1);
-    size_t counter = 0;
-    auto string_array = sp::string_array(
-        generate_vector([&]() { return sample_strings[str_dist(gen)] + "_" + std::to_string(counter++); })
-    );
-
-    // Create record batch with named columns (same schema for all batches)
-    return sp::record_batch(
-        {{"id", sp::array(std::move(int_array))},
-         {"value", sp::array(std::move(float_array))},
-         {"flag", sp::array(std::move(bool_array))},
-         {"name", sp::array(std::move(string_array))}}
-    );
-}
-
-/**
- * Verify that two sets of record batches are identical
- * Returns true if all batches match, false otherwise
- */
-bool verify_batches_match(
-    const std::vector<sp::record_batch>& original_batches,
-    const std::vector<sp::record_batch>& deserialized_batches
-)
-{
-    if (original_batches.size() != deserialized_batches.size())
+    /**
+     * Helper function to create a record batch with the same schema but random values
+     * All batches have: int32 column, float column, bool column, and string column
+     */
+    sp::record_batch create_random_record_batch(size_t num_rows)
     {
-        std::cerr << "ERROR: Batch count mismatch! Original: " << original_batches.size()
-                  << ", Deserialized: " << deserialized_batches.size() << "\n";
-        return false;
+        // Helper lambda to generate a vector with random values
+        auto generate_vector = [num_rows](auto generator)
+        {
+            using T = decltype(generator());
+            std::vector<T> values(num_rows);
+            std::generate(values.begin(), values.end(), generator);
+            return values;
+        };
+
+        // Create integer column with random values
+        std::uniform_int_distribution<int32_t> int_dist(0, 1000);
+        auto int_array = sp::primitive_array<int32_t>(generate_vector(
+            [&]()
+            {
+                return int_dist(gen);
+            }
+        ));
+
+        // Create float column with random values
+        std::uniform_real_distribution<float> float_dist(-100.0f, 100.0f);
+        auto float_array = sp::primitive_array<float>(generate_vector(
+            [&]()
+            {
+                return float_dist(gen);
+            }
+        ));
+
+        // Create boolean column with random values
+        std::uniform_int_distribution<int> bool_dist(0, 1);
+        auto bool_array = sp::primitive_array<bool>(generate_vector(
+            [&]()
+            {
+                return static_cast<bool>(bool_dist(gen));
+            }
+        ));
+
+        // Create string column with random values
+        const std::vector<std::string> sample_strings =
+            {"alpha", "beta", "gamma", "delta", "epsilon", "zeta", "eta", "theta", "iota", "kappa"};
+        std::uniform_int_distribution<size_t> str_dist(0, sample_strings.size() - 1);
+        size_t counter = 0;
+        auto string_array = sp::string_array(generate_vector(
+            [&]()
+            {
+                return sample_strings[str_dist(gen)] + "_" + std::to_string(counter++);
+            }
+        ));
+
+        // Create record batch with named columns (same schema for all batches)
+        return sp::record_batch(
+            {{"id", sp::array(std::move(int_array))},
+             {"value", sp::array(std::move(float_array))},
+             {"flag", sp::array(std::move(bool_array))},
+             {"name", sp::array(std::move(string_array))}}
+        );
     }
 
-    bool all_match = true;
-    for (size_t batch_idx = 0; batch_idx < original_batches.size(); ++batch_idx)
+    /**
+     * Verify that two sets of record batches are identical
+     * Returns true if all batches match, false otherwise
+     */
+    bool verify_batches_match(
+        const std::vector<sp::record_batch>& original_batches,
+        const std::vector<sp::record_batch>& deserialized_batches
+    )
     {
-        const auto& original = original_batches[batch_idx];
-        const auto& deserialized = deserialized_batches[batch_idx];
-
-        // Check basic structure
-        if (original.nb_columns() != deserialized.nb_columns() || original.nb_rows() != deserialized.nb_rows())
+        if (original_batches.size() != deserialized_batches.size())
         {
-            std::cerr << "ERROR: Batch " << batch_idx << " structure mismatch!\n";
-            all_match = false;
-            continue;
+            std::cerr << "ERROR: Batch count mismatch! Original: " << original_batches.size()
+                      << ", Deserialized: " << deserialized_batches.size() << "\n";
+            return false;
         }
 
-        // Check column names
-        if (!std::ranges::equal(original.names(), deserialized.names()))
+        bool all_match = true;
+        for (size_t batch_idx = 0; batch_idx < original_batches.size(); ++batch_idx)
         {
-            std::cerr << "WARNING: Batch " << batch_idx << " column names mismatch!\n";
-        }
+            const auto& original = original_batches[batch_idx];
+            const auto& deserialized = deserialized_batches[batch_idx];
 
-        // Check column data
-        for (size_t col_idx = 0; col_idx < original.nb_columns(); ++col_idx)
-        {
-            const auto& orig_col = original.get_column(col_idx);
-            const auto& deser_col = deserialized.get_column(col_idx);
-
-            if (orig_col.data_type() != deser_col.data_type())
+            // Check basic structure
+            if (original.nb_columns() != deserialized.nb_columns()
+                || original.nb_rows() != deserialized.nb_rows())
             {
-                std::cerr << "ERROR: Batch " << batch_idx << ", column " << col_idx << " type mismatch!\n";
+                std::cerr << "ERROR: Batch " << batch_idx << " structure mismatch!\n";
                 all_match = false;
                 continue;
             }
 
-            // Check values
-            for (size_t row_idx = 0; row_idx < orig_col.size(); ++row_idx)
+            // Check column names
+            if (!std::ranges::equal(original.names(), deserialized.names()))
             {
-                if (orig_col[row_idx] != deser_col[row_idx])
+                std::cerr << "WARNING: Batch " << batch_idx << " column names mismatch!\n";
+            }
+
+            // Check column data
+            for (size_t col_idx = 0; col_idx < original.nb_columns(); ++col_idx)
+            {
+                const auto& orig_col = original.get_column(col_idx);
+                const auto& deser_col = deserialized.get_column(col_idx);
+
+                if (orig_col.data_type() != deser_col.data_type())
                 {
-                    std::cerr << "ERROR: Batch " << batch_idx << ", column " << col_idx << ", row " << row_idx
-                              << " value mismatch!\n";
-                    std::cerr << "  Original: " << orig_col[row_idx]
-                              << ", Deserialized: " << deser_col[row_idx] << "\n";
+                    std::cerr << "ERROR: Batch " << batch_idx << ", column " << col_idx << " type mismatch!\n";
                     all_match = false;
+                    continue;
+                }
+
+                // Check values
+                for (size_t row_idx = 0; row_idx < orig_col.size(); ++row_idx)
+                {
+                    if (orig_col[row_idx] != deser_col[row_idx])
+                    {
+                        std::cerr << "ERROR: Batch " << batch_idx << ", column " << col_idx << ", row "
+                                  << row_idx << " value mismatch!\n";
+                        std::cerr << "  Original: " << orig_col[row_idx]
+                                  << ", Deserialized: " << deser_col[row_idx] << "\n";
+                        all_match = false;
+                    }
                 }
             }
         }
-    }
 
-    return all_match;
+        return all_match;
+    }
 }
 
 /**
@@ -153,7 +170,7 @@ std::vector<sp::record_batch> create_record_batches(size_t num_batches, size_t r
 
     for (size_t i = 0; i < num_batches; ++i)
     {
-        batches.push_back(create_random_record_batch(rows_per_batch));
+        batches.push_back(utils::create_random_record_batch(rows_per_batch));
     }
 
     std::cout << "   Created " << batches.size() << " record batches\n";
@@ -241,7 +258,7 @@ void demonstrate_serialization_methods(
 bool verify_schema_consistency(const std::vector<sp::record_batch>& batches)
 {
     std::cout << "\n7. Verifying schema consistency across all batches...\n";
-    
+
     if (batches.empty())
     {
         std::cout << "   No batches to verify\n";
@@ -296,7 +313,8 @@ void read_and_display_test_file()
 {
     std::cout << "\n8. Reading a primitive stream file from test resources...\n";
 
-    const std::filesystem::path primitive_stream_file = tests_resources_files_path / "generated_primitive.stream";
+    const std::filesystem::path primitive_stream_file = tests_resources_files_path
+                                                        / "generated_primitive.stream";
 
     if (std::filesystem::exists(primitive_stream_file))
     {
@@ -361,7 +379,7 @@ int main()
         // Step 4: Verify that original and deserialized data match
         std::cout << "\n4. Verifying data integrity...\n";
 
-        if (verify_batches_match(original_batches, deserialized_batches))
+        if (utils::verify_batches_match(original_batches, deserialized_batches))
         {
             std::cout << "   ✓ All data matches perfectly!\n";
         }
