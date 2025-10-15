@@ -54,7 +54,7 @@ find_package_or_fetch(
     GIT_REPOSITORY https://github.com/man-group/sparrow.git
     TAG 1.1.2
 )
-unset(CREATE_JSON_READER_TARGET)
+find_package(sparrow-json-reader)
 
 if(NOT TARGET sparrow::sparrow)
     add_library(sparrow::sparrow ALIAS sparrow)
