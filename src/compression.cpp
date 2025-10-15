@@ -20,7 +20,7 @@ namespace sparrow_ipc
 //         }
 //     }
 
-    std::vector<std::uint8_t> compress(org::apache::arrow::flatbuf::CompressionType compression_type, std::span<const std::uint8_t> data)
+    std::vector<std::uint8_t> compress(const org::apache::arrow::flatbuf::CompressionType compression_type, std::span<const std::uint8_t> data)
     {
         if (data.empty())
         {
@@ -30,7 +30,7 @@ namespace sparrow_ipc
         {
             case org::apache::arrow::flatbuf::CompressionType::LZ4_FRAME:
             {
-                std::int64_t uncompressed_size = data.size();
+                const std::int64_t uncompressed_size = data.size();
                 const size_t max_compressed_size = LZ4F_compressFrameBound(uncompressed_size, nullptr);
                 std::vector<std::uint8_t> compressed_data(max_compressed_size);
                 const size_t compressed_size = LZ4F_compressFrame(compressed_data.data(), max_compressed_size, data.data(), uncompressed_size, nullptr);
@@ -46,7 +46,7 @@ namespace sparrow_ipc
         }
     }
 
-    std::vector<std::uint8_t> decompress(org::apache::arrow::flatbuf::CompressionType compression_type, std::span<const std::uint8_t> data)
+    std::vector<std::uint8_t> decompress(const org::apache::arrow::flatbuf::CompressionType compression_type, std::span<const std::uint8_t> data)
     {
         if (data.empty())
         {
