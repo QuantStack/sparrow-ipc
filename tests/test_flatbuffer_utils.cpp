@@ -103,7 +103,7 @@ namespace sparrow_ipc
             SUBCASE("With valid record batch")
             {
                 auto record_batch = create_test_record_batch();
-                auto children_offset = create_children(builder, record_batch.columns());
+                auto children_offset = create_children(builder, record_batch);
                 CHECK_NE(children_offset.o, 0);
             }
 
@@ -111,7 +111,7 @@ namespace sparrow_ipc
             {
                 auto empty_batch = sp::record_batch({});
 
-                auto children_offset = create_children(builder, empty_batch.columns());
+                auto children_offset = create_children(builder, empty_batch);
                 CHECK_EQ(children_offset.o, 0);
             }
         }
@@ -459,7 +459,7 @@ namespace sparrow_ipc
                     get_flatbuffer_type(builder, "+w:16").first,
                     org::apache::arrow::flatbuf::Type::FixedSizeList
                 );                                                  // FIXED_SIZED_LIST
-                CHECK_THROWS(get_flatbuffer_type(builder, "+w:"));  // Invalid FixedSizeList format
+                CHECK_THROWS(static_cast<void>(get_flatbuffer_type(builder, "+w:")));  // Invalid FixedSizeList format
             }
 
             SUBCASE("Struct and Map types")
@@ -500,7 +500,7 @@ namespace sparrow_ipc
                     get_flatbuffer_type(builder, "d:10,5").first,
                     org::apache::arrow::flatbuf::Type::Decimal
                 );                                                   // DECIMAL (general)
-                CHECK_THROWS(get_flatbuffer_type(builder, "d:10"));  // Invalid Decimal format
+                CHECK_THROWS(static_cast<void>(get_flatbuffer_type(builder, "d:10")));  // Invalid Decimal format
             }
 
             SUBCASE("Fixed Width Binary type")

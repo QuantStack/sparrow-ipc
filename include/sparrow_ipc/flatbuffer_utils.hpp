@@ -49,15 +49,44 @@ namespace sparrow_ipc
      *
      * @param builder Reference to the FlatBufferBuilder used for creating FlatBuffer objects
      * @param arrow_schema The ArrowSchema structure containing the field definition to convert
+     * @param name_override Optional field name to use instead of the name from arrow_schema.
+     *                      If provided, this name will be used regardless of arrow_schema.name.
+     *                      If not provided, falls back to arrow_schema.name (or empty if null)
      *
      * @return A FlatBuffer offset to the created Field object that can be used in further
      *         FlatBuffer construction operations
      *
      * @note Dictionary encoding is not currently supported (TODO item)
      * @note The function checks the NULLABLE flag from the ArrowSchema flags to determine nullability
+     * @note The name_override parameter is useful when serializing record batches where column
+     *       names are stored separately from the array schemas
      */
     [[nodiscard]] ::flatbuffers::Offset<org::apache::arrow::flatbuf::Field>
     create_field(flatbuffers::FlatBufferBuilder& builder, const ArrowSchema& arrow_schema, std::optional<std::string_view> name_override = std::nullopt);
+
+    /**
+     * @brief Creates a FlatBuffers vector of Field objects from a record batch.
+     *
+     * This function extracts column information from a record batch and converts each column
+     * into a FlatBuffers Field object. It uses both the column's Arrow schema and the record
+     * batch's column names to create properly named fields. The resulting fields are collected
+     * into a FlatBuffers vector.
+     *
+     * @param builder Reference to the FlatBuffers builder used for creating the vector
+     * @param record_batch The record batch containing columns and their associated names
+     *
+     * @return FlatBuffers offset to a vector of Field objects, or 0 if the record batch has no columns
+     *
+     * @note The function reserves space in the children vector based on the column count
+     *       for performance optimization
+     * @note Each field is created using the column name from record_batch.names() rather than
+     *       from the Arrow schema, ensuring consistency with the record batch structure
+     * @note This function properly handles the case where Arrow schemas may not have names
+     *       by using the record batch's explicit column names via the name_override parameter
+     */
+    [[nodiscard]] ::flatbuffers::Offset<
+        ::flatbuffers::Vector<::flatbuffers::Offset<org::apache::arrow::flatbuf::Field>>>
+    create_children(flatbuffers::FlatBufferBuilder& builder, const sparrow::record_batch& record_batch);
 
     /**
      * @brief Creates a FlatBuffers vector of Field objects from an ArrowSchema's children.
@@ -81,20 +110,21 @@ namespace sparrow_ipc
     create_children(flatbuffers::FlatBufferBuilder& builder, const sparrow::record_batch& record_batch);
 
     /**
-     * @brief Creates a FlatBuffers vector of Field objects from a range of columns.
+     * @brief Creates a FlatBuffers vector of Field objects from an ArrowSchema's children.
      *
-     * This function iterates through the provided column range, extracts the Arrow schema
-     * from each column's proxy, and creates corresponding FlatBuffers Field objects.
-     * The resulting fields are collected into a vector and converted to a FlatBuffers
-     * vector offset.
+     * This function iterates through all children of the given ArrowSchema and converts
+     * each child to a FlatBuffers Field object. The resulting fields are collected into
+     * a FlatBuffers vector.
      *
-     * @param builder Reference to the FlatBuffers builder used for creating the vector
-     * @param columns Range of columns to process, each containing an Arrow schema proxy
+     * @param builder Reference to the FlatBufferBuilder used for creating FlatBuffers objects
+     * @param arrow_schema The ArrowSchema containing the children to convert
      *
-     * @return FlatBuffers offset to a vector of Field objects, or 0 if the input range is empty
+     * @return A FlatBuffers offset to a vector of Field objects, or 0 if no children exist
      *
-     * @note The function reserves space in the children vector based on the column count
-     *       for performance optimization
+     * @throws std::invalid_argument If any child pointer in the ArrowSchema is null
+     *
+     * @note The function reserves space for all children upfront for performance optimization
+     * @note Returns 0 (null offset) when the schema has no children, otherwise returns a valid vector offset
      */
     [[nodiscard]] ::flatbuffers::Offset<
         ::flatbuffers::Vector<::flatbuffers::Offset<org::apache::arrow::flatbuf::Field>>>
