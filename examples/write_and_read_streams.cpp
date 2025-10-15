@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <cstdlib>
 #include <iostream>
 #include <random>
 #include <vector>
@@ -74,6 +75,73 @@ sp::record_batch create_random_record_batch(size_t num_rows)
     );
 }
 
+/**
+ * Verify that two sets of record batches are identical
+ * Returns true if all batches match, false otherwise
+ */
+bool verify_batches_match(
+    const std::vector<sp::record_batch>& original_batches,
+    const std::vector<sp::record_batch>& deserialized_batches
+)
+{
+    if (original_batches.size() != deserialized_batches.size())
+    {
+        std::cerr << "ERROR: Batch count mismatch! Original: " << original_batches.size()
+                  << ", Deserialized: " << deserialized_batches.size() << "\n";
+        return false;
+    }
+
+    bool all_match = true;
+    for (size_t batch_idx = 0; batch_idx < original_batches.size(); ++batch_idx)
+    {
+        const auto& original = original_batches[batch_idx];
+        const auto& deserialized = deserialized_batches[batch_idx];
+
+        // Check basic structure
+        if (original.nb_columns() != deserialized.nb_columns() || original.nb_rows() != deserialized.nb_rows())
+        {
+            std::cerr << "ERROR: Batch " << batch_idx << " structure mismatch!\n";
+            all_match = false;
+            continue;
+        }
+
+        // Check column names
+        if (!std::ranges::equal(original.names(), deserialized.names()))
+        {
+            std::cerr << "WARNING: Batch " << batch_idx << " column names mismatch!\n";
+        }
+
+        // Check column data
+        for (size_t col_idx = 0; col_idx < original.nb_columns(); ++col_idx)
+        {
+            const auto& orig_col = original.get_column(col_idx);
+            const auto& deser_col = deserialized.get_column(col_idx);
+
+            if (orig_col.data_type() != deser_col.data_type())
+            {
+                std::cerr << "ERROR: Batch " << batch_idx << ", column " << col_idx << " type mismatch!\n";
+                all_match = false;
+                continue;
+            }
+
+            // Check values
+            for (size_t row_idx = 0; row_idx < orig_col.size(); ++row_idx)
+            {
+                if (orig_col[row_idx] != deser_col[row_idx])
+                {
+                    std::cerr << "ERROR: Batch " << batch_idx << ", column " << col_idx << ", row " << row_idx
+                              << " value mismatch!\n";
+                    std::cerr << "  Original: " << orig_col[row_idx]
+                              << ", Deserialized: " << deser_col[row_idx] << "\n";
+                    all_match = false;
+                }
+            }
+        }
+    }
+
+    return all_match;
+}
+
 int main()
 {
     std::cout << "=== Sparrow IPC Stream Write and Read Example ===\n";
@@ -125,63 +193,7 @@ int main()
         // Step 4: Verify that original and deserialized data match
         std::cout << "\n4. Verifying data integrity...\n";
 
-        if (original_batches.size() != deserialized_batches.size())
-        {
-            std::cerr << "ERROR: Batch count mismatch! Original: " << original_batches.size()
-                      << ", Deserialized: " << deserialized_batches.size() << "\n";
-            return 1;
-        }
-
-        bool all_match = true;
-        for (size_t batch_idx = 0; batch_idx < original_batches.size(); ++batch_idx)
-        {
-            const auto& original = original_batches[batch_idx];
-            const auto& deserialized = deserialized_batches[batch_idx];
-
-            // Check basic structure
-            if (original.nb_columns() != deserialized.nb_columns()
-                || original.nb_rows() != deserialized.nb_rows())
-            {
-                std::cerr << "ERROR: Batch " << batch_idx << " structure mismatch!\n";
-                all_match = false;
-                continue;
-            }
-
-            // Check column names
-            if (!std::ranges::equal(original.names(), deserialized.names()))
-            {
-                std::cerr << "WARNING: Batch " << batch_idx << " column names mismatch!\n";
-            }
-
-            // Check column data
-            for (size_t col_idx = 0; col_idx < original.nb_columns(); ++col_idx)
-            {
-                const auto& orig_col = original.get_column(col_idx);
-                const auto& deser_col = deserialized.get_column(col_idx);
-
-                if (orig_col.data_type() != deser_col.data_type())
-                {
-                    std::cerr << "ERROR: Batch " << batch_idx << ", column " << col_idx << " type mismatch!\n";
-                    all_match = false;
-                    continue;
-                }
-
-                // Check values
-                for (size_t row_idx = 0; row_idx < orig_col.size(); ++row_idx)
-                {
-                    if (orig_col[row_idx] != deser_col[row_idx])
-                    {
-                        std::cerr << "ERROR: Batch " << batch_idx << ", column " << col_idx << ", row "
-                                  << row_idx << " value mismatch!\n";
-                        std::cerr << "  Original: " << orig_col[row_idx]
-                                  << ", Deserialized: " << deser_col[row_idx] << "\n";
-                        all_match = false;
-                    }
-                }
-            }
-        }
-
-        if (all_match)
+        if (verify_batches_match(original_batches, deserialized_batches))
         {
             std::cout << "   ✓ All data matches perfectly!\n";
         }
@@ -270,8 +282,8 @@ int main()
     catch (const std::exception& e)
     {
         std::cerr << "Error: " << e.what() << "\n";
-        return 1;
+        return EXIT_FAILURE;
     }
 
-    return 0;
+    return EXIT_SUCCESS;
 }
