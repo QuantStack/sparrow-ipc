@@ -40,7 +40,8 @@ jobs:
           -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX \
           -DCMAKE_PREFIX_PATH=$GLOB_PREFIX_PATH \
           -DSPARROW_IPC_BUILD_SHARED=${{ matrix.build_shared }} \
-          -DSPARROW_IPC_BUILD_TESTS=ON
+          -DSPARROW_IPC_BUILD_TESTS=ON \
+          -DSPARROW_IPC_BUILD_EXAMPLES=ON
 
       - name: Build sparrow-ipc
         working-directory: build
@@ -54,6 +55,14 @@ jobs:
         working-directory: build
         run: |
           cmake --build . --config ${{ matrix.build_type }} --target run_tests_with_junit_report
+
+      - name: Build example
+        working-directory: build
+        run: cmake --build . --config ${{ matrix.build_type }} --target write_and_read_streams
+
+      - name: Run example
+        working-directory: build
+        run: cmake --build . --config ${{ matrix.build_type }} --target run_example
 
       - name: Install
         working-directory: build
@@ -80,6 +89,7 @@ jobs:
           cmake -S ./ -B ./build \
           -DSPARROW_IPC_BUILD_SHARED=${{ matrix.build_shared }} \
           -DSPARROW_IPC_BUILD_TESTS=ON \
+          -DSPARROW_IPC_BUILD_EXAMPLES=ON \
           -DFETCH_DEPENDENCIES_WITH_CMAKE=MISSING \
           $TEST_COVERAGE_ACTIVATION
 
@@ -94,6 +104,14 @@ jobs:
       - name: Run tests
         working-directory: build
         run: cmake --build . --config ${{ matrix.build_type }} --target run_tests_with_junit_report
+
+      - name: Build example
+        working-directory: build
+        run: cmake --build . --config ${{ matrix.build_type }} --target write_and_read_streams
+
+      - name: Run example
+        working-directory: build
+        run: cmake --build . --config ${{ matrix.build_type }} --target run_example
 
       - name: Install
         working-directory: build
