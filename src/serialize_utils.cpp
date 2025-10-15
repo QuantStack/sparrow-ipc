@@ -1,3 +1,4 @@
+#include <tuple>
 #include <lz4frame.h>
 
 #include "sparrow_ipc/flatbuffer_utils.hpp"

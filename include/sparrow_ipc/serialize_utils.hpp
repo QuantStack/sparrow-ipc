@@ -117,7 +117,23 @@ namespace sparrow_ipc
         return total_size;
     }
 
-    void fill_body_and_get_buffers_compressed(const sparrow::arrow_proxy& arrow_proxy, std::vector<uint8_t>& body, std::vector<org::apache::arrow::flatbuf::Buffer>& flatbuf_buffers, int64_t& offset, org::apache::arrow::flatbuf::CompressionType compression_type);
+    /**
+     * @brief Generates the compressed message body and buffer metadata for a record batch.
+     *
+     * This function traverses the record batch, compresses each buffer using the specified
+     * compression algorithm, and constructs the message body. For each compressed buffer,
+     * it is prefixed by its 8-byte uncompressed size. Padding is added after each
+     * compressed buffer to ensure 8-byte alignment.
+     *
+     * @param record_batch The record batch to serialize.
+     * @param compression_type The compression algorithm to use (e.g., LZ4_FRAME, ZSTD).
+     * @return A std::pair containing:
+     *         - first: A vector of bytes representing the complete compressed message body.
+     *         - second: A vector of FlatBuffer Buffer objects describing the offset and
+     *                   size of each buffer within the compressed body.
+     */
+    [[nodiscard]] SPARROW_IPC_API std::pair<std::vector<uint8_t>, std::vector<org::apache::arrow::flatbuf::Buffer>>
+    generate_compressed_body_and_buffers(const sparrow::record_batch& record_batch, const org::apache::arrow::flatbuf::CompressionType compression_type);
 
     /**
      * @brief Fills the body vector with serialized data from an arrow proxy and its children.
