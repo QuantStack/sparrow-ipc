@@ -111,7 +111,7 @@ namespace sparrow_ipc
                 std::vector<uint8_t> serialized;
                 memory_output_stream stream(serialized);
                 any_output_stream astream(stream);
-                serialize_schema_message(record_batch, astream  );
+                serialize_schema_message(record_batch, astream);
 
                 CHECK_EQ(estimated_size, serialized.size());
             }
@@ -147,7 +147,7 @@ namespace sparrow_ipc
                 std::vector<uint8_t> serialized;
                 memory_output_stream stream(serialized);
                 any_output_stream astream(stream);
-                serialize_record_batch(record_batch, astream);
+                serialize_record_batch(record_batch, astream, std::nullopt);
 
                 CHECK_EQ(estimated_size, serialized.size());
             }
@@ -164,7 +164,7 @@ namespace sparrow_ipc
                 std::vector<uint8_t> serialized;
                 memory_output_stream stream(serialized);
                 any_output_stream astream(stream);
-                serialize_record_batch(record_batch, astream);
+                serialize_record_batch(record_batch, astream, std::nullopt);
 
                 CHECK_EQ(estimated_size, serialized.size());
             }
@@ -243,8 +243,8 @@ namespace sparrow_ipc
                 std::vector<uint8_t> serialized;
                 memory_output_stream stream(serialized);
                 any_output_stream astream(stream);
-                serialize_record_batch(record_batch, astream);
-                CHECK_GT(serialized.size(), 0);
+                serialize_record_batch(record_batch, astream, std::nullopt);
+		 CHECK_GT(serialized.size(), 0);
 
                 // Check that it starts with continuation bytes
                 CHECK_GE(serialized.size(), continuation.size());
@@ -278,7 +278,7 @@ namespace sparrow_ipc
                 std::vector<uint8_t> serialized;
                 memory_output_stream stream(serialized);
                 any_output_stream astream(stream);
-                serialize_record_batch(empty_batch, astream);
+                serialize_record_batch(empty_batch, astream, std::nullopt);
                 CHECK_GT(serialized.size(), 0);
                 CHECK_GE(serialized.size(), continuation.size());
             }

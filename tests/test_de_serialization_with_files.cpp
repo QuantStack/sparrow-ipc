@@ -224,7 +224,11 @@ TEST_SUITE("Integration tests")
                 const auto record_batches_from_stream = sparrow_ipc::deserialize_stream(
                     std::span<const uint8_t>(stream_data)
                 );
-                const auto serialized_data = sparrow_ipc::serialize(record_batches_from_json, org::apache::arrow::flatbuf::CompressionType::LZ4_FRAME);
+
+                std::vector<uint8_t> serialized_data;
+                sparrow_ipc::memory_output_stream stream(serialized_data);
+                sparrow_ipc::serializer serializer(stream, org::apache::arrow::flatbuf::CompressionType::LZ4_FRAME);
+                serializer << record_batches_from_json << sparrow_ipc::end_stream;
                 const auto deserialized_serialized_data = sparrow_ipc::deserialize_stream(
                     std::span<const uint8_t>(serialized_data)
                 );

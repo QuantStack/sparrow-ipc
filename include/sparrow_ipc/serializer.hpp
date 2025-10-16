@@ -41,8 +41,8 @@ namespace sparrow_ipc
          *               The serializer stores a pointer to this stream for later use.
          */
         template <writable_stream TStream>
-        serializer(TStream& stream)
-            : m_stream(stream)
+        serializer(TStream& stream, std::optional<org::apache::arrow::flatbuf::CompressionType> compression = std::nullopt)
+            : m_stream(stream), m_compression(compression)
         {
         }
 
@@ -94,7 +94,7 @@ namespace sparrow_ipc
                            m_stream.size(),
                            [this](size_t acc, const sparrow::record_batch& rb)
                            {
-                               return acc + calculate_record_batch_message_size(rb);
+                               return acc + calculate_record_batch_message_size(rb, m_compression);
                            }
                        )
                        + (m_schema_received ? 0 : calculate_schema_message_size(*record_batches.begin()));
@@ -115,7 +115,7 @@ namespace sparrow_ipc
                 {
                     throw std::invalid_argument("Record batch schema does not match serializer schema");
                 }
-                serialize_record_batch(rb, m_stream);
+                serialize_record_batch(rb, m_stream, m_compression);
             }
         }
 
@@ -206,6 +206,7 @@ namespace sparrow_ipc
         std::vector<sparrow::data_type> m_dtypes;
         any_output_stream m_stream;
         bool m_ended{false};
+        std::optional<org::apache::arrow::flatbuf::CompressionType> m_compression;
     };
 
     inline serializer& end_stream(serializer& serializer)

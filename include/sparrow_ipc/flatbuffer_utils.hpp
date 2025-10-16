@@ -213,15 +213,20 @@ namespace sparrow_ipc
      * format that conforms to the Arrow IPC specification.
      *
      * @param record_batch The source record batch containing the data to be serialized
-     *
+     * @param compression Optional: The compression algorithm to be used for the message body
+     * @param body_size Optional: An override for the total size of the message body
+     *                  If not provided, the size is calculated from the uncompressed buffers
+     *                  This is required when using compression
+     * @param compressed_buffers Optional: A pointer to a vector of buffer metadata.
+     *                           If provided, this metadata is used instead of generating it from the
+     *                           uncompressed record batch. This is required when using compression.
      * @return A FlatBufferBuilder containing the complete serialized message ready for
      *         transmission or storage. The builder is finished and ready to be accessed
      *         via GetBufferPointer() and GetSize().
      *
      * @note The returned message uses Arrow IPC format version V5
-     * @note Compression and variadic buffer counts are not currently implemented (set to 0)
-     * @note The body size is automatically calculated based on the record batch contents
+     * @note Variadic buffer counts is not currently implemented (set to 0)
      */
     [[nodiscard]] flatbuffers::FlatBufferBuilder
-    get_record_batch_message_builder(const sparrow::record_batch& record_batch);
+    get_record_batch_message_builder(const sparrow::record_batch& record_batch, std::optional<org::apache::arrow::flatbuf::CompressionType> compression = std::nullopt, std::optional<std::int64_t> body_size = std::nullopt, const std::vector<org::apache::arrow::flatbuf::Buffer>* compressed_buffers = nullptr);
 }
