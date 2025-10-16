@@ -1,6 +1,6 @@
 #include "sparrow_ipc/serializer.hpp"
 
-#include <memory>
+
 #include <ranges>
 #include "sparrow_ipc/magic_values.hpp"
 

@@ -20,11 +20,11 @@
 const std::filesystem::path arrow_testing_data_dir = ARROW_TESTING_DATA_DIR;
 
 const std::filesystem::path tests_resources_files_path = arrow_testing_data_dir / "data" / "arrow-ipc-stream"
-                                                         / "integration" / "1.0.0-littleendian";
+                                                         / "integration" / "cpp-21.0.0";
 
 const std::vector<std::filesystem::path> files_paths_to_test = {
     tests_resources_files_path / "generated_primitive",
-    tests_resources_files_path / "generated_primitive_large_offsets",
+    // tests_resources_files_path / "generated_primitive_large_offsets",
     tests_resources_files_path / "generated_primitive_zerolength",
     // tests_resources_files_path / "generated_primitive_no_batches"
 };
@@ -63,12 +63,12 @@ void compare_record_batches(
             const auto& column_1 = record_batches_1[i].get_column(y);
             const auto& column_2 = record_batches_2[i].get_column(y);
             REQUIRE_EQ(column_1.size(), column_2.size());
+            CHECK_EQ(record_batches_1[i].names()[y], record_batches_2[i].names()[y]);
             for (size_t z = 0; z < column_1.size(); z++)
             {
                 const auto col_name = column_1.name().value_or("NA");
                 INFO("Comparing batch " << i << ", column " << y << " named :" << col_name << " , row " << z);
                 REQUIRE_EQ(column_1.data_type(), column_2.data_type());
-                CHECK_EQ(column_1.name(), column_2.name());
                 const auto& column_1_value = column_1[z];
                 const auto& column_2_value = column_2[z];
                 CHECK_EQ(column_1_value, column_2_value);

@@ -1,4 +1,5 @@
 #include "sparrow_ipc/flatbuffer_utils.hpp"
+#include <string>
 
 #include "sparrow_ipc/serialize_utils.hpp"
 #include "sparrow_ipc/utils.hpp"
@@ -425,11 +426,11 @@ namespace sparrow_ipc
     }
 
     ::flatbuffers::Offset<org::apache::arrow::flatbuf::Field>
-    create_field(flatbuffers::FlatBufferBuilder& builder, const ArrowSchema& arrow_schema)
+    create_field(flatbuffers::FlatBufferBuilder& builder, const ArrowSchema& arrow_schema, std::optional<std::string_view> name_override)
     {
-        flatbuffers::Offset<flatbuffers::String> fb_name_offset = (arrow_schema.name == nullptr)
-                                                                      ? 0
-                                                                      : builder.CreateString(arrow_schema.name);
+        flatbuffers::Offset<flatbuffers::String> fb_name_offset = name_override.has_value()
+                                                                      ? builder.CreateString(name_override.value())
+                                                                      : (arrow_schema.name == nullptr ? 0 : builder.CreateString(arrow_schema.name));
         const auto [type_enum, type_offset] = get_flatbuffer_type(builder, arrow_schema.format);
         auto fb_metadata_offset = create_metadata(builder, arrow_schema);
         const auto children = create_children(builder, arrow_schema);
@@ -465,14 +466,20 @@ namespace sparrow_ipc
     }
 
     ::flatbuffers::Offset<::flatbuffers::Vector<::flatbuffers::Offset<org::apache::arrow::flatbuf::Field>>>
-    create_children(flatbuffers::FlatBufferBuilder& builder, sparrow::record_batch::column_range columns)
+    create_children(flatbuffers::FlatBufferBuilder& builder, const sparrow::record_batch& record_batch)
     {
         std::vector<flatbuffers::Offset<org::apache::arrow::flatbuf::Field>> children_vec;
+        const auto& columns = record_batch.columns();
         children_vec.reserve(columns.size());
-        for (const auto& column : columns)
+        const auto names = record_batch.names();
+        for (size_t i = 0; i < columns.size(); ++i)
         {
-            const auto& arrow_schema = sparrow::detail::array_access::get_arrow_proxy(column).schema();
-            flatbuffers::Offset<org::apache::arrow::flatbuf::Field> field = create_field(builder, arrow_schema);
+            const auto& arrow_schema = sparrow::detail::array_access::get_arrow_proxy(columns[i]).schema();
+            flatbuffers::Offset<org::apache::arrow::flatbuf::Field> field = create_field(
+                builder,
+                arrow_schema,
+                names[i]
+            );
             children_vec.emplace_back(field);
         }
         return children_vec.empty() ? 0 : builder.CreateVector(children_vec);
@@ -481,7 +488,7 @@ namespace sparrow_ipc
     flatbuffers::FlatBufferBuilder get_schema_message_builder(const sparrow::record_batch& record_batch)
     {
         flatbuffers::FlatBufferBuilder schema_builder;
-        const auto fields_vec = create_children(schema_builder, record_batch.columns());
+        const auto fields_vec = create_children(schema_builder, record_batch);
         const auto schema_offset = org::apache::arrow::flatbuf::CreateSchema(
             schema_builder,
             org::apache::arrow::flatbuf::Endianness::Little,  // TODO: make configurable

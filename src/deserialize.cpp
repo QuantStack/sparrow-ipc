@@ -60,7 +60,7 @@ namespace sparrow_ipc
             const ::flatbuffers::Vector<::flatbuffers::Offset<org::apache::arrow::flatbuf::KeyValue>>*
                 fb_custom_metadata = field->custom_metadata();
             const std::optional<std::vector<sparrow::metadata_pair>>& metadata = field_metadata[field_idx++];
-            const auto name = field->name()->string_view();
+            const std::string name = field->name() == nullptr ? "" : field->name()->str();
             const auto field_type = field->type_type();
             const auto deserialize_non_owning_primitive_array_lambda = [&]<typename T>()
             {
@@ -202,7 +202,7 @@ namespace sparrow_ipc
     {
         const org::apache::arrow::flatbuf::Schema* schema = nullptr;
         std::vector<sparrow::record_batch> record_batches;
-        std::vector<std::string_view> field_names;
+        std::vector<std::string> field_names;
         std::vector<bool> fields_nullable;
         std::vector<sparrow::data_type> field_types;
         std::vector<std::optional<std::vector<sparrow::metadata_pair>>> fields_metadata;
@@ -222,7 +222,13 @@ namespace sparrow_ipc
 
                     for (const auto field : *(schema->fields()))
                     {
-                        field_names.emplace_back(field->name()->string_view());
+                        if(field != nullptr && field->name() != nullptr)
+                        {
+                           field_names.emplace_back(field->name()->str());
+                        }
+                        else {
+                            field_names.emplace_back("_unnamed_");
+                        }
                         fields_nullable.push_back(field->nullable());
                         const ::flatbuffers::Vector<::flatbuffers::Offset<org::apache::arrow::flatbuf::KeyValue>>*
                             fb_custom_metadata = field->custom_metadata();
@@ -251,8 +257,9 @@ namespace sparrow_ipc
                         encapsulated_message,
                         fields_metadata
                     );
-                    std::vector<std::string> field_names_str(field_names.cbegin(), field_names.cend());
-                    record_batches.emplace_back(std::move(field_names_str), std::move(arrays));
+                    auto names_copy = field_names; // TODO: Remove when issue with the to_vector of record_batch is fixed
+                    sparrow::record_batch sp_record_batch(std::move(names_copy), std::move(arrays));
+                    record_batches.emplace_back(std::move(sp_record_batch));
                 }
                 break;
                 case org::apache::arrow::flatbuf::MessageHeader::Tensor:
@@ -267,7 +274,7 @@ namespace sparrow_ipc
             {
                 break;
             }
-        } while (true);
+        } while (!data.empty());
         return record_batches;
     }
 }

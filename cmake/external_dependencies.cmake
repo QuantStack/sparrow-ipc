@@ -52,7 +52,7 @@ endif()
 find_package_or_fetch(
     PACKAGE_NAME sparrow
     GIT_REPOSITORY https://github.com/man-group/sparrow.git
-    TAG 1.1.2
+    TAG 1.2.0
 )
 unset(CREATE_JSON_READER_TARGET)
 
@@ -111,7 +111,7 @@ if(SPARROW_IPC_BUILD_TESTS)
 
     # Iterate over all the files in the arrow-testing-data source directiory. When it's a gz, extract in place.
     file(GLOB_RECURSE arrow_testing_data_targz_files CONFIGURE_DEPENDS
-        "${arrow-testing_SOURCE_DIR}/data/arrow-ipc-stream/integration/1.0.0-littleendian/*.json.gz"
+        "${arrow-testing_SOURCE_DIR}/data/arrow-ipc-stream/integration/cpp-21.0.0/*.json.gz"
     )
     foreach(file_path IN LISTS arrow_testing_data_targz_files)
             cmake_path(GET file_path PARENT_PATH parent_dir)
