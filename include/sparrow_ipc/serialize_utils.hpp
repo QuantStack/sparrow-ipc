@@ -8,7 +8,6 @@
 #include "Message_generated.h"
 #include "sparrow_ipc/any_output_stream.hpp"
 #include "sparrow_ipc/config/config.hpp"
-#include "sparrow_ipc/compression.hpp"
 #include "sparrow_ipc/utils.hpp"
 
 namespace sparrow_ipc
@@ -40,8 +39,8 @@ namespace sparrow_ipc
      * consists of a metadata section followed by a body section containing the actual data.
      *
      * @param record_batch The sparrow record batch to be serialized
-     * @param compression The compression type to use when serializing
      * @param stream The output stream where the serialized record batch will be written
+     * @param compression The compression type to use when serializing
      */
     SPARROW_IPC_API void
     serialize_record_batch(const sparrow::record_batch& record_batch, any_output_stream& stream, std::optional<org::apache::arrow::flatbuf::CompressionType> compression);
@@ -74,10 +73,11 @@ namespace sparrow_ipc
      * - Body data with 8-byte alignment between buffers
      *
      * @param record_batch The record batch to be measured
+     * @param compression The compression type to use when serializing
      * @return The total size in bytes that the serialized record batch would occupy
      */
     [[nodiscard]] SPARROW_IPC_API std::size_t
-    calculate_record_batch_message_size(const sparrow::record_batch& record_batch);
+    calculate_record_batch_message_size(const sparrow::record_batch& record_batch, std::optional<org::apache::arrow::flatbuf::CompressionType> compression = std::nullopt);
 
     /**
      * @brief Calculates the total serialized size for a collection of record batches.
@@ -87,12 +87,13 @@ namespace sparrow_ipc
      *
      * @tparam R Range type containing sparrow::record_batch objects
      * @param record_batches Collection of record batches to be measured
+     * @param compression The compression type to use when serializing
      * @return The total size in bytes for the complete serialized output
      * @throws std::invalid_argument if record batches have inconsistent schemas
      */
     template <std::ranges::input_range R>
         requires std::same_as<std::ranges::range_value_t<R>, sparrow::record_batch>
-    [[nodiscard]] std::size_t calculate_total_serialized_size(const R& record_batches)
+    [[nodiscard]] std::size_t calculate_total_serialized_size(const R& record_batches, std::optional<org::apache::arrow::flatbuf::CompressionType> compression = std::nullopt)
     {
         if (record_batches.empty())
         {
@@ -111,7 +112,7 @@ namespace sparrow_ipc
         // Calculate record batch message sizes
         for (const auto& record_batch : record_batches)
         {
-            total_size += calculate_record_batch_message_size(record_batch);
+            total_size += calculate_record_batch_message_size(record_batch, compression);
         }
 
         return total_size;
