@@ -6,6 +6,8 @@
 
 #include "Message_generated.h"
 
+#include "sparrow_ipc/config/config.hpp"
+
 namespace sparrow_ipc
 {
 // TODO use these later if needed for wrapping purposes (flatbuffers/lz4)
@@ -18,6 +20,6 @@ namespace sparrow_ipc
 
 //     CompressionType to_compression_type(org::apache::arrow::flatbuf::CompressionType compression_type);
 
-    std::vector<std::uint8_t> compress(const org::apache::arrow::flatbuf::CompressionType compression_type, std::span<const std::uint8_t> data);
-    std::vector<std::uint8_t> decompress(const org::apache::arrow::flatbuf::CompressionType compression_type, std::span<const std::uint8_t> data);
+    SPARROW_IPC_API std::vector<std::uint8_t> compress(const org::apache::arrow::flatbuf::CompressionType compression_type, std::span<const std::uint8_t> data);
+    SPARROW_IPC_API std::vector<std::uint8_t> decompress(const org::apache::arrow::flatbuf::CompressionType compression_type, std::span<const std::uint8_t> data);
 }
