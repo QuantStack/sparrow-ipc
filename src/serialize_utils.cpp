@@ -103,7 +103,7 @@ namespace sparrow_ipc
         return metadata_size + actual_body_size;
     }
 
-    [[nodiscard]] SPARROW_IPC_API std::pair<std::vector<uint8_t>, std::vector<org::apache::arrow::flatbuf::Buffer>>
+    std::pair<std::vector<uint8_t>, std::vector<org::apache::arrow::flatbuf::Buffer>>
     generate_compressed_body_and_buffers(const sparrow::record_batch& record_batch, const org::apache::arrow::flatbuf::CompressionType compression_type)
     {
         std::vector<uint8_t> compressed_body;
@@ -115,23 +115,16 @@ namespace sparrow_ipc
             const auto& arrow_proxy = sparrow::detail::array_access::get_arrow_proxy(column);
             for (const auto& buffer : arrow_proxy.buffers())
             {
-                // Original buffer size
-                const int64_t original_size = static_cast<int64_t>(buffer.size());
+                // Compress the buffer. The returned buffer already has the correct size header.
+                std::vector<uint8_t> compressed_buffer_with_header = compress(compression_type, std::span<const uint8_t>(buffer.data(), buffer.size()));
 
-                // Compress the buffer
-                std::vector<uint8_t> compressed_buffer_data = compress(compression_type, std::span<const uint8_t>(buffer.data(), original_size));
-                const int64_t compressed_data_size = static_cast<int64_t>(compressed_buffer_data.size());
+                const size_t aligned_chunk_size = utils::align_to_8(compressed_buffer_with_header.size());
+                const size_t padding_needed = aligned_chunk_size - compressed_buffer_with_header.size();
 
-                // Calculate total size of this compressed chunk (original size prefix + compressed data + padding)
-                const int64_t total_chunk_size = sizeof(int64_t) + compressed_data_size;
-                const size_t aligned_chunk_size = utils::align_to_8(total_chunk_size);
-                const size_t padding_needed = aligned_chunk_size - total_chunk_size;
+                // Write compressed data with header
+                compressed_body.insert(compressed_body.end(), compressed_buffer_with_header.begin(), compressed_buffer_with_header.end());
 
-                // Write original size (8 bytes) followed by compressed data
-                compressed_body.insert(compressed_body.end(), reinterpret_cast<const uint8_t*>(&original_size), reinterpret_cast<const uint8_t*>(&original_size) + sizeof(int64_t));
-                compressed_body.insert(compressed_body.end(), compressed_buffer_data.begin(), compressed_buffer_data.end());
-
-                // Add padding to the compressed data
+                // Add padding
                 compressed_body.insert(compressed_body.end(), padding_needed, 0);
 
                 // Update compressed buffer metadata

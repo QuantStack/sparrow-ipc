@@ -61,8 +61,28 @@ namespace sparrow_ipc::utils
 
         if (compression)
         {
-            decompressed_storage.emplace_back(decompress(compression->codec(), buffer_span));
-            buffer_span = decompressed_storage.back();
+            auto decompressed_result = decompress(compression->codec(), buffer_span);
+            return std::visit(
+                [&decompressed_storage](auto&& arg) -> std::span<const uint8_t>
+                {
+                    using T = std::decay_t<decltype(arg)>;
+                    if constexpr (std::is_same_v<T, std::vector<uint8_t>>)
+                    {
+                        // Decompression happened
+                        decompressed_storage.emplace_back(std::move(arg));
+                        return decompressed_storage.back();
+                    }
+                    else // It's a std::span<const uint8_t>
+                    {
+                        // No decompression, but we are in a compression context, so we must copy the buffer
+                        // to ensure the owning ArrowArray has access to all its data.
+                        // TODO think about other strategies
+                        decompressed_storage.emplace_back(arg.begin(), arg.end());
+                        return decompressed_storage.back();
+                    }
+                },
+                decompressed_result
+            );
         }
         return buffer_span;
     }
