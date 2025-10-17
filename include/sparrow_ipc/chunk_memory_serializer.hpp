@@ -44,6 +44,7 @@ namespace sparrow_ipc
          * @param stream Reference to a chunked memory output stream that will receive the serialized chunks
          * @param compression Optional: The compression type to use for record batch bodies.
          */
+        // TODO Use enums and such to avoid including flatbuffers headers
         chunk_serializer(chunked_memory_output_stream<std::vector<std::vector<uint8_t>>>& stream, std::optional<org::apache::arrow::flatbuf::CompressionType> compression = std::nullopt);
 
         /**
@@ -144,21 +145,7 @@ namespace sparrow_ipc
             throw std::runtime_error("Cannot append record batches to a serializer that has been ended");
         }
 
-        const auto reserve_function = [&record_batches, this]()
-        {
-            return std::accumulate(
-                        record_batches.begin(),
-                        record_batches.end(),
-                        m_pstream->size(),
-                        [this](size_t acc, const sparrow::record_batch& rb)
-                        {
-                            return acc + calculate_record_batch_message_size(rb, m_compression);
-                        }
-                    )
-                    + (m_schema_received ? 0 : calculate_schema_message_size(*record_batches.begin()));
-        };
-
-        m_pstream->reserve(reserve_function);
+        m_pstream->reserve((m_schema_received ? 0 : 1) + m_pstream->size() + record_batches.size());
 
         if (!m_schema_received)
         {
