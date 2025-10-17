@@ -1,7 +1,9 @@
+#include "sparrow_ipc/compression.hpp"
 #include "sparrow_ipc/flatbuffer_utils.hpp"
 #include "sparrow_ipc/magic_values.hpp"
 #include "sparrow_ipc/serialize.hpp"
-#include "sparrow_ipc/utils.hpp"
+#include "sparrow_ipc/serialize_utils.hpp"
+
 
 namespace sparrow_ipc
 {
@@ -70,14 +72,24 @@ namespace sparrow_ipc
         return utils::align_to_8(total_size);
     }
 
-    std::size_t calculate_record_batch_message_size(const sparrow::record_batch& record_batch)
+    std::size_t calculate_record_batch_message_size(const sparrow::record_batch& record_batch, std::optional<org::apache::arrow::flatbuf::CompressionType> compression)
     {
         // Build the record batch message to get its exact metadata size
-        flatbuffers::FlatBufferBuilder record_batch_builder = get_record_batch_message_builder(record_batch);
+        flatbuffers::FlatBufferBuilder record_batch_builder = get_record_batch_message_builder(record_batch, compression);
         const flatbuffers::uoffset_t record_batch_len = record_batch_builder.GetSize();
 
-        // Calculate body size (already includes 8-byte alignment for each buffer)
-        const int64_t body_size = calculate_body_size(record_batch);
+        std::size_t actual_body_size = 0;
+        if (compression.has_value())
+        {
+            // If compressed, the body size is the sum of compressed buffer sizes + original size prefixes + padding
+            auto [compressed_body, compressed_buffers] = generate_compressed_body_and_buffers(record_batch, compression.value());
+            actual_body_size = compressed_body.size();
+        }
+        else
+        {
+            // If not compressed, the body size is the sum of uncompressed buffer sizes with padding
+            actual_body_size = static_cast<std::size_t>(calculate_body_size(record_batch));
+        }
 
         // Calculate total size:
         // - Continuation bytes (4)
@@ -88,7 +100,39 @@ namespace sparrow_ipc
         std::size_t metadata_size = continuation.size() + sizeof(uint32_t) + record_batch_len;
         metadata_size = utils::align_to_8(metadata_size);
 
-        return metadata_size + static_cast<std::size_t>(body_size);
+        return metadata_size + actual_body_size;
+    }
+
+    std::pair<std::vector<uint8_t>, std::vector<org::apache::arrow::flatbuf::Buffer>>
+    generate_compressed_body_and_buffers(const sparrow::record_batch& record_batch, const org::apache::arrow::flatbuf::CompressionType compression_type)
+    {
+        std::vector<uint8_t> compressed_body;
+        std::vector<org::apache::arrow::flatbuf::Buffer> compressed_buffers;
+        int64_t current_offset = 0;
+
+        for (const auto& column : record_batch.columns())
+        {
+            const auto& arrow_proxy = sparrow::detail::array_access::get_arrow_proxy(column);
+            for (const auto& buffer : arrow_proxy.buffers())
+            {
+                // Compress the buffer. The returned buffer already has the correct size header.
+                std::vector<uint8_t> compressed_buffer_with_header = compress(compression_type, std::span<const uint8_t>(buffer.data(), buffer.size()));
+
+                const size_t aligned_chunk_size = utils::align_to_8(compressed_buffer_with_header.size());
+                const size_t padding_needed = aligned_chunk_size - compressed_buffer_with_header.size();
+
+                // Write compressed data with header
+                compressed_body.insert(compressed_body.end(), compressed_buffer_with_header.begin(), compressed_buffer_with_header.end());
+
+                // Add padding
+                compressed_body.insert(compressed_body.end(), padding_needed, 0);
+
+                // Update compressed buffer metadata
+                compressed_buffers.emplace_back(current_offset, aligned_chunk_size);
+                current_offset += aligned_chunk_size;
+            }
+        }
+        return {compressed_body, compressed_buffers};
     }
 
     std::vector<sparrow::data_type> get_column_dtypes(const sparrow::record_batch& rb)

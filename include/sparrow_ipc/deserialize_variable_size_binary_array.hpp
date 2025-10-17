@@ -31,34 +31,46 @@ namespace sparrow_ipc
             nullptr,
             nullptr
         );
-        const auto [bitmap_ptr, null_count] = utils::get_bitmap_pointer_and_null_count(
-            record_batch,
-            body,
-            buffer_index++
-        );
 
-        const auto offset_metadata = record_batch.buffers()->Get(buffer_index++);
-        if ((offset_metadata->offset() + offset_metadata->length()) > body.size())
+        const auto compression = record_batch.compression();
+        std::vector<std::vector<std::uint8_t>> decompressed_buffers;
+
+        auto validity_buffer_span = utils::get_and_decompress_buffer(record_batch, body, buffer_index, compression, decompressed_buffers);
+
+        const auto [bitmap_ptr, null_count] = utils::get_bitmap_pointer_and_null_count(validity_buffer_span, record_batch.length());
+
+        auto offset_buffer_span = utils::get_and_decompress_buffer(record_batch, body, buffer_index, compression, decompressed_buffers);
+        auto data_buffer_span = utils::get_and_decompress_buffer(record_batch, body, buffer_index, compression, decompressed_buffers);
+
+        ArrowArray array;
+        if (compression)
         {
-            throw std::runtime_error("Offset buffer exceeds body size");
+            array = make_arrow_array<owning_arrow_array_private_data>(
+                record_batch.length(),
+                null_count,
+                0,
+                0,
+                nullptr,
+                nullptr,
+                std::move(decompressed_buffers)
+            );
         }
-        auto offset_ptr = const_cast<uint8_t*>(body.data() + offset_metadata->offset());
-        const auto buffer_metadata = record_batch.buffers()->Get(buffer_index++);
-        if ((buffer_metadata->offset() + buffer_metadata->length()) > body.size())
+        else
         {
-            throw std::runtime_error("Data buffer exceeds body size");
+            auto offset_ptr = const_cast<uint8_t*>(offset_buffer_span.data());
+            auto buffer_ptr = const_cast<uint8_t*>(data_buffer_span.data());
+            std::vector<std::uint8_t*> buffers = {bitmap_ptr, offset_ptr, buffer_ptr};
+            array = make_arrow_array<non_owning_arrow_array_private_data>(
+                record_batch.length(),
+                null_count,
+                0,
+                0,
+                nullptr,
+                nullptr,
+                std::move(buffers)
+            );
         }
-        auto buffer_ptr = const_cast<uint8_t*>(body.data() + buffer_metadata->offset());
-        std::vector<std::uint8_t*> buffers = {bitmap_ptr, offset_ptr, buffer_ptr};
-        ArrowArray array = make_non_owning_arrow_array(
-            record_batch.length(),
-            null_count,
-            0,
-            std::move(buffers),
-            0,
-            nullptr,
-            nullptr
-        );
+
         sparrow::arrow_proxy ap{std::move(array), std::move(schema)};
         return T{std::move(ap)};
     }

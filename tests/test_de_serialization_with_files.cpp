@@ -22,12 +22,23 @@ const std::filesystem::path arrow_testing_data_dir = ARROW_TESTING_DATA_DIR;
 const std::filesystem::path tests_resources_files_path = arrow_testing_data_dir / "data" / "arrow-ipc-stream"
                                                          / "integration" / "cpp-21.0.0";
 
+const std::filesystem::path tests_resources_files_path_with_compression = arrow_testing_data_dir / "data" / "arrow-ipc-stream"
+                                                         / "integration" / "2.0.0-compression";
+
 const std::vector<std::filesystem::path> files_paths_to_test = {
     tests_resources_files_path / "generated_primitive",
     // tests_resources_files_path / "generated_primitive_large_offsets",
     tests_resources_files_path / "generated_primitive_zerolength",
     // tests_resources_files_path / "generated_primitive_no_batches"
 };
+
+const std::vector<std::filesystem::path> files_paths_to_test_with_compression = {
+    tests_resources_files_path_with_compression / "generated_lz4",
+    tests_resources_files_path_with_compression/ "generated_uncompressible_lz4"
+//     tests_resources_files_path_with_compression / "generated_zstd"
+//     tests_resources_files_path_with_compression/ "generated_uncompressible_zstd"
+};
+
 
 size_t get_number_of_batches(const std::filesystem::path& json_path)
 {
@@ -166,6 +177,57 @@ TEST_SUITE("Integration tests")
                 std::vector<uint8_t> serialized_data;
                 sparrow_ipc::memory_output_stream stream(serialized_data);
                 sparrow_ipc::serializer serializer(stream);
+                serializer << record_batches_from_json << sparrow_ipc::end_stream;
+                const auto deserialized_serialized_data = sparrow_ipc::deserialize_stream(
+                    std::span<const uint8_t>(serialized_data)
+                );
+                compare_record_batches(record_batches_from_stream, deserialized_serialized_data);
+            }
+        }
+    }
+
+    TEST_CASE("Compare record_batch serialization with stream file using LZ4 compression")
+    {
+        for (const auto& file_path : files_paths_to_test_with_compression)
+        {
+            std::filesystem::path json_path = file_path;
+            json_path.replace_extension(".json");
+            const std::string test_name = "Testing LZ4 compression with " + file_path.filename().string();
+            SUBCASE(test_name.c_str())
+            {
+                // Load the JSON file
+                auto json_data = load_json_file(json_path);
+                CHECK(json_data != nullptr);
+
+                const size_t num_batches = get_number_of_batches(json_path);
+                std::vector<sparrow::record_batch> record_batches_from_json;
+                for (size_t batch_idx = 0; batch_idx < num_batches; ++batch_idx)
+                {
+                    INFO("Processing batch " << batch_idx << " of " << num_batches);
+                    record_batches_from_json.emplace_back(
+                        sparrow::json_reader::build_record_batch_from_json(json_data, batch_idx)
+                    );
+                }
+
+                // Load stream file
+                std::filesystem::path stream_file_path = file_path;
+                stream_file_path.replace_extension(".stream");
+                std::ifstream stream_file(stream_file_path, std::ios::in | std::ios::binary);
+                REQUIRE(stream_file.is_open());
+                const std::vector<uint8_t> stream_data(
+                    (std::istreambuf_iterator<char>(stream_file)),
+                    (std::istreambuf_iterator<char>())
+                );
+                stream_file.close();
+
+                // Process the stream file
+                const auto record_batches_from_stream = sparrow_ipc::deserialize_stream(
+                    std::span<const uint8_t>(stream_data)
+                );
+
+                std::vector<uint8_t> serialized_data;
+                sparrow_ipc::memory_output_stream stream(serialized_data);
+                sparrow_ipc::serializer serializer(stream, org::apache::arrow::flatbuf::CompressionType::LZ4_FRAME);
                 serializer << record_batches_from_json << sparrow_ipc::end_stream;
                 const auto deserialized_serialized_data = sparrow_ipc::deserialize_stream(
                     std::span<const uint8_t>(serialized_data)

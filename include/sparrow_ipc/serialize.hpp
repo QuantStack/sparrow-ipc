@@ -26,6 +26,7 @@ namespace sparrow_ipc
      * @param record_batches Collection of record batches to serialize. All batches must have identical
      * schemas.
      * @param stream The output stream where the serialized data will be written.
+     * @param compression The compression type to use when serializing.
      *
      * @throws std::invalid_argument If record batches have inconsistent schemas or if the collection
      *                               contains batches that cannot be serialized together.
@@ -35,7 +36,7 @@ namespace sparrow_ipc
      */
     template <std::ranges::input_range R>
         requires std::same_as<std::ranges::range_value_t<R>, sparrow::record_batch>
-    void serialize_record_batches_to_ipc_stream(const R& record_batches, any_output_stream& stream)
+    void serialize_record_batches_to_ipc_stream(const R& record_batches, any_output_stream& stream, std::optional<org::apache::arrow::flatbuf::CompressionType> compression)
     {
         if (record_batches.empty())
         {
@@ -51,7 +52,7 @@ namespace sparrow_ipc
         serialize_schema_message(record_batches[0], stream);
         for (const auto& rb : record_batches)
         {
-            serialize_record_batch(rb, stream);
+            serialize_record_batch(rb, stream, compression);
         }
         stream.write(end_of_stream);
     }
@@ -68,13 +69,14 @@ namespace sparrow_ipc
      *
      * @param record_batch The sparrow record batch to serialize
      * @param stream The output stream where the serialized record batch will be written
+     * @param compression The compression type to use when serializing.
      *
      * @note The output follows Arrow IPC message format with proper alignment and
      *       includes both metadata and data portions of the record batch
      */
 
     SPARROW_IPC_API void
-    serialize_record_batch(const sparrow::record_batch& record_batch, any_output_stream& stream);
+    serialize_record_batch(const sparrow::record_batch& record_batch, any_output_stream& stream, std::optional<org::apache::arrow::flatbuf::CompressionType> compression);
     
     /**
      * @brief Serializes a schema message for a record batch into a byte buffer.

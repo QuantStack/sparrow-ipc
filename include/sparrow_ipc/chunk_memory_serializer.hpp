@@ -1,7 +1,16 @@
 #pragma once
 
+#include <numeric>
+#include <optional>
+#include <ranges>
+#include <stdexcept>
+#include <vector>
+
 #include <sparrow/record_batch.hpp>
 
+#include "Message_generated.h"
+
+#include "sparrow_ipc/any_output_stream.hpp"
 #include "sparrow_ipc/chunk_memory_output_stream.hpp"
 #include "sparrow_ipc/config/config.hpp"
 #include "sparrow_ipc/memory_output_stream.hpp"
@@ -33,8 +42,10 @@ namespace sparrow_ipc
          * @brief Constructs a chunk serializer with a reference to a chunked memory output stream.
          *
          * @param stream Reference to a chunked memory output stream that will receive the serialized chunks
+         * @param compression Optional: The compression type to use for record batch bodies.
          */
-        chunk_serializer(chunked_memory_output_stream<std::vector<std::vector<uint8_t>>>& stream);
+        // TODO Use enums and such to avoid including flatbuffers headers
+        chunk_serializer(chunked_memory_output_stream<std::vector<std::vector<uint8_t>>>& stream, std::optional<org::apache::arrow::flatbuf::CompressionType> compression = std::nullopt);
 
         /**
          * @brief Writes a single record batch to the chunked stream.
@@ -120,6 +131,7 @@ namespace sparrow_ipc
         std::vector<sparrow::data_type> m_dtypes;
         chunked_memory_output_stream<std::vector<std::vector<uint8_t>>>* m_pstream;
         bool m_ended{false};
+        std::optional<org::apache::arrow::flatbuf::CompressionType> m_compression;
     };
 
     // Implementation
@@ -148,10 +160,14 @@ namespace sparrow_ipc
 
         for (const auto& rb : record_batches)
         {
+            if (get_column_dtypes(rb) != m_dtypes)
+            {
+                throw std::invalid_argument("Record batch schema does not match serializer schema");
+            }
             std::vector<uint8_t> buffer;
             memory_output_stream stream(buffer);
             any_output_stream astream(stream);
-            serialize_record_batch(rb, astream);
+            serialize_record_batch(rb, astream, m_compression);
             m_pstream->write(std::move(buffer));
         }
     }
