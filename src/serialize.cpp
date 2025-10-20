@@ -28,15 +28,14 @@ namespace sparrow_ipc
         if (compression.has_value())
         {
             // TODO Handle this inside get_record_batch_message_builder
-            auto [compressed_body, compressed_buffers] = generate_compressed_body_and_buffers(record_batch, compression.value());
-            common_serialize(get_record_batch_message_builder(record_batch, compression, compressed_body.size(), &compressed_buffers), stream);
-            // TODO Use something equivalent to generate_body (stream wise, handling children etc)
-            stream.write(std::span(compressed_body.data(), compressed_body.size()));
+            auto compressed_buffers = generate_compressed_buffers(record_batch, compression.value());
+            auto body_size_override = calculate_body_size(record_batch, compression);
+            common_serialize(get_record_batch_message_builder(record_batch, compression, body_size_override, &compressed_buffers), stream);
         }
         else
         {
-            common_serialize(get_record_batch_message_builder(record_batch, compression), stream);
-            generate_body(record_batch, stream);
+            common_serialize(get_record_batch_message_builder(record_batch, compression, std::nullopt, nullptr), stream);
         }
+        generate_body(record_batch, stream, compression);
     }
 }

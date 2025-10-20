@@ -38,6 +38,7 @@ namespace sparrow_ipc
         const auto compression = record_batch.compression();
         std::vector<std::vector<std::uint8_t>> decompressed_buffers;
 
+        // TODO do not decompress validity buffers?
         auto validity_buffer_span = utils::get_and_decompress_buffer(record_batch, body, buffer_index, compression, decompressed_buffers);
 
         const auto [bitmap_ptr, null_count] = utils::get_bitmap_pointer_and_null_count(validity_buffer_span, record_batch.length());

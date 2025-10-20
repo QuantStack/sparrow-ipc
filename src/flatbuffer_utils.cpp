@@ -583,7 +583,7 @@ namespace sparrow_ipc
             0   // TODO :variadic buffer Counts
         );
 
-        const int64_t body_size = body_size_override.value_or(calculate_body_size(record_batch));
+        const int64_t body_size = body_size_override.value_or(calculate_body_size(record_batch, compression));
         const auto record_batch_message_offset = org::apache::arrow::flatbuf::CreateMessage(
             record_batch_builder,
             org::apache::arrow::flatbuf::MetadataVersion::V5,

@@ -128,13 +128,11 @@ namespace sparrow_ipc
      *
      * @param record_batch The record batch to serialize.
      * @param compression_type The compression algorithm to use (e.g., LZ4_FRAME, ZSTD).
-     * @return A std::pair containing:
-     *         - first: A vector of bytes representing the complete compressed message body.
-     *         - second: A vector of FlatBuffer Buffer objects describing the offset and
-     *                   size of each buffer within the compressed body.
+     * @return A vector of FlatBuffer Buffer objects describing the offset and
+     *         size of each buffer within the compressed body.
      */
-    [[nodiscard]] SPARROW_IPC_API std::pair<std::vector<uint8_t>, std::vector<org::apache::arrow::flatbuf::Buffer>>
-    generate_compressed_body_and_buffers(const sparrow::record_batch& record_batch, const org::apache::arrow::flatbuf::CompressionType compression_type);
+    [[nodiscard]] SPARROW_IPC_API std::vector<org::apache::arrow::flatbuf::Buffer>
+    generate_compressed_buffers(const sparrow::record_batch& record_batch, const org::apache::arrow::flatbuf::CompressionType compression_type);
 
     /**
      * @brief Fills the body vector with serialized data from an arrow proxy and its children.
@@ -150,8 +148,9 @@ namespace sparrow_ipc
      *
      * @param arrow_proxy The arrow proxy containing buffers and potential child proxies to serialize
      * @param stream The output stream where the serialized body data will be written
+     * @param compression The compression type to use when serializing
      */
-    SPARROW_IPC_API void fill_body(const sparrow::arrow_proxy& arrow_proxy, any_output_stream& stream);
+    SPARROW_IPC_API void fill_body(const sparrow::arrow_proxy& arrow_proxy, any_output_stream& stream, std::optional<org::apache::arrow::flatbuf::CompressionType> compression = std::nullopt);
 
     /**
      * @brief Generates a serialized body from a record batch.
@@ -162,8 +161,9 @@ namespace sparrow_ipc
      *
      * @param record_batch The record batch containing columns to be serialized
      * @param stream The output stream where the serialized body will be written
+     * @param compression The compression type to use when serializing
      */
-    SPARROW_IPC_API void generate_body(const sparrow::record_batch& record_batch, any_output_stream& stream);
+    SPARROW_IPC_API void generate_body(const sparrow::record_batch& record_batch, any_output_stream& stream, std::optional<org::apache::arrow::flatbuf::CompressionType> compression = std::nullopt);
 
     /**
      * @brief Calculates the total size of the body section for an Arrow array.
@@ -173,9 +173,10 @@ namespace sparrow_ipc
      * buffer size is aligned to 8-byte boundaries as required by the Arrow format.
      *
      * @param arrow_proxy The Arrow array proxy containing buffers and child arrays
+     * @param compression The compression type to use when serializing
      * @return int64_t The total aligned size in bytes of all buffers in the array hierarchy
      */
-    [[nodiscard]] SPARROW_IPC_API int64_t calculate_body_size(const sparrow::arrow_proxy& arrow_proxy);
+    [[nodiscard]] SPARROW_IPC_API int64_t calculate_body_size(const sparrow::arrow_proxy& arrow_proxy, std::optional<org::apache::arrow::flatbuf::CompressionType> compression = std::nullopt);
 
     /**
      * @brief Calculates the total body size of a record batch by summing the body sizes of all its columns.
@@ -185,9 +186,10 @@ namespace sparrow_ipc
      * the total memory required for the serialized data content of the record batch.
      *
      * @param record_batch The sparrow record batch containing columns to calculate size for
+     * @param compression The compression type to use when serializing
      * @return int64_t The total body size in bytes of all columns in the record batch
      */
-    [[nodiscard]] SPARROW_IPC_API int64_t calculate_body_size(const sparrow::record_batch& record_batch);
+    [[nodiscard]] SPARROW_IPC_API int64_t calculate_body_size(const sparrow::record_batch& record_batch, std::optional<org::apache::arrow::flatbuf::CompressionType> compression = std::nullopt);
 
     SPARROW_IPC_API std::vector<sparrow::data_type> get_column_dtypes(const sparrow::record_batch& rb);
 }
