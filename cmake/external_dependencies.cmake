@@ -26,21 +26,32 @@ function(find_package_or_fetch)
         find_package(${actual_pkg_name} ${FIND_PACKAGE_OPTIONS})
     endif()
 
-    if(FETCH_DEPENDENCIES_WITH_CMAKE STREQUAL "ON" OR FETCH_DEPENDENCIES_WITH_CMAKE STREQUAL "MISSING")
-        if(NOT ${actual_pkg_name}_FOUND)
-            message(STATUS "📦 Fetching ${arg_PACKAGE_NAME}")
-            FetchContent_Declare(
-                ${arg_PACKAGE_NAME}
-                GIT_SHALLOW TRUE
-                GIT_REPOSITORY ${arg_GIT_REPOSITORY}
-                GIT_TAG ${arg_TAG}
-                GIT_PROGRESS TRUE
-                SYSTEM
-                EXCLUDE_FROM_ALL)
-            FetchContent_MakeAvailable(${arg_PACKAGE_NAME})
-            message(STATUS "\t✅ Fetched ${arg_PACKAGE_NAME}")
-        else()
+    if(arg_GIT_REPOSITORY)
+        if(FETCH_DEPENDENCIES_WITH_CMAKE STREQUAL "ON" OR FETCH_DEPENDENCIES_WITH_CMAKE STREQUAL "MISSING")
+            if(NOT ${actual_pkg_name}_FOUND)
+                message(STATUS "📦 Fetching ${arg_PACKAGE_NAME}")
+                FetchContent_Declare(
+                    ${arg_PACKAGE_NAME}
+                    GIT_SHALLOW TRUE
+                    GIT_REPOSITORY ${arg_GIT_REPOSITORY}
+                    GIT_TAG ${arg_TAG}
+                    GIT_PROGRESS TRUE
+                    SYSTEM
+                    EXCLUDE_FROM_ALL)
+                FetchContent_MakeAvailable(${arg_PACKAGE_NAME})
+                message(STATUS "\t✅ Fetched ${arg_PACKAGE_NAME}")
+            else()
+                message(STATUS "📦 ${actual_pkg_name} found here: ${${actual_pkg_name}_DIR}")
+            endif()
+        endif()
+    else()
+        # No GIT_REPOSITORY provided - only find_package is attempted
+        if(${actual_pkg_name}_FOUND)
             message(STATUS "📦 ${actual_pkg_name} found here: ${${actual_pkg_name}_DIR}")
+        elseif(FETCH_DEPENDENCIES_WITH_CMAKE STREQUAL "OFF")
+            message(FATAL_ERROR "Could not find ${actual_pkg_name} and no GIT_REPOSITORY provided for fetching")
+        else()
+            message(WARNING "Could not find ${actual_pkg_name} and no GIT_REPOSITORY provided for fetching")
         endif()
     endif()
 endfunction()
@@ -52,7 +63,7 @@ endif()
 find_package_or_fetch(
     PACKAGE_NAME sparrow
     GIT_REPOSITORY https://github.com/man-group/sparrow.git
-    TAG 1.2.0
+    TAG 1.3.0
 )
 unset(CREATE_JSON_READER_TARGET)
 
@@ -60,6 +71,9 @@ if(NOT TARGET sparrow::sparrow)
     add_library(sparrow::sparrow ALIAS sparrow)
 endif()
 if(${SPARROW_IPC_BUILD_TESTS})
+    find_package_or_fetch(
+        PACKAGE_NAME sparrow-json-reader
+    )
     if(NOT TARGET sparrow::json_reader)
         add_library(sparrow::json_reader ALIAS json_reader)
     endif()
