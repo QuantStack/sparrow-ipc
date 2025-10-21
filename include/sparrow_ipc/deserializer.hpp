@@ -14,7 +14,7 @@ namespace sparrow_ipc
 {
     template <std::ranges::input_range R>
         requires std::same_as<std::ranges::range_value_t<R>, sparrow::record_batch>
-    class SPARROW_IPC_API deserializer
+    class deserializer
     {
     public:
 
