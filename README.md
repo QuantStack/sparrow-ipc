@@ -10,7 +10,7 @@
 
 ## Introduction
 
-`sparrow-ipc` provides high-performance, **zero-copy** serialization and deserialization of record batches, adhering to both [sparrow](https://github.com/man-group/sparrow) and [Apache Arrow IPC specifications](https://arrow.apache.org/docs/format/Columnar.html#serialization-and-interprocess-communication-ipc).
+`sparrow-ipc` provides high-performance serialization and deserialization of record batches, adhering to both [sparrow](https://github.com/man-group/sparrow) and [Apache Arrow IPC specifications](https://arrow.apache.org/docs/format/Columnar.html#serialization-and-interprocess-communication-ipc).
 
 `sparrow-ipc` requires a modern C++ compiler supporting C++20.
 
