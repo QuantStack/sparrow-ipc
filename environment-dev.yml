@@ -10,6 +10,7 @@ dependencies:
   - flatbuffers
   - nlohmann_json
   - sparrow-devel >=1.1.2
+  - sparrow-json-reader
   - doctest
   # Documentation dependencies
   - doxygen
