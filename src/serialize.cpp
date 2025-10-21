@@ -25,17 +25,7 @@ namespace sparrow_ipc
 
     void serialize_record_batch(const sparrow::record_batch& record_batch, any_output_stream& stream, std::optional<org::apache::arrow::flatbuf::CompressionType> compression)
     {
-        if (compression.has_value())
-        {
-            // TODO Handle this inside get_record_batch_message_builder
-            auto compressed_buffers = generate_compressed_buffers(record_batch, compression.value());
-            auto body_size_override = calculate_body_size(record_batch, compression);
-            common_serialize(get_record_batch_message_builder(record_batch, compression, body_size_override, &compressed_buffers), stream);
-        }
-        else
-        {
-            common_serialize(get_record_batch_message_builder(record_batch, compression, std::nullopt, nullptr), stream);
-        }
+        common_serialize(get_record_batch_message_builder(record_batch, compression), stream);
         generate_body(record_batch, stream, compression);
     }
 }
