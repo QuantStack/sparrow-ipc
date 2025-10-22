@@ -4,6 +4,7 @@
 
 namespace sparrow_ipc::utils
 {
+    // TODO check and remove unused fcts?
     std::pair<std::uint8_t*, int64_t> get_bitmap_pointer_and_null_count(
         std::span<const uint8_t> validity_buffer_span,
         const int64_t length
@@ -44,12 +45,10 @@ namespace sparrow_ipc::utils
         return {ptr, bitmap_view.null_count()};
     }
 
-    std::span<const uint8_t> get_and_decompress_buffer(
+    std::span<const uint8_t> get_buffer(
         const org::apache::arrow::flatbuf::RecordBatch& record_batch,
         std::span<const uint8_t> body,
-        size_t& buffer_index,
-        const org::apache::arrow::flatbuf::BodyCompression* compression,
-        std::vector<std::vector<uint8_t>>& decompressed_storage
+        size_t& buffer_index
     )
     {
         const auto buffer_metadata = record_batch.buffers()->Get(buffer_index++);
@@ -57,33 +56,24 @@ namespace sparrow_ipc::utils
         {
             throw std::runtime_error("Buffer metadata exceeds body size");
         }
-        auto buffer_span = body.subspan(buffer_metadata->offset(), buffer_metadata->length());
+        return body.subspan(buffer_metadata->offset(), buffer_metadata->length());
+    }
 
+    std::variant<std::vector<uint8_t>, std::span<const uint8_t>> get_decompressed_buffer(
+        const org::apache::arrow::flatbuf::RecordBatch& record_batch,
+        std::span<const uint8_t> body,
+        size_t& buffer_index,
+        const org::apache::arrow::flatbuf::BodyCompression* compression
+    )
+    {
+        auto buffer_span = get_buffer(record_batch, body, buffer_index);
         if (compression)
         {
-            auto decompressed_result = decompress(compression->codec(), buffer_span);
-            return std::visit(
-                [&decompressed_storage](auto&& arg) -> std::span<const uint8_t>
-                {
-                    using T = std::decay_t<decltype(arg)>;
-                    if constexpr (std::is_same_v<T, std::vector<uint8_t>>)
-                    {
-                        // Decompression happened
-                        decompressed_storage.emplace_back(std::move(arg));
-                        return decompressed_storage.back();
-                    }
-                    else // It's a std::span<const uint8_t>
-                    {
-                        // No decompression, but we are in a compression context, so we must copy the buffer
-                        // to ensure the owning ArrowArray has access to all its data.
-                        // TODO think about other strategies
-                        decompressed_storage.emplace_back(arg.begin(), arg.end());
-                        return decompressed_storage.back();
-                    }
-                },
-                decompressed_result
-            );
+            return decompress(compression->codec(), buffer_span);
         }
-        return buffer_span;
+        else
+        {
+            return buffer_span;
+        }
     }
 }

@@ -59,24 +59,27 @@ namespace sparrow_ipc::utils
      * @brief Extracts a buffer from a RecordBatch and decompresses it if necessary.
      *
      * This function retrieves a buffer span from the specified index, increments the index,
-     * and applies decompression if specified. If the buffer is decompressed, the new
-     * data is stored in `decompressed_storage` and the returned span will point to this new data.
+     * and applies decompression if specified.
      *
      * @param record_batch The Arrow RecordBatch containing buffer metadata.
      * @param body The raw buffer data as a byte span.
      * @param buffer_index The index of the buffer to retrieve. This value is incremented by the function.
      * @param compression The compression algorithm to use. If nullptr, no decompression is performed.
-     * @param decompressed_storage A vector that will be used to store the data of any decompressed buffers.
      *
-     * @return A span viewing the resulting buffer data. This will be a view of the original
-     *         `body` if no decompression occurs, or a view of the newly added buffer in
-     *         `decompressed_storage` if decompression occurs.
+     * @return A `std::variant` containing either:
+     *         - A `std::vector<std::uint8_t>` if the buffer was decompressed, owning the newly allocated data.
+     *         - A `std::span<const std::uint8_t>` if no decompression occurred, providing a view of the original `body`.
      */
-    [[nodiscard]] std::span<const uint8_t> get_and_decompress_buffer(
+    [[nodiscard]] std::variant<std::vector<std::uint8_t>, std::span<const std::uint8_t>> get_decompressed_buffer(
         const org::apache::arrow::flatbuf::RecordBatch& record_batch,
         std::span<const uint8_t> body,
         size_t& buffer_index,
-        const org::apache::arrow::flatbuf::BodyCompression* compression,
-        std::vector<std::vector<uint8_t>>& decompressed_storage
+        const org::apache::arrow::flatbuf::BodyCompression* compression
+    );
+
+    [[nodiscard]] std::span<const uint8_t> get_buffer(
+        const org::apache::arrow::flatbuf::RecordBatch& record_batch,
+        std::span<const uint8_t> body,
+        size_t& buffer_index
     );
 }

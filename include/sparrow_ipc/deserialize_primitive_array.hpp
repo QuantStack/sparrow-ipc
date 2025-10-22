@@ -36,42 +36,45 @@ namespace sparrow_ipc
         );
 
         const auto compression = record_batch.compression();
-        std::vector<std::vector<std::uint8_t>> decompressed_buffers;
-
-        // TODO do not decompress validity buffers?
-        auto validity_buffer_span = utils::get_and_decompress_buffer(record_batch, body, buffer_index, compression, decompressed_buffers);
-
-        const auto [bitmap_ptr, null_count] = utils::get_bitmap_pointer_and_null_count(validity_buffer_span, record_batch.length());
-
-        auto data_buffer_span = utils::get_and_decompress_buffer(record_batch, body, buffer_index, compression, decompressed_buffers);
-
-        ArrowArray array;
+        std::vector<arrow_array_private_data::optionally_owned_buffer> buffers;
+        // TODO do not de/compress validity buffers?
         if (compression)
         {
-            array = make_arrow_array<owning_arrow_array_private_data>(
-                record_batch.length(),
-                null_count,
-                0,
-                0,
-                nullptr,
-                nullptr,
-                std::move(decompressed_buffers)
-            );
+            // Validity buffer
+            buffers.push_back(utils::get_decompressed_buffer(record_batch, body, buffer_index, compression));
+            // Data buffer
+            buffers.push_back(utils::get_decompressed_buffer(record_batch, body, buffer_index, compression));
         }
         else
         {
-            auto primitives_ptr = const_cast<uint8_t*>(data_buffer_span.data());
-            std::vector<std::uint8_t*> buffers = {bitmap_ptr, primitives_ptr};
-            array = make_arrow_array<non_owning_arrow_array_private_data>(
-                record_batch.length(),
-                null_count,
-                0,
-                0,
-                nullptr,
-                nullptr,
-                std::move(buffers)
-            );
+            // Validity buffer
+            buffers.push_back(utils::get_buffer(record_batch, body, buffer_index));
+            // Data buffer
+            buffers.push_back(utils::get_buffer(record_batch, body, buffer_index));
         }
+
+        std::span<const uint8_t> validity_buffer_span;
+        if (std::holds_alternative<std::span<const uint8_t>>(buffers[0]))
+        {
+            validity_buffer_span = std::get<std::span<const uint8_t>>(buffers[0]);
+        }
+        else
+        {
+            validity_buffer_span = std::span<const uint8_t>(std::get<std::vector<uint8_t>>(buffers[0]));
+        }
+
+        // TODO bitmap_ptr is not used anymore... Leave it for now, and remove later if no need confirmed
+        const auto [bitmap_ptr, null_count] = utils::get_bitmap_pointer_and_null_count(validity_buffer_span, record_batch.length());
+
+        ArrowArray array = make_arrow_array<arrow_array_private_data>(
+            record_batch.length(),
+            null_count,
+            0,
+            0,
+            nullptr,
+            nullptr,
+            std::move(buffers)
+        );
 
         sparrow::arrow_proxy ap{std::move(array), std::move(schema)};
         return sparrow::primitive_array<T>{std::move(ap)};
