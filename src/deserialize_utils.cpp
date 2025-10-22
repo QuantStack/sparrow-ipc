@@ -60,13 +60,10 @@ namespace sparrow_ipc::utils
     }
 
     std::variant<std::vector<uint8_t>, std::span<const uint8_t>> get_decompressed_buffer(
-        const org::apache::arrow::flatbuf::RecordBatch& record_batch,
-        std::span<const uint8_t> body,
-        size_t& buffer_index,
+        std::span<const uint8_t> buffer_span,
         const org::apache::arrow::flatbuf::BodyCompression* compression
     )
     {
-        auto buffer_span = get_buffer(record_batch, body, buffer_index);
         if (compression)
         {
             return decompress(compression->codec(), buffer_span);

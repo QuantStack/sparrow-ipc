@@ -23,6 +23,14 @@ namespace sparrow_ipc
             CHECK_THROWS_WITH_AS(decompress(compression_type, original_data), "Decompression using zstd is not supported yet.", std::runtime_error);
         }
 
+        TEST_CASE("Decompress empty data")
+        {
+            const std::vector<uint8_t> empty_data;
+            const auto compression_type = org::apache::arrow::flatbuf::CompressionType::LZ4_FRAME;
+
+            CHECK_THROWS_WITH_AS(decompress(compression_type, empty_data), "Trying to decompress empty data.", std::runtime_error);
+        }
+
         TEST_CASE("Empty data")
         {
             const std::vector<uint8_t> empty_data;

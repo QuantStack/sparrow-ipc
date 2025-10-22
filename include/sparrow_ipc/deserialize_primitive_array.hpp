@@ -37,30 +37,27 @@ namespace sparrow_ipc
 
         const auto compression = record_batch.compression();
         std::vector<arrow_array_private_data::optionally_owned_buffer> buffers;
-        // TODO do not de/compress validity buffers?
+
+        auto validity_buffer_span = utils::get_buffer(record_batch, body, buffer_index);
+        auto data_buffer_span = utils::get_buffer(record_batch, body, buffer_index);
+
         if (compression)
         {
-            // Validity buffer
-            buffers.push_back(utils::get_decompressed_buffer(record_batch, body, buffer_index, compression));
-            // Data buffer
-            buffers.push_back(utils::get_decompressed_buffer(record_batch, body, buffer_index, compression));
+            // Validity buffers can be empty
+            if (validity_buffer_span.empty())
+            {
+                buffers.push_back(validity_buffer_span);
+            }
+            else
+            {
+                buffers.push_back(utils::get_decompressed_buffer(validity_buffer_span, compression));
+            }
+            buffers.push_back(utils::get_decompressed_buffer(data_buffer_span, compression));
         }
         else
         {
-            // Validity buffer
-            buffers.push_back(utils::get_buffer(record_batch, body, buffer_index));
-            // Data buffer
-            buffers.push_back(utils::get_buffer(record_batch, body, buffer_index));
-        }
-
-        std::span<const uint8_t> validity_buffer_span;
-        if (std::holds_alternative<std::span<const uint8_t>>(buffers[0]))
-        {
-            validity_buffer_span = std::get<std::span<const uint8_t>>(buffers[0]);
-        }
-        else
-        {
-            validity_buffer_span = std::span<const uint8_t>(std::get<std::vector<uint8_t>>(buffers[0]));
+            buffers.push_back(validity_buffer_span);
+            buffers.push_back(data_buffer_span);
         }
 
         // TODO bitmap_ptr is not used anymore... Leave it for now, and remove later if no need confirmed

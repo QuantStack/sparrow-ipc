@@ -56,24 +56,20 @@ namespace sparrow_ipc::utils
     );
 
     /**
-     * @brief Extracts a buffer from a RecordBatch and decompresses it if necessary.
-     *
-     * This function retrieves a buffer span from the specified index, increments the index,
-     * and applies decompression if specified.
-     *
-     * @param record_batch The Arrow RecordBatch containing buffer metadata.
-     * @param body The raw buffer data as a byte span.
-     * @param buffer_index The index of the buffer to retrieve. This value is incremented by the function.
-     * @param compression The compression algorithm to use. If nullptr, no decompression is performed.
-     *
-     * @return A `std::variant` containing either:
-     *         - A `std::vector<std::uint8_t>` if the buffer was decompressed, owning the newly allocated data.
-     *         - A `std::span<const std::uint8_t>` if no decompression occurred, providing a view of the original `body`.
-     */
+    * @brief Retrieves a decompressed buffer or a view of the original buffer.
+    *
+    * This function either decompresses the provided buffer span, if compression is specified,
+    * or returns a view of the original buffer without modification.
+    *
+    * @param buffer_span A span of raw buffer data to be decompressed, or returned as-is if no decompression is needed.
+    * @param compression The compression algorithm to use. If nullptr, no decompression is performed.
+    *
+    * @return A `std::variant` containing either:
+    *         - A `std::vector<std::uint8_t>` with the decompressed data, or
+    *         - A `std::span<const std::uint8_t>` providing a view of the original `buffer_span` if no decompression occurred.
+    */
     [[nodiscard]] std::variant<std::vector<std::uint8_t>, std::span<const std::uint8_t>> get_decompressed_buffer(
-        const org::apache::arrow::flatbuf::RecordBatch& record_batch,
-        std::span<const uint8_t> body,
-        size_t& buffer_index,
+        std::span<const uint8_t> buffer_span,
         const org::apache::arrow::flatbuf::BodyCompression* compression
     );
 

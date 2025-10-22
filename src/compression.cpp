@@ -127,12 +127,9 @@ namespace sparrow_ipc
 
     std::variant<std::vector<std::uint8_t>, std::span<const std::uint8_t>> decompress(const org::apache::arrow::flatbuf::CompressionType compression_type, std::span<const std::uint8_t> data)
     {
-        // Handle empty input: an empty span is a valid representation for an empty buffer
-        // (e.g., a validity bitmap for a column with no nulls) and should decompress to an empty output.
-        // TODO if we don't call this fct anymore on validity buffers, remove this empty data handling
         if (data.empty())
         {
-            return {};
+            throw std::runtime_error("Trying to decompress empty data.");
         }
 
         switch (compression_type)
