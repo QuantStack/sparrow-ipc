@@ -77,6 +77,19 @@ namespace sparrow_ipc::utils
         const org::apache::arrow::flatbuf::BodyCompression* compression
     );
 
+    /**
+     * @brief Extracts a buffer from a RecordBatch's body.
+     *
+     * This function retrieves a buffer span from the specified index in the RecordBatch's
+     * buffer list and increments the index.
+     *
+     * @param record_batch The Arrow RecordBatch containing buffer metadata.
+     * @param body The raw buffer data as a byte span.
+     * @param buffer_index The index of the buffer to retrieve. This value is incremented by the function.
+     *
+     * @return A `std::span<const uint8_t>` viewing the extracted buffer data.
+     * @throws std::runtime_error if the buffer metadata indicates a buffer that exceeds the body size.
+     */
     [[nodiscard]] std::span<const uint8_t> get_buffer(
         const org::apache::arrow::flatbuf::RecordBatch& record_batch,
         std::span<const uint8_t> body,
