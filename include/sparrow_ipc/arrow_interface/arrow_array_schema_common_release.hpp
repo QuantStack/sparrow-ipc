@@ -8,6 +8,7 @@
 
 namespace sparrow_ipc
 {
+    // TODO Find a way to use sparrow internals directly and avoid duplicated code
     /**
      * Release the children and dictionnary of an `ArrowArray` or `ArrowSchema`.
      *

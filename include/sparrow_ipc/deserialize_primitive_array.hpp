@@ -43,6 +43,7 @@ namespace sparrow_ipc
 
         if (compression)
         {
+            // TODO Handle buffers emptiness thoroughly / which is and which is not allowed...
             // Validity buffers can be empty
             if (validity_buffer_span.empty())
             {
