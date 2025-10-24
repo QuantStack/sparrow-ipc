@@ -6,7 +6,7 @@
 
 namespace sparrow_ipc
 {
-    chunk_serializer::chunk_serializer(chunked_memory_output_stream<std::vector<std::vector<uint8_t>>>& stream, std::optional<org::apache::arrow::flatbuf::CompressionType> compression)
+    chunk_serializer::chunk_serializer(chunked_memory_output_stream<std::vector<std::vector<uint8_t>>>& stream, std::optional<CompressionType> compression)
         : m_pstream(&stream), m_compression(compression)
     {
     }

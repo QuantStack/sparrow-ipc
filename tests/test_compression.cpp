@@ -4,7 +4,7 @@
 
 #include <doctest/doctest.h>
 
-#include <sparrow_ipc/compression.hpp>
+#include "../src/compression_impl.hpp"
 
 namespace sparrow_ipc
 {
@@ -14,19 +14,19 @@ namespace sparrow_ipc
         {
             std::string original_string = "some data to compress";
             std::vector<uint8_t> original_data(original_string.begin(), original_string.end());
-            const auto compression_type = org::apache::arrow::flatbuf::CompressionType::ZSTD;
+            const auto compression_type = CompressionType::ZSTD;
 
             // Test compression with ZSTD
-            CHECK_THROWS_WITH_AS(compress(compression_type, original_data), "Compression using zstd is not supported yet.", std::runtime_error);
+            CHECK_THROWS_WITH_AS(compress(compression_type, original_data), "Compression using zstd is not supported yet.", std::invalid_argument);
 
             // Test decompression with ZSTD
-            CHECK_THROWS_WITH_AS(decompress(compression_type, original_data), "Decompression using zstd is not supported yet.", std::runtime_error);
+            CHECK_THROWS_WITH_AS(decompress(compression_type, original_data), "Decompression using zstd is not supported yet.", std::invalid_argument);
         }
 
         TEST_CASE("Decompress empty data")
         {
             const std::vector<uint8_t> empty_data;
-            const auto compression_type = org::apache::arrow::flatbuf::CompressionType::LZ4_FRAME;
+            const auto compression_type = CompressionType::LZ4_FRAME;
 
             CHECK_THROWS_WITH_AS(decompress(compression_type, empty_data), "Trying to decompress empty data.", std::runtime_error);
         }
@@ -34,11 +34,11 @@ namespace sparrow_ipc
         TEST_CASE("Empty data")
         {
             const std::vector<uint8_t> empty_data;
-            const auto compression_type = org::apache::arrow::flatbuf::CompressionType::LZ4_FRAME;
+            const auto compression_type = CompressionType::LZ4_FRAME;
 
             // Test compression of empty data
             auto compressed = compress(compression_type, empty_data);
-            CHECK_EQ(compressed.size(), CompressionHeaderSize);
+            CHECK_EQ(compressed.size(), details::CompressionHeaderSize);
             const std::int64_t header = *reinterpret_cast<const std::int64_t*>(compressed.data());
             CHECK_EQ(header, -1);
 
@@ -53,7 +53,7 @@ namespace sparrow_ipc
             std::vector<uint8_t> original_data(original_string.begin(), original_string.end());
 
             // Compress data
-            auto compression_type = org::apache::arrow::flatbuf::CompressionType::LZ4_FRAME;
+            auto compression_type = CompressionType::LZ4_FRAME;
             std::vector<uint8_t> compressed_data = compress(compression_type, original_data);
 
             // Decompress
@@ -75,7 +75,7 @@ namespace sparrow_ipc
             std::vector<uint8_t> original_data(original_string.begin(), original_string.end());
 
             // Compress data
-            auto compression_type = org::apache::arrow::flatbuf::CompressionType::LZ4_FRAME;
+            auto compression_type = CompressionType::LZ4_FRAME;
             std::vector<uint8_t> compressed_data = compress(compression_type, original_data);
 
             // Decompress

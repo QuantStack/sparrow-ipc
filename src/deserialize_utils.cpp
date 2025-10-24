@@ -1,6 +1,6 @@
 #include "sparrow_ipc/deserialize_utils.hpp"
 
-#include "sparrow_ipc/compression.hpp"
+#include "compression_impl.hpp"
 
 namespace sparrow_ipc::utils
 {
@@ -66,7 +66,7 @@ namespace sparrow_ipc::utils
     {
         if (compression)
         {
-            return decompress(compression->codec(), buffer_span);
+            return decompress(sparrow_ipc::details::from_fb_compression_type(compression->codec()), buffer_span);
         }
         else
         {

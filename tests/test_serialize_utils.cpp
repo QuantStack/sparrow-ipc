@@ -67,7 +67,7 @@ namespace sparrow_ipc
                 std::vector<uint8_t> body_compressed;
                 sparrow_ipc::memory_output_stream stream_compressed(body_compressed);
                 sparrow_ipc::any_output_stream astream_compressed(stream_compressed);
-                fill_body(proxy, astream_compressed, org::apache::arrow::flatbuf::CompressionType::LZ4_FRAME);
+                fill_body(proxy, astream_compressed, CompressionType::LZ4_FRAME);
 
                 // Uncompressed
                 std::vector<uint8_t> body_uncompressed;

@@ -8,10 +8,9 @@
 
 #include <sparrow/record_batch.hpp>
 
-#include "Message_generated.h"
-
 #include "sparrow_ipc/any_output_stream.hpp"
 #include "sparrow_ipc/chunk_memory_output_stream.hpp"
+#include "sparrow_ipc/compression.hpp"
 #include "sparrow_ipc/config/config.hpp"
 #include "sparrow_ipc/memory_output_stream.hpp"
 #include "sparrow_ipc/serialize.hpp"
@@ -44,8 +43,8 @@ namespace sparrow_ipc
          * @param stream Reference to a chunked memory output stream that will receive the serialized chunks
          * @param compression Optional: The compression type to use for record batch bodies.
          */
-        // TODO Use enums and such to avoid including flatbuffers headers
-        chunk_serializer(chunked_memory_output_stream<std::vector<std::vector<uint8_t>>>& stream, std::optional<org::apache::arrow::flatbuf::CompressionType> compression = std::nullopt);
+        // TODO add tests with compression
+        chunk_serializer(chunked_memory_output_stream<std::vector<std::vector<uint8_t>>>& stream, std::optional<CompressionType> compression = std::nullopt);
 
         /**
          * @brief Writes a single record batch to the chunked stream.
@@ -131,7 +130,7 @@ namespace sparrow_ipc
         std::vector<sparrow::data_type> m_dtypes;
         chunked_memory_output_stream<std::vector<std::vector<uint8_t>>>* m_pstream;
         bool m_ended{false};
-        std::optional<org::apache::arrow::flatbuf::CompressionType> m_compression;
+        std::optional<CompressionType> m_compression;
     };
 
     // Implementation

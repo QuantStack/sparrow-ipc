@@ -5,6 +5,8 @@
 #include <sparrow/c_interface.hpp>
 #include <sparrow/record_batch.hpp>
 
+#include "sparrow_ipc/compression.hpp"
+
 namespace sparrow_ipc
 {
     // Creates a Flatbuffers Decimal type from a format string
@@ -222,5 +224,5 @@ namespace sparrow_ipc
      * @note Variadic buffer counts is not currently implemented (set to 0)
      */
     [[nodiscard]] flatbuffers::FlatBufferBuilder
-    get_record_batch_message_builder(const sparrow::record_batch& record_batch, std::optional<org::apache::arrow::flatbuf::CompressionType> compression = std::nullopt);
+    get_record_batch_message_builder(const sparrow::record_batch& record_batch, std::optional<CompressionType> compression = std::nullopt);
 }

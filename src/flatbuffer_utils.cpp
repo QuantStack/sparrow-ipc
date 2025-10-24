@@ -1,6 +1,7 @@
-#include "sparrow_ipc/flatbuffer_utils.hpp"
 #include <string>
 
+#include "compression_impl.hpp"
+#include "sparrow_ipc/flatbuffer_utils.hpp"
 #include "sparrow_ipc/serialize_utils.hpp"
 #include "sparrow_ipc/utils.hpp"
 
@@ -562,7 +563,7 @@ namespace sparrow_ipc
         return buffers;
     }
 
-    flatbuffers::FlatBufferBuilder get_record_batch_message_builder(const sparrow::record_batch& record_batch, std::optional<org::apache::arrow::flatbuf::CompressionType> compression)
+    flatbuffers::FlatBufferBuilder get_record_batch_message_builder(const sparrow::record_batch& record_batch, std::optional<CompressionType> compression)
     {
         flatbuffers::FlatBufferBuilder record_batch_builder;
         flatbuffers::Offset<org::apache::arrow::flatbuf::BodyCompression> compression_offset = 0;
@@ -570,7 +571,7 @@ namespace sparrow_ipc
         if (compression)
         {
             compressed_buffers = generate_compressed_buffers(record_batch, compression.value());
-            compression_offset = org::apache::arrow::flatbuf::CreateBodyCompression(record_batch_builder, compression.value(), org::apache::arrow::flatbuf::BodyCompressionMethod::BUFFER);
+            compression_offset = org::apache::arrow::flatbuf::CreateBodyCompression(record_batch_builder, details::to_fb_compression_type(compression.value()), org::apache::arrow::flatbuf::BodyCompressionMethod::BUFFER);
         }
         const auto& buffers = compressed_buffers ? *compressed_buffers : get_buffers(record_batch);
         const std::vector<org::apache::arrow::flatbuf::FieldNode> nodes = create_fieldnodes(record_batch);
