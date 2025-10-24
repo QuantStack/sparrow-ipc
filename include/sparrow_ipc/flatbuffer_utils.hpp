@@ -208,6 +208,48 @@ namespace sparrow_ipc
     get_buffers(const sparrow::record_batch& record_batch);
 
     /**
+     * @brief Generates the compressed message body and buffer metadata for a record batch.
+     *
+     * This function traverses the record batch, compresses each buffer using the specified
+     * compression algorithm, and constructs the message body. For each compressed buffer,
+     * it is prefixed by its 8-byte uncompressed size. Padding is added after each
+     * compressed buffer to ensure 8-byte alignment.
+     *
+     * @param record_batch The record batch to serialize.
+     * @param compression_type The compression algorithm to use (e.g., LZ4_FRAME, ZSTD).
+     * @return A vector of FlatBuffer Buffer objects describing the offset and
+     *         size of each buffer within the compressed body.
+     */
+    [[nodiscard]] SPARROW_IPC_API std::vector<org::apache::arrow::flatbuf::Buffer>
+    generate_compressed_buffers(const sparrow::record_batch& record_batch, const CompressionType compression_type);
+
+    /**
+     * @brief Calculates the total size of the body section for an Arrow array.
+     *
+     * This function recursively computes the total size needed for all buffers
+     * in an Arrow array structure, including buffers from child arrays. Each
+     * buffer size is aligned to 8-byte boundaries as required by the Arrow format.
+     *
+     * @param arrow_proxy The Arrow array proxy containing buffers and child arrays
+     * @param compression The compression type to use when serializing
+     * @return int64_t The total aligned size in bytes of all buffers in the array hierarchy
+     */
+    [[nodiscard]] SPARROW_IPC_API int64_t calculate_body_size(const sparrow::arrow_proxy& arrow_proxy, std::optional<CompressionType> compression = std::nullopt);
+
+    /**
+     * @brief Calculates the total body size of a record batch by summing the body sizes of all its columns.
+     *
+     * This function iterates through all columns in the given record batch and accumulates
+     * the body size of each column's underlying Arrow array proxy. The body size represents
+     * the total memory required for the serialized data content of the record batch.
+     *
+     * @param record_batch The sparrow record batch containing columns to calculate size for
+     * @param compression The compression type to use when serializing
+     * @return int64_t The total body size in bytes of all columns in the record batch
+     */
+    [[nodiscard]] SPARROW_IPC_API int64_t calculate_body_size(const sparrow::record_batch& record_batch, std::optional<CompressionType> compression = std::nullopt);
+
+    /**
      * @brief Creates a FlatBuffer message containing a serialized Apache Arrow RecordBatch.
      *
      * This function builds a complete Arrow IPC message by serializing a record batch

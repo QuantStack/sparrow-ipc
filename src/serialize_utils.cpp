@@ -34,45 +34,6 @@ namespace sparrow_ipc
         });
     }
 
-    int64_t calculate_body_size(const sparrow::arrow_proxy& arrow_proxy, std::optional<CompressionType> compression)
-    {
-        int64_t total_size = 0;
-        if (compression.has_value())
-        {
-            for (const auto& buffer : arrow_proxy.buffers())
-            {
-                total_size += utils::align_to_8(compress(compression.value(), std::span<const uint8_t>(buffer.data(), buffer.size())).size());
-            }
-        }
-        else
-        {
-            for (const auto& buffer : arrow_proxy.buffers())
-            {
-                total_size += utils::align_to_8(buffer.size());
-            }
-        }
-
-        for (const auto& child : arrow_proxy.children())
-        {
-            total_size += calculate_body_size(child, compression);
-        }
-        return total_size;
-    }
-
-    int64_t calculate_body_size(const sparrow::record_batch& record_batch, std::optional<CompressionType> compression)
-    {
-        return std::accumulate(
-            record_batch.columns().begin(),
-            record_batch.columns().end(),
-            int64_t{0},
-            [&](int64_t acc, const sparrow::array& arr)
-            {
-                const auto& arrow_proxy = sparrow::detail::array_access::get_arrow_proxy(arr);
-                return acc + calculate_body_size(arrow_proxy, compression);
-            }
-        );
-    }
-
     std::size_t calculate_schema_message_size(const sparrow::record_batch& record_batch)
     {
         // Build the schema message to get its exact size
@@ -106,26 +67,6 @@ namespace sparrow_ipc
         metadata_size = utils::align_to_8(metadata_size);
 
         return metadata_size + actual_body_size;
-    }
-
-    std::vector<org::apache::arrow::flatbuf::Buffer>
-    generate_compressed_buffers(const sparrow::record_batch& record_batch, const CompressionType compression_type)
-    {
-        std::vector<org::apache::arrow::flatbuf::Buffer> compressed_buffers;
-        int64_t current_offset = 0;
-
-        for (const auto& column : record_batch.columns())
-        {
-            const auto& arrow_proxy = sparrow::detail::array_access::get_arrow_proxy(column);
-            for (const auto& buffer : arrow_proxy.buffers())
-            {
-                std::vector<uint8_t> compressed_buffer_with_header = compress(compression_type, std::span<const uint8_t>(buffer.data(), buffer.size()));
-                const size_t aligned_chunk_size = utils::align_to_8(compressed_buffer_with_header.size());
-                compressed_buffers.emplace_back(current_offset, aligned_chunk_size);
-                current_offset += aligned_chunk_size;
-            }
-        }
-        return compressed_buffers;
     }
 
     std::vector<sparrow::data_type> get_column_dtypes(const sparrow::record_batch& rb)
