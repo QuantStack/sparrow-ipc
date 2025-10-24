@@ -113,7 +113,7 @@ namespace sparrow_ipc
                 CHECK_EQ(size % 8, 0);
                 std::vector<uint8_t> serialized;
                 memory_output_stream stream(serialized);
-                    any_output_stream astream(stream);
+                any_output_stream astream(stream);
                 generate_body(record_batch, astream);
                 CHECK_EQ(size, static_cast<int64_t>(serialized.size()));
             }

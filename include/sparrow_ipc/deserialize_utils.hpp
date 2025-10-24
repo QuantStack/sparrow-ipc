@@ -32,27 +32,22 @@ namespace sparrow_ipc::utils
     );
 
     /**
-     * @brief Extracts bitmap pointer and null count from a RecordBatch buffer.
+     * @brief Extracts a buffer from a RecordBatch's body.
      *
-     * This function retrieves a bitmap buffer from the specified index in the RecordBatch's
-     * buffer list and calculates the number of null values represented by the bitmap.
+     * This function retrieves a buffer span from the specified index in the RecordBatch's
+     * buffer list and increments the index.
      *
-     * @param record_batch The Arrow RecordBatch containing buffer metadata
-     * @param body The raw buffer data as a byte span
-     * @param index The index of the bitmap buffer in the RecordBatch's buffer list
+     * @param record_batch The Arrow RecordBatch containing buffer metadata.
+     * @param body The raw buffer data as a byte span.
+     * @param buffer_index The index of the buffer to retrieve. This value is incremented by the function.
      *
-     * @return A pair containing:
-     *         - First: Pointer to the bitmap data (nullptr if buffer is empty)
-     *         - Second: Count of null values in the bitmap (0 if buffer is empty)
-     *
-     * @note If the bitmap buffer has zero length, returns {nullptr, 0}
-     * @note The returned pointer is a non-const cast of the original const data
+     * @return A `std::span<const uint8_t>` viewing the extracted buffer data.
+     * @throws std::runtime_error if the buffer metadata indicates a buffer that exceeds the body size.
      */
-    // TODO to be removed when not used anymore (after adding compression to deserialize_fixedsizebinary_array)
-    [[nodiscard]] std::pair<std::uint8_t*, int64_t> get_bitmap_pointer_and_null_count(
+    [[nodiscard]] std::span<const uint8_t> get_buffer(
         const org::apache::arrow::flatbuf::RecordBatch& record_batch,
         std::span<const uint8_t> body,
-        size_t index
+        size_t& buffer_index
     );
 
     /**
@@ -71,24 +66,5 @@ namespace sparrow_ipc::utils
     [[nodiscard]] std::variant<std::vector<std::uint8_t>, std::span<const std::uint8_t>> get_decompressed_buffer(
         std::span<const uint8_t> buffer_span,
         const org::apache::arrow::flatbuf::BodyCompression* compression
-    );
-
-    /**
-     * @brief Extracts a buffer from a RecordBatch's body.
-     *
-     * This function retrieves a buffer span from the specified index in the RecordBatch's
-     * buffer list and increments the index.
-     *
-     * @param record_batch The Arrow RecordBatch containing buffer metadata.
-     * @param body The raw buffer data as a byte span.
-     * @param buffer_index The index of the buffer to retrieve. This value is incremented by the function.
-     *
-     * @return A `std::span<const uint8_t>` viewing the extracted buffer data.
-     * @throws std::runtime_error if the buffer metadata indicates a buffer that exceeds the body size.
-     */
-    [[nodiscard]] std::span<const uint8_t> get_buffer(
-        const org::apache::arrow::flatbuf::RecordBatch& record_batch,
-        std::span<const uint8_t> body,
-        size_t& buffer_index
     );
 }
