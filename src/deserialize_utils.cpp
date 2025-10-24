@@ -64,7 +64,7 @@ namespace sparrow_ipc::utils
         const org::apache::arrow::flatbuf::BodyCompression* compression
     )
     {
-        if (compression)
+        if (compression && !buffer_span.empty())
         {
             return decompress(sparrow_ipc::details::from_fb_compression_type(compression->codec()), buffer_span);
         }
