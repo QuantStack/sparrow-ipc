@@ -69,12 +69,18 @@ namespace sparrow_ipc
                 sparrow_ipc::memory_output_stream stream_compressed(body_compressed);
                 sparrow_ipc::any_output_stream astream_compressed(stream_compressed);
                 fill_body(proxy, astream_compressed, CompressionType::LZ4_FRAME);
+                CHECK_GT(body_compressed.size(), 0);
+                // Body size should be aligned
+                CHECK_EQ(body_compressed.size() % 8, 0);
 
                 // Uncompressed
                 std::vector<uint8_t> body_uncompressed;
                 sparrow_ipc::memory_output_stream stream_uncompressed(body_uncompressed);
                 sparrow_ipc::any_output_stream astream_uncompressed(stream_uncompressed);
                 fill_body(proxy, astream_uncompressed, std::nullopt);
+                CHECK_GT(body_uncompressed.size(), 0);
+                // Body size should be aligned
+                CHECK_EQ(body_uncompressed.size() % 8, 0);
                 // Check that compressed size is smaller than uncompressed size
                 CHECK_LT(body_compressed.size(), body_uncompressed.size());
             }
