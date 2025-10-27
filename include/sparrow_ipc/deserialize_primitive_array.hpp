@@ -34,27 +34,46 @@ namespace sparrow_ipc
             nullptr,
             nullptr
         );
-        const auto [bitmap_ptr, null_count] = utils::get_bitmap_pointer_and_null_count(
-            record_batch,
-            body,
-            buffer_index++
-        );
-        const auto primitive_buffer_metadata = record_batch.buffers()->Get(buffer_index++);
-        if (body.size() < (primitive_buffer_metadata->offset() + primitive_buffer_metadata->length()))
+
+        const auto compression = record_batch.compression();
+        std::vector<arrow_array_private_data::optionally_owned_buffer> buffers;
+
+        auto validity_buffer_span = utils::get_buffer(record_batch, body, buffer_index);
+        auto data_buffer_span = utils::get_buffer(record_batch, body, buffer_index);
+
+        if (compression)
         {
-            throw std::runtime_error("Primitive buffer exceeds body size");
+            // TODO Handle buffers emptiness thoroughly / which is and which is not allowed...
+            // Validity buffers can be empty
+            if (validity_buffer_span.empty())
+            {
+                buffers.push_back(validity_buffer_span);
+            }
+            else
+            {
+                buffers.push_back(utils::get_decompressed_buffer(validity_buffer_span, compression));
+            }
+            buffers.push_back(utils::get_decompressed_buffer(data_buffer_span, compression));
         }
-        auto primitives_ptr = const_cast<uint8_t*>(body.data() + primitive_buffer_metadata->offset());
-        std::vector<std::uint8_t*> buffers = {bitmap_ptr, primitives_ptr};
-        ArrowArray array = make_non_owning_arrow_array(
+        else
+        {
+            buffers.push_back(validity_buffer_span);
+            buffers.push_back(data_buffer_span);
+        }
+
+        // TODO bitmap_ptr is not used anymore... Leave it for now, and remove later if no need confirmed
+        const auto [bitmap_ptr, null_count] = utils::get_bitmap_pointer_and_null_count(validity_buffer_span, record_batch.length());
+
+        ArrowArray array = make_arrow_array<arrow_array_private_data>(
             record_batch.length(),
             null_count,
             0,
-            std::move(buffers),
             0,
             nullptr,
-            nullptr
+            nullptr,
+            std::move(buffers)
         );
+
         sparrow::arrow_proxy ap{std::move(array), std::move(schema)};
         return sparrow::primitive_array<T>{std::move(ap)};
     }

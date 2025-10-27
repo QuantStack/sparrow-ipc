@@ -1,11 +1,11 @@
-#include "sparrow_ipc/serialize.hpp"
+#include <optional>
 
+#include "sparrow_ipc/serialize.hpp"
 #include "sparrow_ipc/flatbuffer_utils.hpp"
 
 namespace sparrow_ipc
 {
     void common_serialize(
-        const sparrow::record_batch& record_batch,
         const flatbuffers::FlatBufferBuilder& builder,
         any_output_stream& stream
     )
@@ -20,12 +20,12 @@ namespace sparrow_ipc
 
     void serialize_schema_message(const sparrow::record_batch& record_batch, any_output_stream& stream)
     {
-        common_serialize(record_batch, get_schema_message_builder(record_batch), stream);
+        common_serialize(get_schema_message_builder(record_batch), stream);
     }
 
-    void serialize_record_batch(const sparrow::record_batch& record_batch, any_output_stream& stream)
+    void serialize_record_batch(const sparrow::record_batch& record_batch, any_output_stream& stream, std::optional<org::apache::arrow::flatbuf::CompressionType> compression)
     {
-        common_serialize(record_batch, get_record_batch_message_builder(record_batch), stream);
-        generate_body(record_batch, stream);
+        common_serialize(get_record_batch_message_builder(record_batch, compression), stream);
+        generate_body(record_batch, stream, compression);
     }
 }

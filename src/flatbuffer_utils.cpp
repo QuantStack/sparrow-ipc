@@ -562,11 +562,18 @@ namespace sparrow_ipc
         return buffers;
     }
 
-    flatbuffers::FlatBufferBuilder get_record_batch_message_builder(const sparrow::record_batch& record_batch)
+    flatbuffers::FlatBufferBuilder get_record_batch_message_builder(const sparrow::record_batch& record_batch, std::optional<org::apache::arrow::flatbuf::CompressionType> compression)
     {
-        const std::vector<org::apache::arrow::flatbuf::FieldNode> nodes = create_fieldnodes(record_batch);
-        const std::vector<org::apache::arrow::flatbuf::Buffer> buffers = get_buffers(record_batch);
         flatbuffers::FlatBufferBuilder record_batch_builder;
+        flatbuffers::Offset<org::apache::arrow::flatbuf::BodyCompression> compression_offset = 0;
+        std::optional<std::vector<org::apache::arrow::flatbuf::Buffer>> compressed_buffers;
+        if (compression)
+        {
+            compressed_buffers = generate_compressed_buffers(record_batch, compression.value());
+            compression_offset = org::apache::arrow::flatbuf::CreateBodyCompression(record_batch_builder, compression.value(), org::apache::arrow::flatbuf::BodyCompressionMethod::BUFFER);
+        }
+        const auto& buffers = compressed_buffers ? *compressed_buffers : get_buffers(record_batch);
+        const std::vector<org::apache::arrow::flatbuf::FieldNode> nodes = create_fieldnodes(record_batch);
         auto nodes_offset = record_batch_builder.CreateVectorOfStructs(nodes);
         auto buffers_offset = record_batch_builder.CreateVectorOfStructs(buffers);
         const auto record_batch_offset = org::apache::arrow::flatbuf::CreateRecordBatch(
@@ -574,11 +581,11 @@ namespace sparrow_ipc
             static_cast<int64_t>(record_batch.nb_rows()),
             nodes_offset,
             buffers_offset,
-            0,  // TODO: Compression
+            compression_offset,
             0   // TODO :variadic buffer Counts
         );
 
-        const int64_t body_size = calculate_body_size(record_batch);
+        const int64_t body_size = calculate_body_size(record_batch, compression);
         const auto record_batch_message_offset = org::apache::arrow::flatbuf::CreateMessage(
             record_batch_builder,
             org::apache::arrow::flatbuf::MetadataVersion::V5,

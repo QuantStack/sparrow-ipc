@@ -40,19 +40,42 @@ namespace sparrow_ipc
             }
         }
 
+        // TODO after the used fcts are stable regarding compression, add tests for fcts having it as an additional argument
+        // cf. fill_body example
         TEST_CASE("fill_body")
         {
-            SUBCASE("Simple primitive array")
+            SUBCASE("Simple primitive array (uncompressed)")
             {
                 auto array = sp::primitive_array<int32_t>({1, 2, 3, 4, 5});
                 auto proxy = sp::detail::array_access::get_arrow_proxy(array);
                 std::vector<uint8_t> body;
                 sparrow_ipc::memory_output_stream stream(body);
                 sparrow_ipc::any_output_stream astream(stream);
-                fill_body(proxy, astream);
+                fill_body(proxy, astream, std::nullopt);
                 CHECK_GT(body.size(), 0);
                 // Body size should be aligned
                 CHECK_EQ(body.size() % 8, 0);
+            }
+
+            SUBCASE("Simple primitive array (compressible)")
+            {
+                std::vector<int32_t> data(1000, 12345); // Repeating values, should be very compressible
+                auto array = sp::primitive_array<int32_t>(data);
+                auto proxy = sp::detail::array_access::get_arrow_proxy(array);
+
+                // Compressed
+                std::vector<uint8_t> body_compressed;
+                sparrow_ipc::memory_output_stream stream_compressed(body_compressed);
+                sparrow_ipc::any_output_stream astream_compressed(stream_compressed);
+                fill_body(proxy, astream_compressed, org::apache::arrow::flatbuf::CompressionType::LZ4_FRAME);
+
+                // Uncompressed
+                std::vector<uint8_t> body_uncompressed;
+                sparrow_ipc::memory_output_stream stream_uncompressed(body_uncompressed);
+                sparrow_ipc::any_output_stream astream_uncompressed(stream_uncompressed);
+                fill_body(proxy, astream_uncompressed, std::nullopt);
+                // Check that compressed size is smaller than uncompressed size
+                CHECK_LT(body_compressed.size(), body_uncompressed.size());
             }
         }
 
@@ -111,7 +134,7 @@ namespace sparrow_ipc
                 std::vector<uint8_t> serialized;
                 memory_output_stream stream(serialized);
                 any_output_stream astream(stream);
-                serialize_schema_message(record_batch, astream  );
+                serialize_schema_message(record_batch, astream);
 
                 CHECK_EQ(estimated_size, serialized.size());
             }
@@ -147,7 +170,7 @@ namespace sparrow_ipc
                 std::vector<uint8_t> serialized;
                 memory_output_stream stream(serialized);
                 any_output_stream astream(stream);
-                serialize_record_batch(record_batch, astream);
+                serialize_record_batch(record_batch, astream, std::nullopt);
 
                 CHECK_EQ(estimated_size, serialized.size());
             }
@@ -164,7 +187,7 @@ namespace sparrow_ipc
                 std::vector<uint8_t> serialized;
                 memory_output_stream stream(serialized);
                 any_output_stream astream(stream);
-                serialize_record_batch(record_batch, astream);
+                serialize_record_batch(record_batch, astream, std::nullopt);
 
                 CHECK_EQ(estimated_size, serialized.size());
             }
@@ -243,8 +266,8 @@ namespace sparrow_ipc
                 std::vector<uint8_t> serialized;
                 memory_output_stream stream(serialized);
                 any_output_stream astream(stream);
-                serialize_record_batch(record_batch, astream);
-                CHECK_GT(serialized.size(), 0);
+                serialize_record_batch(record_batch, astream, std::nullopt);
+		 CHECK_GT(serialized.size(), 0);
 
                 // Check that it starts with continuation bytes
                 CHECK_GE(serialized.size(), continuation.size());
@@ -278,7 +301,7 @@ namespace sparrow_ipc
                 std::vector<uint8_t> serialized;
                 memory_output_stream stream(serialized);
                 any_output_stream astream(stream);
-                serialize_record_batch(empty_batch, astream);
+                serialize_record_batch(empty_batch, astream, std::nullopt);
                 CHECK_GT(serialized.size(), 0);
                 CHECK_GE(serialized.size(), continuation.size());
             }
