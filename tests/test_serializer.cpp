@@ -35,15 +35,22 @@ namespace sparrow_ipc
     {
         TEST_CASE_TEMPLATE("construction and write single record batch", StreamWrapper, memory_stream_wrapper, ostringstream_wrapper)
         {
-            SUBCASE("Valid record batch")
+            SUBCASE("Valid record batch, with and without compression")
             {
-                auto rb = create_test_record_batch();
-                StreamWrapper wrapper;
-                serializer ser(wrapper.get_stream());
-                ser.write(rb);
+                auto rb = create_compressible_test_record_batch();
+                StreamWrapper wrapper_compressed;
+                serializer ser_compressed(wrapper_compressed.get_stream(), CompressionType::LZ4_FRAME);
+                ser_compressed.write(rb);
 
                 // After writing first record batch, should have schema + record batch
-                CHECK_GT(wrapper.size(), 0);
+                CHECK_GT(wrapper_compressed.size(), 0);
+
+                StreamWrapper wrapper_uncompressed;
+                serializer ser_uncompressed(wrapper_uncompressed.get_stream());
+                ser_uncompressed.write(rb);
+                CHECK_GT(wrapper_uncompressed.size(), 0);
+
+                CHECK_LT(wrapper_compressed.size(), wrapper_uncompressed.size());
             }
 
             SUBCASE("Empty record batch")

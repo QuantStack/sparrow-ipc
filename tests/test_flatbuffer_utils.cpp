@@ -558,12 +558,22 @@ namespace sparrow_ipc
 
         TEST_CASE("get_record_batch_message_builder")
         {
-            SUBCASE("Valid record batch with field nodes and buffers")
+            auto test_get_record_batch_message_builder = [](std::optional<CompressionType> compression)
             {
                 auto record_batch = create_test_record_batch();
-                auto builder = get_record_batch_message_builder(record_batch);
+                auto builder = get_record_batch_message_builder(record_batch, compression);
                 CHECK_GT(builder.GetSize(), 0);
                 CHECK_NE(builder.GetBufferPointer(), nullptr);
+            };
+
+            SUBCASE("Valid record batch with field nodes and buffers (Without compression)")
+            {
+                test_get_record_batch_message_builder(std::nullopt);
+            }
+
+            SUBCASE("Valid record batch with field nodes and buffers (With compression)")
+            {
+                test_get_record_batch_message_builder(CompressionType::LZ4_FRAME);
             }
         }
     }

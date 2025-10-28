@@ -43,7 +43,6 @@ namespace sparrow_ipc
          * @param stream Reference to a chunked memory output stream that will receive the serialized chunks
          * @param compression Optional: The compression type to use for record batch bodies.
          */
-        // TODO add tests with compression
         chunk_serializer(chunked_memory_output_stream<std::vector<std::vector<uint8_t>>>& stream, std::optional<CompressionType> compression = std::nullopt);
 
         /**

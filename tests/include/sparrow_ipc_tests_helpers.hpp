@@ -71,4 +71,15 @@ namespace sparrow_ipc
               sp::array(sp::string_array(std::vector<std::string>{"hello", "world", "test", "data", "batch"}))}}
         );
     }
+
+    // Helper function to create a compressible record batch for testing
+    inline sp::record_batch create_compressible_test_record_batch()
+    {
+        std::vector<int32_t> int_data(1000, 12345);
+        std::vector<std::string> string_data(1000, "hello world");
+        return sp::record_batch(
+            {{"int_col", sp::array(sp::primitive_array<int32_t>(int_data))},
+             {"string_col", sp::array(sp::string_array(string_data))}}
+        );
+    }
 }

@@ -41,8 +41,6 @@ namespace sparrow_ipc
             }
         }
 
-        // TODO after the used fcts are stable regarding compression, add tests for fcts having it as an additional argument
-        // cf. fill_body example
         TEST_CASE("fill_body")
         {
             SUBCASE("Simple primitive array (uncompressed)")
@@ -88,13 +86,23 @@ namespace sparrow_ipc
 
         TEST_CASE("generate_body")
         {
-            SUBCASE("Record batch with multiple columns")
+            auto record_batch = create_test_record_batch();
+            SUBCASE("Record batch with multiple columns (uncompressed)")
             {
-                auto record_batch = create_test_record_batch();
                 std::vector<uint8_t> serialized;
                 memory_output_stream stream(serialized);
                 any_output_stream astream(stream);
-                generate_body(record_batch, astream);
+                generate_body(record_batch, astream, std::nullopt);
+                CHECK_GT(serialized.size(), 0);
+                CHECK_EQ(serialized.size() % 8, 0);
+            }
+
+            SUBCASE("Record batch with multiple columns (compressed)")
+            {
+                std::vector<uint8_t> serialized;
+                memory_output_stream stream(serialized);
+                any_output_stream astream(stream);
+                generate_body(record_batch, astream, CompressionType::LZ4_FRAME);
                 CHECK_GT(serialized.size(), 0);
                 CHECK_EQ(serialized.size() % 8, 0);
             }
@@ -102,19 +110,26 @@ namespace sparrow_ipc
 
         TEST_CASE("calculate_body_size")
         {
-            SUBCASE("Single array")
-            {
-                auto array = sp::primitive_array<int32_t>({1, 2, 3, 4, 5});
-                auto proxy = sp::detail::array_access::get_arrow_proxy(array);
+            auto array = sp::primitive_array<int32_t>({1, 2, 3, 4, 5});
+            auto proxy = sp::detail::array_access::get_arrow_proxy(array);
 
+            SUBCASE("Single array (uncompressed)")
+            {
                 auto size = calculate_body_size(proxy);
                 CHECK_GT(size, 0);
                 CHECK_EQ(size % 8, 0);
             }
 
-            SUBCASE("Record batch")
+            SUBCASE("Single array (compressed)")
             {
-                auto record_batch = create_test_record_batch();
+                auto size = calculate_body_size(proxy, CompressionType::LZ4_FRAME);
+                CHECK_GT(size, 0);
+                CHECK_EQ(size % 8, 0);
+            }
+
+            auto record_batch = create_test_record_batch();
+            SUBCASE("Record batch (uncompressed)")
+            {
                 auto size = calculate_body_size(record_batch);
                 CHECK_GT(size, 0);
                 CHECK_EQ(size % 8, 0);
@@ -122,6 +137,18 @@ namespace sparrow_ipc
                 memory_output_stream stream(serialized);
                 any_output_stream astream(stream);
                 generate_body(record_batch, astream);
+                CHECK_EQ(size, static_cast<int64_t>(serialized.size()));
+            }
+
+            SUBCASE("Record batch (compressed)")
+            {
+                auto size = calculate_body_size(record_batch, CompressionType::LZ4_FRAME);
+                CHECK_GT(size, 0);
+                CHECK_EQ(size % 8, 0);
+                std::vector<uint8_t> serialized;
+                memory_output_stream stream(serialized);
+                any_output_stream astream(stream);
+                generate_body(record_batch, astream, CompressionType::LZ4_FRAME);
                 CHECK_EQ(size, static_cast<int64_t>(serialized.size()));
             }
         }
@@ -165,55 +192,59 @@ namespace sparrow_ipc
 
         TEST_CASE("calculate_record_batch_message_size")
         {
-            SUBCASE("Single column record batch")
+            auto test_calculate_record_batch_message_size = [](const sp::record_batch& record_batch, std::optional<CompressionType> compression)
             {
-                auto array = sp::primitive_array<int32_t>({1, 2, 3, 4, 5});
-                auto record_batch = sp::record_batch({{"column1", sp::array(std::move(array))}});
-
-                auto estimated_size = calculate_record_batch_message_size(record_batch);
+                auto estimated_size = calculate_record_batch_message_size(record_batch, compression);
                 CHECK_GT(estimated_size, 0);
                 CHECK_EQ(estimated_size % 8, 0);
 
                 std::vector<uint8_t> serialized;
                 memory_output_stream stream(serialized);
                 any_output_stream astream(stream);
-                serialize_record_batch(record_batch, astream, std::nullopt);
+                serialize_record_batch(record_batch, astream, compression);
 
                 CHECK_EQ(estimated_size, serialized.size());
+            };
+
+            SUBCASE("Single column record batch")
+            {
+                auto array = sp::primitive_array<int32_t>({1, 2, 3, 4, 5});
+                auto record_batch = sp::record_batch({{"column1", sp::array(std::move(array))}});
+                test_calculate_record_batch_message_size(record_batch, std::nullopt);
+                test_calculate_record_batch_message_size(record_batch, CompressionType::LZ4_FRAME);
             }
 
             SUBCASE("Multi-column record batch")
             {
                 auto record_batch = create_test_record_batch();
-
-                auto estimated_size = calculate_record_batch_message_size(record_batch);
-                CHECK_GT(estimated_size, 0);
-                CHECK_EQ(estimated_size % 8, 0);
-
-                // Verify by actual serialization
-                std::vector<uint8_t> serialized;
-                memory_output_stream stream(serialized);
-                any_output_stream astream(stream);
-                serialize_record_batch(record_batch, astream, std::nullopt);
-
-                CHECK_EQ(estimated_size, serialized.size());
+                test_calculate_record_batch_message_size(record_batch, std::nullopt);
+                test_calculate_record_batch_message_size(record_batch, CompressionType::LZ4_FRAME);
             }
         }
 
         TEST_CASE("calculate_total_serialized_size")
         {
+            auto test_calculate_total_serialized_size = [](const std::vector<sp::record_batch>& batches, std::optional<CompressionType> compression)
+            {
+                auto estimated_size = calculate_total_serialized_size(batches, compression);
+                CHECK_GT(estimated_size, 0);
+
+                // Should be equal to schema size + sum of record batch sizes
+                auto schema_size = calculate_schema_message_size(batches[0]);
+                int64_t batches_size = 0;
+                for(const auto& batch : batches)
+                {
+                    batches_size += calculate_record_batch_message_size(batch, compression);
+                }
+                CHECK_EQ(estimated_size, schema_size + batches_size);
+            };
+
             SUBCASE("Single record batch")
             {
                 auto record_batch = create_test_record_batch();
                 std::vector<sp::record_batch> batches = {record_batch};
-
-                auto estimated_size = calculate_total_serialized_size(batches);
-                CHECK_GT(estimated_size, 0);
-
-                // Should equal schema size + record batch size
-                auto schema_size = calculate_schema_message_size(record_batch);
-                auto batch_size = calculate_record_batch_message_size(record_batch);
-                CHECK_EQ(estimated_size, schema_size + batch_size);
+                test_calculate_total_serialized_size(batches, std::nullopt);
+                test_calculate_total_serialized_size(batches, CompressionType::LZ4_FRAME);
             }
 
             SUBCASE("Multiple record batches")
@@ -231,15 +262,8 @@ namespace sparrow_ipc
                 );
 
                 std::vector<sp::record_batch> batches = {record_batch1, record_batch2};
-
-                auto estimated_size = calculate_total_serialized_size(batches);
-                CHECK_GT(estimated_size, 0);
-
-                // Should equal schema size + sum of record batch sizes
-                auto schema_size = calculate_schema_message_size(batches[0]);
-                auto batch1_size = calculate_record_batch_message_size(batches[0]);
-                auto batch2_size = calculate_record_batch_message_size(batches[1]);
-                CHECK_EQ(estimated_size, schema_size + batch1_size + batch2_size);
+                test_calculate_total_serialized_size(batches, std::nullopt);
+                test_calculate_total_serialized_size(batches, CompressionType::LZ4_FRAME);
             }
 
             SUBCASE("Empty collection")
@@ -262,19 +286,19 @@ namespace sparrow_ipc
                 std::vector<sp::record_batch> batches = {record_batch1, record_batch2};
 
                 CHECK_THROWS_AS(auto size = calculate_total_serialized_size(batches), std::invalid_argument);
+                CHECK_THROWS_AS(auto size = calculate_total_serialized_size(batches, CompressionType::LZ4_FRAME), std::invalid_argument);
             }
         }
 
         TEST_CASE("serialize_record_batch")
         {
-            SUBCASE("Valid record batch")
+            auto test_serialize_record_batch = [](const sp::record_batch& record_batch_to_serialize, std::optional<CompressionType> compression)
             {
-                auto record_batch = create_test_record_batch();
                 std::vector<uint8_t> serialized;
                 memory_output_stream stream(serialized);
                 any_output_stream astream(stream);
-                serialize_record_batch(record_batch, astream, std::nullopt);
-		 CHECK_GT(serialized.size(), 0);
+                serialize_record_batch(record_batch_to_serialize, astream, compression);
+                CHECK_GT(serialized.size(), 0);
 
                 // Check that it starts with continuation bytes
                 CHECK_GE(serialized.size(), continuation.size());
@@ -300,17 +324,23 @@ namespace sparrow_ipc
                 // Verify alignment
                 CHECK_EQ(aligned_metadata_end % 8, 0);
                 CHECK_LE(aligned_metadata_end, serialized.size());
+
+                return serialized.size();
+            };
+
+            SUBCASE("Valid record batch")
+            {
+                auto record_batch = create_compressible_test_record_batch();
+                auto compressed_size = test_serialize_record_batch(record_batch, CompressionType::LZ4_FRAME);
+                auto uncompressed_size = test_serialize_record_batch(record_batch, std::nullopt);
+                CHECK_LT(compressed_size, uncompressed_size);
             }
 
             SUBCASE("Empty record batch")
             {
                 auto empty_batch = sp::record_batch({});
-                std::vector<uint8_t> serialized;
-                memory_output_stream stream(serialized);
-                any_output_stream astream(stream);
-                serialize_record_batch(empty_batch, astream, std::nullopt);
-                CHECK_GT(serialized.size(), 0);
-                CHECK_GE(serialized.size(), continuation.size());
+                test_serialize_record_batch(empty_batch, std::nullopt);
+                test_serialize_record_batch(empty_batch, CompressionType::LZ4_FRAME);
             }
         }
     }
