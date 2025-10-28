@@ -108,6 +108,7 @@ namespace sparrow_ipc
             }
         }
 
+#if defined(SPARROW_IPC_STATIC_LIB)
         TEST_CASE("calculate_body_size")
         {
             auto array = sp::primitive_array<int32_t>({1, 2, 3, 4, 5});
@@ -152,6 +153,7 @@ namespace sparrow_ipc
                 CHECK_EQ(size, static_cast<int64_t>(serialized.size()));
             }
         }
+#endif
 
         TEST_CASE("calculate_schema_message_size")
         {
