@@ -178,25 +178,55 @@ namespace sparrow_ipc
             }
         }
 
+        void test_fill_buffers_variant(
+            const std::function<void(const sparrow::arrow_proxy&, std::vector<org::apache::arrow::flatbuf::Buffer>&, int64_t&)>& fill_func)
+        {
+            auto array = sp::primitive_array<int32_t>({1, 2, 3, 4, 5});
+            auto proxy = sp::detail::array_access::get_arrow_proxy(array);
+
+            std::vector<org::apache::arrow::flatbuf::Buffer> buffers;
+            int64_t offset = 0;
+            fill_func(proxy, buffers, offset);
+
+            CHECK_GT(buffers.size(), 0);
+            CHECK_GT(offset, 0);
+
+            // Verify offsets are aligned
+            for (const auto& buffer : buffers)
+            {
+                CHECK_EQ(buffer.offset() % 8, 0);
+            }
+        }
+
         TEST_CASE("fill_buffers")
         {
             SUBCASE("Simple primitive array")
             {
-                auto array = sp::primitive_array<int32_t>({1, 2, 3, 4, 5});
-                auto proxy = sp::detail::array_access::get_arrow_proxy(array);
+                test_fill_buffers_variant([](const sparrow::arrow_proxy& proxy, std::vector<org::apache::arrow::flatbuf::Buffer>& buffers, int64_t& offset) {
+                    fill_buffers(proxy, buffers, offset);
+                });
+            }
+        }
 
-                std::vector<org::apache::arrow::flatbuf::Buffer> buffers;
-                int64_t offset = 0;
-                fill_buffers(proxy, buffers, offset);
+        TEST_CASE("fill_compressed_buffers")
+        {
+            SUBCASE("Simple primitive array")
+            {
+                test_fill_buffers_variant([](const sparrow::arrow_proxy& proxy, std::vector<org::apache::arrow::flatbuf::Buffer>& buffers, int64_t& offset) {
+                    fill_compressed_buffers(proxy, buffers, offset, CompressionType::LZ4_FRAME);
+                });
+            }
+        }
 
-                CHECK_GT(buffers.size(), 0);
-                CHECK_GT(offset, 0);
-
-                // Verify offsets are aligned
-                for (const auto& buffer : buffers)
-                {
-                    CHECK_EQ(buffer.offset() % 8, 0);
-                }
+        void test_get_buffers_variant(const std::function<std::vector<org::apache::arrow::flatbuf::Buffer>(const sparrow::record_batch&)>& get_func)
+        {
+            auto record_batch = create_test_record_batch();
+            auto buffers = get_func(record_batch);
+            CHECK_GT(buffers.size(), 0);
+            // Verify all offsets are properly calculated and aligned
+            for (size_t i = 1; i < buffers.size(); ++i)
+            {
+                CHECK_GE(buffers[i].offset(), buffers[i - 1].offset() + buffers[i - 1].length());
             }
         }
 
@@ -204,14 +234,19 @@ namespace sparrow_ipc
         {
             SUBCASE("Record batch with multiple columns")
             {
-                auto record_batch = create_test_record_batch();
-                auto buffers = get_buffers(record_batch);
-                CHECK_GT(buffers.size(), 0);
-                // Verify all offsets are properly calculated and aligned
-                for (size_t i = 1; i < buffers.size(); ++i)
-                {
-                    CHECK_GE(buffers[i].offset(), buffers[i - 1].offset() + buffers[i - 1].length());
-                }
+                test_get_buffers_variant([](const sparrow::record_batch& record_batch) {
+                    return get_buffers(record_batch);
+                });
+            }
+        }
+
+        TEST_CASE("get_compressed_buffers")
+        {
+            SUBCASE("Record batch with multiple columns")
+            {
+                test_get_buffers_variant([](const sparrow::record_batch& record_batch) {
+                    return get_compressed_buffers(record_batch, CompressionType::LZ4_FRAME);
+                });
             }
         }
 
@@ -523,12 +558,22 @@ namespace sparrow_ipc
 
         TEST_CASE("get_record_batch_message_builder")
         {
-            SUBCASE("Valid record batch with field nodes and buffers")
+            auto test_get_record_batch_message_builder = [](std::optional<CompressionType> compression)
             {
                 auto record_batch = create_test_record_batch();
-                auto builder = get_record_batch_message_builder(record_batch);
+                auto builder = get_record_batch_message_builder(record_batch, compression);
                 CHECK_GT(builder.GetSize(), 0);
                 CHECK_NE(builder.GetBufferPointer(), nullptr);
+            };
+
+            SUBCASE("Valid record batch with field nodes and buffers (Without compression)")
+            {
+                test_get_record_batch_message_builder(std::nullopt);
+            }
+
+            SUBCASE("Valid record batch with field nodes and buffers (With compression)")
+            {
+                test_get_record_batch_message_builder(CompressionType::LZ4_FRAME);
             }
         }
     }

@@ -41,15 +41,7 @@ namespace sparrow_ipc
 
         if (compression)
         {
-            // Validity buffers can be empty
-            if (validity_buffer_span.empty())
-            {
-                buffers.push_back(validity_buffer_span);
-            }
-            else
-            {
-                buffers.push_back(utils::get_decompressed_buffer(validity_buffer_span, compression));
-            }
+            buffers.push_back(utils::get_decompressed_buffer(validity_buffer_span, compression));
             buffers.push_back(utils::get_decompressed_buffer(offset_buffer_span, compression));
             buffers.push_back(utils::get_decompressed_buffer(data_buffer_span, compression));
         }

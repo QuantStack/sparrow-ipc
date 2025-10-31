@@ -5,6 +5,9 @@
 #include <sparrow/c_interface.hpp>
 #include <sparrow/record_batch.hpp>
 
+#include "sparrow_ipc/compression.hpp"
+#include "sparrow_ipc/utils.hpp"
+
 namespace sparrow_ipc
 {
     // Creates a Flatbuffers Decimal type from a format string
@@ -164,6 +167,42 @@ namespace sparrow_ipc
     [[nodiscard]] std::vector<org::apache::arrow::flatbuf::FieldNode>
     create_fieldnodes(const sparrow::record_batch& record_batch);
 
+    namespace details
+    {
+        template <typename Func>
+        void fill_buffers_impl(
+            const sparrow::arrow_proxy& arrow_proxy,
+            std::vector<org::apache::arrow::flatbuf::Buffer>& flatbuf_buffers,
+            int64_t& offset,
+            Func&& get_buffer_size
+        )
+        {
+            const auto& buffers = arrow_proxy.buffers();
+            for (const auto& buffer : buffers)
+            {
+                int64_t size = get_buffer_size(buffer);
+                flatbuf_buffers.emplace_back(offset, size);
+                offset += utils::align_to_8(size);
+            }
+            for (const auto& child : arrow_proxy.children())
+            {
+                fill_buffers_impl(child, flatbuf_buffers, offset, get_buffer_size);
+            }
+        }
+
+        template <typename Func>
+        std::vector<org::apache::arrow::flatbuf::Buffer> get_buffers_impl(const sparrow::record_batch& record_batch, Func&& fill_buffers_func)
+        {
+            std::vector<org::apache::arrow::flatbuf::Buffer> buffers;
+            int64_t offset = 0;
+            for (const auto& column : record_batch.columns())
+            {
+                const auto& arrow_proxy = sparrow::detail::array_access::get_arrow_proxy(column);
+                fill_buffers_func(arrow_proxy, buffers, offset);
+            }
+            return buffers;
+        }
+    } // namespace details
 
     /**
      * @brief Recursively fills a vector of FlatBuffer Buffer objects with buffer information from an Arrow
@@ -206,6 +245,67 @@ namespace sparrow_ipc
     get_buffers(const sparrow::record_batch& record_batch);
 
     /**
+     * @brief Recursively populates a vector with compressed buffer metadata from an Arrow proxy.
+     *
+     * This function traverses the Arrow proxy and its children, compressing each buffer and recording
+     * its metadata (offset and size) in the provided vector. The offset is updated to ensure proper
+     * alignment for each subsequent buffer.
+     *
+     * @param arrow_proxy The Arrow proxy containing the buffers to be compressed.
+     * @param flatbuf_compressed_buffers A vector to store the resulting compressed buffer metadata.
+     * @param offset The current offset in the buffer layout, which will be updated by the function.
+     * @param compression_type The compression algorithm to use.
+     */
+    void fill_compressed_buffers(
+        const sparrow::arrow_proxy& arrow_proxy,
+        std::vector<org::apache::arrow::flatbuf::Buffer>& flatbuf_compressed_buffers,
+        int64_t& offset,
+        const CompressionType compression_type
+    );
+
+    /**
+     * @brief Retrieves metadata describing the layout of compressed buffers within a record batch.
+     *
+     * This function processes a record batch to determine the metadata (offset and size)
+     * for each of its buffers, assuming they are compressed using the specified algorithm.
+     * This metadata accounts for each compressed buffer being prefixed by its 8-byte
+     * uncompressed size and padded to ensure 8-byte alignment.
+     *
+     * @param record_batch The record batch whose buffers' compressed metadata is to be retrieved.
+     * @param compression_type The compression algorithm that would be applied (e.g., LZ4_FRAME, ZSTD).
+     * @return A vector of FlatBuffer Buffer objects, each describing the offset and
+     *         size of a corresponding compressed buffer within a larger message body.
+     */
+    [[nodiscard]] std::vector<org::apache::arrow::flatbuf::Buffer>
+    get_compressed_buffers(const sparrow::record_batch& record_batch, const CompressionType compression_type);
+
+    /**
+     * @brief Calculates the total size of the body section for an Arrow array.
+     *
+     * This function recursively computes the total size needed for all buffers
+     * in an Arrow array structure, including buffers from child arrays. Each
+     * buffer size is aligned to 8-byte boundaries as required by the Arrow format.
+     *
+     * @param arrow_proxy The Arrow array proxy containing buffers and child arrays
+     * @param compression The compression type to use when serializing
+     * @return int64_t The total aligned size in bytes of all buffers in the array hierarchy
+     */
+    [[nodiscard]] int64_t calculate_body_size(const sparrow::arrow_proxy& arrow_proxy, std::optional<CompressionType> compression = std::nullopt);
+
+    /**
+     * @brief Calculates the total body size of a record batch by summing the body sizes of all its columns.
+     *
+     * This function iterates through all columns in the given record batch and accumulates
+     * the body size of each column's underlying Arrow array proxy. The body size represents
+     * the total memory required for the serialized data content of the record batch.
+     *
+     * @param record_batch The sparrow record batch containing columns to calculate size for
+     * @param compression The compression type to use when serializing
+     * @return int64_t The total body size in bytes of all columns in the record batch
+     */
+    [[nodiscard]] int64_t calculate_body_size(const sparrow::record_batch& record_batch, std::optional<CompressionType> compression = std::nullopt);
+
+    /**
      * @brief Creates a FlatBuffer message containing a serialized Apache Arrow RecordBatch.
      *
      * This function builds a complete Arrow IPC message by serializing a record batch
@@ -222,5 +322,5 @@ namespace sparrow_ipc
      * @note Variadic buffer counts is not currently implemented (set to 0)
      */
     [[nodiscard]] flatbuffers::FlatBufferBuilder
-    get_record_batch_message_builder(const sparrow::record_batch& record_batch, std::optional<org::apache::arrow::flatbuf::CompressionType> compression = std::nullopt);
+    get_record_batch_message_builder(const sparrow::record_batch& record_batch, std::optional<CompressionType> compression = std::nullopt);
 }

@@ -4,6 +4,7 @@
 #include <sparrow/record_batch.hpp>
 
 #include "sparrow_ipc/any_output_stream.hpp"
+#include "sparrow_ipc/compression.hpp"
 #include "sparrow_ipc/serialize_utils.hpp"
 
 namespace sparrow_ipc
@@ -41,7 +42,7 @@ namespace sparrow_ipc
          *               The serializer stores a pointer to this stream for later use.
          */
         template <writable_stream TStream>
-        serializer(TStream& stream, std::optional<org::apache::arrow::flatbuf::CompressionType> compression = std::nullopt)
+        serializer(TStream& stream, std::optional<CompressionType> compression = std::nullopt)
             : m_stream(stream), m_compression(compression)
         {
         }
@@ -206,7 +207,7 @@ namespace sparrow_ipc
         std::vector<sparrow::data_type> m_dtypes;
         any_output_stream m_stream;
         bool m_ended{false};
-        std::optional<org::apache::arrow::flatbuf::CompressionType> m_compression;
+        std::optional<CompressionType> m_compression;
     };
 
     inline serializer& end_stream(serializer& serializer)
