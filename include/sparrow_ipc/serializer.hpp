@@ -82,6 +82,11 @@ namespace sparrow_ipc
             requires std::same_as<std::ranges::range_value_t<R>, sparrow::record_batch>
         void write(const R& record_batches)
         {
+            if (std::ranges::empty(record_batches))
+            {
+                return;
+            }
+
             if (m_ended)
             {
                 throw std::runtime_error("Cannot append to a serializer that has been ended");

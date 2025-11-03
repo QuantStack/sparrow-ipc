@@ -106,7 +106,7 @@ namespace sparrow_ipc
         const std::span<const uint8_t> continuation_span = data.subspan(0, 4);
         if (!is_continuation(continuation_span))
         {
-            throw std::runtime_error("Buffer starts with continuation bytes, expected a valid message.");
+            throw std::runtime_error("Buffer should start with continuation bytes, expected a valid message.");
         }
         encapsulated_message message(data);
         std::span<const uint8_t> rest = data.subspan(message.total_length());
