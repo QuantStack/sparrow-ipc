@@ -2,7 +2,6 @@
 
 namespace sparrow_ipc
 {
-    // TODO add compression here and tests (not available for this type in apache arrow integration tests files)
     sparrow::fixed_width_binary_array deserialize_non_owning_fixedwidthbinary(
         const org::apache::arrow::flatbuf::RecordBatch& record_batch,
         std::span<const uint8_t> body,
@@ -23,10 +22,22 @@ namespace sparrow_ipc
             nullptr
         );
 
+        const auto compression = record_batch.compression();
         std::vector<arrow_array_private_data::optionally_owned_buffer> buffers;
+
         auto validity_buffer_span = utils::get_buffer(record_batch, body, buffer_index);
-        buffers.push_back(validity_buffer_span);
-        buffers.push_back(utils::get_buffer(record_batch, body, buffer_index));
+        auto data_buffer_span = utils::get_buffer(record_batch, body, buffer_index);
+
+        if (compression)
+        {
+            buffers.push_back(utils::get_decompressed_buffer(validity_buffer_span, compression));
+            buffers.push_back(utils::get_decompressed_buffer(data_buffer_span, compression));
+        }
+        else
+        {
+            buffers.push_back(validity_buffer_span);
+            buffers.push_back(data_buffer_span);
+        }
 
         // TODO bitmap_ptr is not used anymore... Leave it for now, and remove later if no need confirmed
         const auto [bitmap_ptr, null_count] = utils::get_bitmap_pointer_and_null_count(validity_buffer_span, record_batch.length());

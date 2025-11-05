@@ -61,6 +61,7 @@ namespace sparrow_ipc
             const std::optional<std::vector<sparrow::metadata_pair>>& metadata = field_metadata[field_idx++];
             const std::string name = field->name() == nullptr ? "" : field->name()->str();
             const auto field_type = field->type_type();
+            // TODO rename all the deserialize_non_owning... fcts since this is not correct anymore
             const auto deserialize_non_owning_primitive_array_lambda = [&]<typename T>()
             {
                 return deserialize_non_owning_primitive_array<T>(
@@ -207,8 +208,20 @@ namespace sparrow_ipc
         std::vector<std::optional<std::vector<sparrow::metadata_pair>>> fields_metadata;
         do
         {
+            // Check for end-of-stream marker here as data could contain only that (if no record batches present/written)
+            if (data.size() >= 8 && is_end_of_stream(data.subspan(0, 8)))
+            {
+                break;
+            }
+
             const auto [encapsulated_message, rest] = extract_encapsulated_message(data);
             const org::apache::arrow::flatbuf::Message* message = encapsulated_message.flat_buffer_message();
+
+            if (message == nullptr)
+            {
+                throw std::invalid_argument("Extracted flatbuffers message is null.");
+            }
+
             switch (message->header_type())
             {
                 case org::apache::arrow::flatbuf::MessageHeader::Schema:
@@ -269,10 +282,6 @@ namespace sparrow_ipc
                     throw std::runtime_error("Unknown message header type.");
             }
             data = rest;
-            if (is_end_of_stream(data.subspan(0, 8)))
-            {
-                break;
-            }
         } while (!data.empty());
         return record_batches;
     }
