@@ -1,3 +1,4 @@
+#include <functional>
 #include <stdexcept>
 
 #include <lz4frame.h>
@@ -38,6 +39,9 @@ namespace sparrow_ipc
 
     namespace
     {
+        using compress_func = std::function<std::vector<uint8_t>(std::span<const uint8_t>)>;
+        using decompress_func = std::function<std::vector<uint8_t>(std::span<const uint8_t>, int64_t)>;
+
         std::vector<std::uint8_t> lz4_compress(std::span<const std::uint8_t> data)
         {
             const std::int64_t uncompressed_size = data.size();
@@ -105,10 +109,10 @@ namespace sparrow_ipc
             return result;
         }
 
-        std::vector<std::uint8_t> lz4_compress_with_header(std::span<const std::uint8_t> data)
+        std::vector<std::uint8_t> compress_with_header(std::span<const std::uint8_t> data, compress_func comp_func)
         {
             const std::int64_t original_size = data.size();
-            auto compressed_body = lz4_compress(data);
+            auto compressed_body = comp_func(data);
 
             if (compressed_body.size() >= static_cast<size_t>(original_size))
             {
@@ -122,24 +126,7 @@ namespace sparrow_ipc
             return result;
         }
 
-        std::vector<std::uint8_t> zstd_compress_with_header(std::span<const std::uint8_t> data)
-        {
-            const std::int64_t original_size = data.size();
-            auto compressed_body = zstd_compress(data);
-
-            if (compressed_body.size() >= static_cast<size_t>(original_size))
-            {
-                return uncompressed_data_with_header(data);
-            }
-
-            std::vector<std::uint8_t> result;
-            result.reserve(details::CompressionHeaderSize + compressed_body.size());
-            result.insert(result.end(), reinterpret_cast<const uint8_t*>(&original_size), reinterpret_cast<const uint8_t*>(&original_size) + sizeof(original_size));
-            result.insert(result.end(), compressed_body.begin(), compressed_body.end());
-            return result;
-        }
-
-        std::variant<std::vector<std::uint8_t>, std::span<const std::uint8_t>> lz4_decompress_with_header(std::span<const std::uint8_t> data)
+        std::variant<std::vector<std::uint8_t>, std::span<const std::uint8_t>> decompress_with_header(std::span<const std::uint8_t> data, decompress_func decomp_func)
         {
             if (data.size() < details::CompressionHeaderSize)
             {
@@ -153,24 +140,7 @@ namespace sparrow_ipc
                 return compressed_data;
             }
 
-            return lz4_decompress(compressed_data, decompressed_size);
-        }
-
-        std::variant<std::vector<std::uint8_t>, std::span<const std::uint8_t>> zstd_decompress_with_header(std::span<const std::uint8_t> data)
-        {
-            if (data.size() < details::CompressionHeaderSize)
-            {
-                throw std::runtime_error("Invalid compressed data: missing decompressed size");
-            }
-            const std::int64_t decompressed_size = *reinterpret_cast<const std::int64_t*>(data.data());
-            const auto compressed_data = data.subspan(details::CompressionHeaderSize);
-
-            if (decompressed_size == -1)
-            {
-                return compressed_data;
-            }
-
-            return zstd_decompress(compressed_data, decompressed_size);
+            return decomp_func(compressed_data, decompressed_size);
         }
 
         std::span<const uint8_t> get_body_from_uncompressed_data(std::span<const uint8_t> data)
@@ -189,11 +159,11 @@ namespace sparrow_ipc
         {
             case CompressionType::LZ4_FRAME:
             {
-                return lz4_compress_with_header(data);
+                return compress_with_header(data, lz4_compress);
             }
             case CompressionType::ZSTD:
             {
-                return zstd_compress_with_header(data);
+                return compress_with_header(data, zstd_compress);
             }
             default:
                 return uncompressed_data_with_header(data);
@@ -211,11 +181,11 @@ namespace sparrow_ipc
         {
             case CompressionType::LZ4_FRAME:
             {
-                return lz4_decompress_with_header(data);
+                return decompress_with_header(data, lz4_decompress);
             }
             case CompressionType::ZSTD:
             {
-                return zstd_decompress_with_header(data);
+                return decompress_with_header(data, zstd_decompress);
             }
             default:
             {
