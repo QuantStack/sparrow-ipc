@@ -9,6 +9,7 @@ dependencies:
   # Libraries dependencies
   - flatbuffers
   - lz4-c
+  - zstd
   - nlohmann_json
   - sparrow-devel
   - sparrow-json-reader

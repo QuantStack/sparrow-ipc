@@ -123,6 +123,12 @@ if(NOT TARGET lz4::lz4)
     add_library(lz4::lz4 ALIAS lz4)
 endif()
 
+find_package_or_fetch(
+    PACKAGE_NAME zstd
+    GIT_REPOSITORY https://github.com/facebook/zstd.git
+    TAG v1.5.7
+)
+
 if(SPARROW_IPC_BUILD_TESTS)
     find_package_or_fetch(
         PACKAGE_NAME doctest

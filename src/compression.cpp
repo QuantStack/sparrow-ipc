@@ -1,6 +1,7 @@
 #include <stdexcept>
 
 #include <lz4frame.h>
+#include <zstd.h>
 
 #include "compression_impl.hpp"
 
@@ -15,7 +16,7 @@ namespace sparrow_ipc
                 case CompressionType::LZ4_FRAME:
                     return org::apache::arrow::flatbuf::CompressionType::LZ4_FRAME;
                 case CompressionType::ZSTD:
-                    throw std::invalid_argument("Compression using zstd is not supported yet.");
+                    return org::apache::arrow::flatbuf::CompressionType::ZSTD;
                 default:
                     throw std::invalid_argument("Unsupported compression type.");
             }
@@ -28,7 +29,7 @@ namespace sparrow_ipc
                 case org::apache::arrow::flatbuf::CompressionType::LZ4_FRAME:
                     return CompressionType::LZ4_FRAME;
                 case org::apache::arrow::flatbuf::CompressionType::ZSTD:
-                    throw std::invalid_argument("Compression using zstd is not supported yet.");
+                    return CompressionType::ZSTD;
                 default:
                     throw std::invalid_argument("Unsupported compression type.");
             }
@@ -67,6 +68,31 @@ namespace sparrow_ipc
             return decompressed_data;
         }
 
+        std::vector<std::uint8_t> zstd_compress(std::span<const std::uint8_t> data)
+        {
+            const std::int64_t uncompressed_size = data.size();
+            const size_t max_compressed_size = ZSTD_compressBound(uncompressed_size);
+            std::vector<std::uint8_t> compressed_data(max_compressed_size);
+            const size_t compressed_size = ZSTD_compress(compressed_data.data(), max_compressed_size, data.data(), uncompressed_size, 1);
+            if (ZSTD_isError(compressed_size))
+            {
+                throw std::runtime_error("Failed to compress data with ZSTD");
+            }
+            compressed_data.resize(compressed_size);
+            return compressed_data;
+        }
+
+        std::vector<std::uint8_t> zstd_decompress(std::span<const std::uint8_t> data, const std::int64_t decompressed_size)
+        {
+            std::vector<std::uint8_t> decompressed_data(decompressed_size);
+            const size_t result = ZSTD_decompress(decompressed_data.data(), decompressed_size, data.data(), data.size());
+            if (ZSTD_isError(result) || (result != (size_t)decompressed_size))
+            {
+                throw std::runtime_error("Failed to decompress data with ZSTD");
+            }
+            return decompressed_data;
+        }
+
         // TODO These functions could be moved to serialize_utils and deserialize_utils if preferred
         // as they are handling the header size
         std::vector<std::uint8_t> uncompressed_data_with_header(std::span<const std::uint8_t> data)
@@ -83,6 +109,23 @@ namespace sparrow_ipc
         {
             const std::int64_t original_size = data.size();
             auto compressed_body = lz4_compress(data);
+
+            if (compressed_body.size() >= static_cast<size_t>(original_size))
+            {
+                return uncompressed_data_with_header(data);
+            }
+
+            std::vector<std::uint8_t> result;
+            result.reserve(details::CompressionHeaderSize + compressed_body.size());
+            result.insert(result.end(), reinterpret_cast<const uint8_t*>(&original_size), reinterpret_cast<const uint8_t*>(&original_size) + sizeof(original_size));
+            result.insert(result.end(), compressed_body.begin(), compressed_body.end());
+            return result;
+        }
+
+        std::vector<std::uint8_t> zstd_compress_with_header(std::span<const std::uint8_t> data)
+        {
+            const std::int64_t original_size = data.size();
+            auto compressed_body = zstd_compress(data);
 
             if (compressed_body.size() >= static_cast<size_t>(original_size))
             {
@@ -113,6 +156,23 @@ namespace sparrow_ipc
             return lz4_decompress(compressed_data, decompressed_size);
         }
 
+        std::variant<std::vector<std::uint8_t>, std::span<const std::uint8_t>> zstd_decompress_with_header(std::span<const std::uint8_t> data)
+        {
+            if (data.size() < details::CompressionHeaderSize)
+            {
+                throw std::runtime_error("Invalid compressed data: missing decompressed size");
+            }
+            const std::int64_t decompressed_size = *reinterpret_cast<const std::int64_t*>(data.data());
+            const auto compressed_data = data.subspan(details::CompressionHeaderSize);
+
+            if (decompressed_size == -1)
+            {
+                return compressed_data;
+            }
+
+            return zstd_decompress(compressed_data, decompressed_size);
+        }
+
         std::span<const uint8_t> get_body_from_uncompressed_data(std::span<const uint8_t> data)
         {
             if (data.size() < details::CompressionHeaderSize)
@@ -133,7 +193,7 @@ namespace sparrow_ipc
             }
             case CompressionType::ZSTD:
             {
-                throw std::invalid_argument("Compression using zstd is not supported yet.");
+                return zstd_compress_with_header(data);
             }
             default:
                 return uncompressed_data_with_header(data);
@@ -155,7 +215,7 @@ namespace sparrow_ipc
             }
             case CompressionType::ZSTD:
             {
-                throw std::invalid_argument("Decompression using zstd is not supported yet.");
+                return zstd_decompress_with_header(data);
             }
             default:
             {

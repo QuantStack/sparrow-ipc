@@ -257,6 +257,7 @@ target_link_libraries(sparrow-ipc
         flatbuffers::flatbuffers
     PRIVATE
         lz4::lz4
+        zstd::libzstd
         )
 
 # Ensure generated headers are available when building sparrow-ipc
