@@ -18,18 +18,6 @@ namespace sparrow_ipc
             SUBCASE("Valid record batch, with and without compression")
             {
                 auto rb = create_compressible_test_record_batch();
-                std::vector<std::vector<uint8_t>> chunks_compressed;
-                chunked_memory_output_stream stream_compressed(chunks_compressed);
-
-                chunk_serializer serializer_compressed(stream_compressed, CompressionType::LZ4_FRAME);
-                serializer_compressed << rb;
-
-                // After construction with single record batch, should have schema + record batch
-                CHECK_EQ(chunks_compressed.size(), 2);
-                CHECK_GT(chunks_compressed[0].size(), 0);  // Schema message
-                CHECK_GT(chunks_compressed[1].size(), 0);  // Record batch message
-                CHECK_GT(stream_compressed.size(), 0);
-
                 std::vector<std::vector<uint8_t>> chunks_uncompressed;
                 chunked_memory_output_stream stream_uncompressed(chunks_uncompressed);
 
@@ -41,11 +29,36 @@ namespace sparrow_ipc
                 CHECK_GT(chunks_uncompressed[1].size(), 0);  // Record batch message
                 CHECK_GT(stream_uncompressed.size(), 0);
 
-                // Check that schema size is the same
-                CHECK_EQ(chunks_compressed[0].size(), chunks_uncompressed[0].size());
+                struct CompressionParams
+                {
+                    CompressionType type;
+                    const char* name;
+                };
+                const auto params = {CompressionParams{CompressionType::LZ4_FRAME, "LZ4"},
+                                     CompressionParams{CompressionType::ZSTD, "ZSTD"}};
 
-                // Check that compressed record batch is smaller
-                CHECK_LT(chunks_compressed[1].size(), chunks_uncompressed[1].size());
+                for (const auto& p : params)
+                {
+                    SUBCASE(p.name)
+                    {
+                        std::vector<std::vector<uint8_t>> chunks_compressed;
+                        chunked_memory_output_stream stream_compressed(chunks_compressed);
+                        chunk_serializer serializer_compressed(stream_compressed, p.type);
+                        serializer_compressed << rb;
+
+                        // After construction with single record batch, should have schema + record batch
+                        CHECK_EQ(chunks_compressed.size(), 2);
+                        CHECK_GT(chunks_compressed[0].size(), 0);  // Schema message
+                        CHECK_GT(chunks_compressed[1].size(), 0);  // Record batch message
+                        CHECK_GT(stream_compressed.size(), 0);
+
+                        // Check that schema size is the same
+                        CHECK_EQ(chunks_compressed[0].size(), chunks_uncompressed[0].size());
+
+                        // Check that compressed record batch is smaller
+                        CHECK_LT(chunks_compressed[1].size(), chunks_uncompressed[1].size());
+                    }
+                }
             }
 
             SUBCASE("Empty record batch")

@@ -62,15 +62,6 @@ namespace sparrow_ipc
                 auto array = sp::primitive_array<int32_t>(data);
                 auto proxy = sp::detail::array_access::get_arrow_proxy(array);
 
-                // Compressed
-                std::vector<uint8_t> body_compressed;
-                sparrow_ipc::memory_output_stream stream_compressed(body_compressed);
-                sparrow_ipc::any_output_stream astream_compressed(stream_compressed);
-                fill_body(proxy, astream_compressed, CompressionType::LZ4_FRAME);
-                CHECK_GT(body_compressed.size(), 0);
-                // Body size should be aligned
-                CHECK_EQ(body_compressed.size() % 8, 0);
-
                 // Uncompressed
                 std::vector<uint8_t> body_uncompressed;
                 sparrow_ipc::memory_output_stream stream_uncompressed(body_uncompressed);
@@ -79,32 +70,61 @@ namespace sparrow_ipc
                 CHECK_GT(body_uncompressed.size(), 0);
                 // Body size should be aligned
                 CHECK_EQ(body_uncompressed.size() % 8, 0);
-                // Check that compressed size is smaller than uncompressed size
-                CHECK_LT(body_compressed.size(), body_uncompressed.size());
+
+                // Compressed
+                struct CompressionParams
+                {
+                    CompressionType type;
+                    const char* name;
+                };
+                const auto params = {CompressionParams{CompressionType::LZ4_FRAME, "LZ4"},
+                                     CompressionParams{CompressionType::ZSTD, "ZSTD"}};
+
+                for (const auto& p : params)
+                {
+                    SUBCASE(p.name)
+                    {
+                        // Compressed
+                        std::vector<uint8_t> body_compressed;
+                        sparrow_ipc::memory_output_stream stream_compressed(body_compressed);
+                        sparrow_ipc::any_output_stream astream_compressed(stream_compressed);
+                        fill_body(proxy, astream_compressed, p.type);
+                        CHECK_GT(body_compressed.size(), 0);
+                        // Body size should be aligned
+                        CHECK_EQ(body_compressed.size() % 8, 0);
+                        // Check that compressed size is smaller than uncompressed size
+                        CHECK_LT(body_compressed.size(), body_uncompressed.size());
+                    }
+                }
             }
         }
 
         TEST_CASE("generate_body")
         {
             auto record_batch = create_test_record_batch();
-            SUBCASE("Record batch with multiple columns (uncompressed)")
+            SUBCASE("Record batch with multiple columns")
             {
-                std::vector<uint8_t> serialized;
-                memory_output_stream stream(serialized);
-                any_output_stream astream(stream);
-                generate_body(record_batch, astream, std::nullopt);
-                CHECK_GT(serialized.size(), 0);
-                CHECK_EQ(serialized.size() % 8, 0);
-            }
+                struct CompressionParams
+                {
+                    std::optional<CompressionType> type;
+                    const char* name;
+                };
+                const auto params = {CompressionParams{std::nullopt, "Uncompressed"},
+                                     CompressionParams{CompressionType::LZ4_FRAME, "LZ4"},
+                                     CompressionParams{CompressionType::ZSTD, "ZSTD"}};
 
-            SUBCASE("Record batch with multiple columns (compressed)")
-            {
-                std::vector<uint8_t> serialized;
-                memory_output_stream stream(serialized);
-                any_output_stream astream(stream);
-                generate_body(record_batch, astream, CompressionType::LZ4_FRAME);
-                CHECK_GT(serialized.size(), 0);
-                CHECK_EQ(serialized.size() % 8, 0);
+                for (const auto& p : params)
+                {
+                    SUBCASE(p.name)
+                    {
+                        std::vector<uint8_t> serialized;
+                        memory_output_stream stream(serialized);
+                        any_output_stream astream(stream);
+                        generate_body(record_batch, astream, p.type);
+                        CHECK_GT(serialized.size(), 0);
+                        CHECK_EQ(serialized.size() % 8, 0);
+                    }
+                }
             }
         }
 
@@ -123,9 +143,22 @@ namespace sparrow_ipc
 
             SUBCASE("Single array (compressed)")
             {
-                auto size = calculate_body_size(proxy, CompressionType::LZ4_FRAME);
-                CHECK_GT(size, 0);
-                CHECK_EQ(size % 8, 0);
+                struct CompressionParams
+                {
+                    CompressionType type;
+                    const char* name;
+                };
+                const auto params = {CompressionParams{CompressionType::LZ4_FRAME, "LZ4"},
+                                     CompressionParams{CompressionType::ZSTD, "ZSTD"}};
+                for (const auto& p : params)
+                {
+                    SUBCASE(p.name)
+                    {
+                        auto size = calculate_body_size(proxy, p.type);
+                        CHECK_GT(size, 0);
+                        CHECK_EQ(size % 8, 0);
+                    }
+                }
             }
 
             auto record_batch = create_test_record_batch();
@@ -143,14 +176,27 @@ namespace sparrow_ipc
 
             SUBCASE("Record batch (compressed)")
             {
-                auto size = calculate_body_size(record_batch, CompressionType::LZ4_FRAME);
-                CHECK_GT(size, 0);
-                CHECK_EQ(size % 8, 0);
-                std::vector<uint8_t> serialized;
-                memory_output_stream stream(serialized);
-                any_output_stream astream(stream);
-                generate_body(record_batch, astream, CompressionType::LZ4_FRAME);
-                CHECK_EQ(size, static_cast<int64_t>(serialized.size()));
+                struct CompressionParams
+                {
+                    CompressionType type;
+                    const char* name;
+                };
+                const auto params = {CompressionParams{CompressionType::LZ4_FRAME, "LZ4"},
+                                     CompressionParams{CompressionType::ZSTD, "ZSTD"}};
+                for (const auto& p : params)
+                {
+                    SUBCASE(p.name)
+                    {
+                        auto size = calculate_body_size(record_batch, p.type);
+                        CHECK_GT(size, 0);
+                        CHECK_EQ(size % 8, 0);
+                        std::vector<uint8_t> serialized;
+                        memory_output_stream stream(serialized);
+                        any_output_stream astream(stream);
+                        generate_body(record_batch, astream, p.type);
+                        CHECK_EQ(size, static_cast<int64_t>(serialized.size()));
+                    }
+                }
             }
         }
 #endif
@@ -214,6 +260,7 @@ namespace sparrow_ipc
                 auto record_batch = sp::record_batch({{"column1", sp::array(std::move(array))}});
                 test_calculate_record_batch_message_size(record_batch, std::nullopt);
                 test_calculate_record_batch_message_size(record_batch, CompressionType::LZ4_FRAME);
+                test_calculate_record_batch_message_size(record_batch, CompressionType::ZSTD);
             }
 
             SUBCASE("Multi-column record batch")
@@ -221,6 +268,7 @@ namespace sparrow_ipc
                 auto record_batch = create_test_record_batch();
                 test_calculate_record_batch_message_size(record_batch, std::nullopt);
                 test_calculate_record_batch_message_size(record_batch, CompressionType::LZ4_FRAME);
+                test_calculate_record_batch_message_size(record_batch, CompressionType::ZSTD);
             }
         }
 
@@ -247,6 +295,7 @@ namespace sparrow_ipc
                 std::vector<sp::record_batch> batches = {record_batch};
                 test_calculate_total_serialized_size(batches, std::nullopt);
                 test_calculate_total_serialized_size(batches, CompressionType::LZ4_FRAME);
+                test_calculate_total_serialized_size(batches, CompressionType::ZSTD);
             }
 
             SUBCASE("Multiple record batches")
@@ -266,6 +315,7 @@ namespace sparrow_ipc
                 std::vector<sp::record_batch> batches = {record_batch1, record_batch2};
                 test_calculate_total_serialized_size(batches, std::nullopt);
                 test_calculate_total_serialized_size(batches, CompressionType::LZ4_FRAME);
+                test_calculate_total_serialized_size(batches, CompressionType::ZSTD);
             }
 
             SUBCASE("Empty collection")
@@ -289,6 +339,7 @@ namespace sparrow_ipc
 
                 CHECK_THROWS_AS(auto size = calculate_total_serialized_size(batches), std::invalid_argument);
                 CHECK_THROWS_AS(auto size = calculate_total_serialized_size(batches, CompressionType::LZ4_FRAME), std::invalid_argument);
+                CHECK_THROWS_AS(auto size = calculate_total_serialized_size(batches, CompressionType::ZSTD), std::invalid_argument);
             }
         }
 
@@ -333,9 +384,24 @@ namespace sparrow_ipc
             SUBCASE("Valid record batch")
             {
                 auto record_batch = create_compressible_test_record_batch();
-                auto compressed_size = test_serialize_record_batch(record_batch, CompressionType::LZ4_FRAME);
                 auto uncompressed_size = test_serialize_record_batch(record_batch, std::nullopt);
-                CHECK_LT(compressed_size, uncompressed_size);
+
+                struct CompressionParams
+                {
+                    CompressionType type;
+                    const char* name;
+                };
+                const auto params = {CompressionParams{CompressionType::LZ4_FRAME, "LZ4"},
+                                     CompressionParams{CompressionType::ZSTD, "ZSTD"}};
+
+                for (const auto& p : params)
+                {
+                    SUBCASE(p.name)
+                    {
+                        auto compressed_size = test_serialize_record_batch(record_batch, p.type);
+                        CHECK_LT(compressed_size, uncompressed_size);
+                    }
+                }
             }
 
             SUBCASE("Empty record batch")
@@ -343,6 +409,7 @@ namespace sparrow_ipc
                 auto empty_batch = sp::record_batch({});
                 test_serialize_record_batch(empty_batch, std::nullopt);
                 test_serialize_record_batch(empty_batch, CompressionType::LZ4_FRAME);
+                test_serialize_record_batch(empty_batch, CompressionType::ZSTD);
             }
         }
     }

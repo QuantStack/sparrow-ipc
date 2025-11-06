@@ -38,19 +38,33 @@ namespace sparrow_ipc
             SUBCASE("Valid record batch, with and without compression")
             {
                 auto rb = create_compressible_test_record_batch();
-                StreamWrapper wrapper_compressed;
-                serializer ser_compressed(wrapper_compressed.get_stream(), CompressionType::LZ4_FRAME);
-                ser_compressed.write(rb);
-
-                // After writing first record batch, should have schema + record batch
-                CHECK_GT(wrapper_compressed.size(), 0);
 
                 StreamWrapper wrapper_uncompressed;
                 serializer ser_uncompressed(wrapper_uncompressed.get_stream());
                 ser_uncompressed.write(rb);
+
+                // After writing first record batch, should have schema + record batch
                 CHECK_GT(wrapper_uncompressed.size(), 0);
 
-                CHECK_LT(wrapper_compressed.size(), wrapper_uncompressed.size());
+                struct CompressionParams
+                {
+                    CompressionType type;
+                    const char* name;
+                };
+                const auto params = {CompressionParams{CompressionType::LZ4_FRAME, "LZ4"},
+                                     CompressionParams{CompressionType::ZSTD, "ZSTD"}};
+
+                for (const auto& p : params)
+                {
+                    SUBCASE(p.name)
+                    {
+                        StreamWrapper wrapper_compressed;
+                        serializer ser_compressed(wrapper_compressed.get_stream(), p.type);
+                        ser_compressed.write(rb);
+                        CHECK_GT(wrapper_compressed.size(), 0);
+                        CHECK_LT(wrapper_compressed.size(), wrapper_uncompressed.size());
+                    }
+                }
             }
 
             SUBCASE("Empty record batch")

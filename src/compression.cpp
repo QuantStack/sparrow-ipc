@@ -63,7 +63,7 @@ namespace sparrow_ipc
             LZ4F_createDecompressionContext(&dctx, LZ4F_VERSION);
             size_t compressed_size_in_out = data.size();
             size_t decompressed_size_in_out = decompressed_size;
-            size_t result = LZ4F_decompress(dctx, decompressed_data.data(), &decompressed_size_in_out, data.data(), &compressed_size_in_out, nullptr);
+            const size_t result = LZ4F_decompress(dctx, decompressed_data.data(), &decompressed_size_in_out, data.data(), &compressed_size_in_out, nullptr);
             if (LZ4F_isError(result) || (decompressed_size_in_out != (size_t)decompressed_size))
             {
                 throw std::runtime_error("Failed to decompress data with LZ4 frame format");

@@ -5,6 +5,9 @@
 
 namespace sparrow_ipc
 {
+    struct Lz4Compression { static constexpr CompressionType type = CompressionType::LZ4_FRAME; };
+    struct ZstdCompression { static constexpr CompressionType type = CompressionType::ZSTD; };
+
     TEST_SUITE("flatbuffer_utils")
     {
         TEST_CASE("create_metadata")
@@ -208,12 +211,12 @@ namespace sparrow_ipc
             }
         }
 
-        TEST_CASE("fill_compressed_buffers")
+        TEST_CASE_TEMPLATE("fill_compressed_buffers", Compression, Lz4Compression, ZstdCompression)
         {
             SUBCASE("Simple primitive array")
             {
                 test_fill_buffers_variant([](const sparrow::arrow_proxy& proxy, std::vector<org::apache::arrow::flatbuf::Buffer>& buffers, int64_t& offset) {
-                    fill_compressed_buffers(proxy, buffers, offset, CompressionType::LZ4_FRAME);
+                    fill_compressed_buffers(proxy, buffers, offset, Compression::type);
                 });
             }
         }
@@ -240,12 +243,12 @@ namespace sparrow_ipc
             }
         }
 
-        TEST_CASE("get_compressed_buffers")
+        TEST_CASE_TEMPLATE("get_compressed_buffers", Compression, Lz4Compression, ZstdCompression)
         {
             SUBCASE("Record batch with multiple columns")
             {
                 test_get_buffers_variant([](const sparrow::record_batch& record_batch) {
-                    return get_compressed_buffers(record_batch, CompressionType::LZ4_FRAME);
+                    return get_compressed_buffers(record_batch, Compression::type);
                 });
             }
         }
@@ -571,9 +574,14 @@ namespace sparrow_ipc
                 test_get_record_batch_message_builder(std::nullopt);
             }
 
-            SUBCASE("Valid record batch with field nodes and buffers (With compression)")
+            SUBCASE("Valid record batch with field nodes and buffers (With LZ4 compression)")
             {
                 test_get_record_batch_message_builder(CompressionType::LZ4_FRAME);
+            }
+
+            SUBCASE("Valid record batch with field nodes and buffers (With ZSTD compression)")
+            {
+                test_get_record_batch_message_builder(CompressionType::ZSTD);
             }
         }
     }
