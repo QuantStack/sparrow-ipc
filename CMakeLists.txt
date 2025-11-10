@@ -85,6 +85,9 @@ MESSAGE(STATUS "🔧 Build docs: ${SPARROW_IPC_BUILD_DOCS}")
 OPTION(SPARROW_IPC_BUILD_EXAMPLES "Build sparrow-ipc examples" OFF)
 MESSAGE(STATUS "🔧 Build examples: ${SPARROW_IPC_BUILD_EXAMPLES}")
 
+OPTION(SPARROW_IPC_BUILD_INTEGRATION_TESTS "Build sparrow-ipc integration tests" OFF)
+MESSAGE(STATUS "🔧 Build integration tests: ${SPARROW_IPC_BUILD_INTEGRATION_TESTS}")
+
 # Code coverage
 # =============
 OPTION(SPARROW_IPC_ENABLE_COVERAGE "Enable sparrow-ipc test coverage" OFF)
@@ -285,6 +288,13 @@ endif()
 if(SPARROW_IPC_BUILD_EXAMPLES)
     message(STATUS "🔨 Create examples targets")
     add_subdirectory(examples)
+endif()
+
+# Integration tests
+# =================
+if(SPARROW_IPC_BUILD_INTEGRATION_TESTS)
+    message(STATUS "🔨 Create integration tests targets")
+    add_subdirectory(integration_tests)
 endif()
 
 # Installation
