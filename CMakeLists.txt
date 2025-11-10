@@ -11,8 +11,6 @@ include(CMakeDependentOption)
 list(PREPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
 message(DEBUG "CMake module path: ${CMAKE_MODULE_PATH}")
 
-include(external_dependencies)
-
 set(SPARROW_IPC_COMPILE_DEFINITIONS "" CACHE STRING "List of public compile definitions of the sparrow-ipc target")
 
 set(SPARROW_IPC_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
@@ -92,6 +90,8 @@ MESSAGE(STATUS "🔧 Build integration tests: ${SPARROW_IPC_BUILD_INTEGRATION_TE
 # =============
 OPTION(SPARROW_IPC_ENABLE_COVERAGE "Enable sparrow-ipc test coverage" OFF)
 MESSAGE(STATUS "🔧 Enable coverage: ${SPARROW_IPC_ENABLE_COVERAGE}")
+
+include(external_dependencies)
 
 if(SPARROW_IPC_ENABLE_COVERAGE)
     include(code_coverage)
