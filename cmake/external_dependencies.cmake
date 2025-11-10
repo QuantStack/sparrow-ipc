@@ -68,7 +68,7 @@ function(find_package_or_fetch)
 endfunction()
 
 set(SPARROW_BUILD_SHARED ${SPARROW_IPC_BUILD_SHARED})
-if(${SPARROW_IPC_BUILD_TESTS})
+if(${SPARROW_IPC_BUILD_TESTS} OR ${SPARROW_IPC_BUILD_INTEGRATION_TESTS})
     set(CREATE_JSON_READER_TARGET ON)
 endif()
 find_package_or_fetch(
@@ -81,7 +81,7 @@ unset(CREATE_JSON_READER_TARGET)
 if(NOT TARGET sparrow::sparrow)
     add_library(sparrow::sparrow ALIAS sparrow)
 endif()
-if(${SPARROW_IPC_BUILD_TESTS})
+if(${SPARROW_IPC_BUILD_TESTS} OR ${SPARROW_IPC_BUILD_INTEGRATION_TESTS})
     find_package_or_fetch(
         PACKAGE_NAME sparrow-json-reader
     )
