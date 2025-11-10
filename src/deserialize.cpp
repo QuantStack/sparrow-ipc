@@ -3,6 +3,7 @@
 #include <sparrow/types/data_type.hpp>
 
 #include "sparrow_ipc/deserialize_fixedsizebinary_array.hpp"
+#include "sparrow_ipc/deserialize_interval_array.hpp"
 #include "sparrow_ipc/deserialize_primitive_array.hpp"
 #include "sparrow_ipc/deserialize_variable_size_binary_array.hpp"
 #include "sparrow_ipc/encapsulated_message.hpp"
@@ -205,6 +206,50 @@ namespace sparrow_ipc
                         )
                     );
                     break;
+                case org::apache::arrow::flatbuf::Type::Interval:
+                {
+                    const auto interval_type = field->type_as_Interval();
+                    org::apache::arrow::flatbuf::IntervalUnit interval_unit = interval_type->unit();
+                    switch (interval_unit)
+                    {
+                        case org::apache::arrow::flatbuf::IntervalUnit::YEAR_MONTH:
+                            arrays.emplace_back(
+                                deserialize_non_owning_interval_array<sparrow::chrono::months>(
+                                    record_batch,
+                                    encapsulated_message.body(),
+                                    name,
+                                    metadata,
+                                    buffer_index
+                                )
+                            );
+                            break;
+                        case org::apache::arrow::flatbuf::IntervalUnit::DAY_TIME:
+                            arrays.emplace_back(
+                                deserialize_non_owning_interval_array<sparrow::days_time_interval>(
+                                    record_batch,
+                                    encapsulated_message.body(),
+                                    name,
+                                    metadata,
+                                    buffer_index
+                                )
+                            );
+                            break;
+                        case org::apache::arrow::flatbuf::IntervalUnit::MONTH_DAY_NANO:
+                            arrays.emplace_back(
+                                deserialize_non_owning_interval_array<sparrow::month_day_nanoseconds_interval>(
+                                    record_batch,
+                                    encapsulated_message.body(),
+                                    name,
+                                    metadata,
+                                    buffer_index
+                                )
+                            );
+                            break;
+                        default:
+                            throw std::runtime_error("Unsupported interval unit.");
+                    }
+                }
+                break;
                 default:
                     throw std::runtime_error("Unsupported type.");
             }
@@ -222,7 +267,8 @@ namespace sparrow_ipc
         std::vector<std::optional<std::vector<sparrow::metadata_pair>>> fields_metadata;
         do
         {
-            // Check for end-of-stream marker here as data could contain only that (if no record batches present/written)
+            // Check for end-of-stream marker here as data could contain only that (if no record batches
+            // present/written)
             if (data.size() >= 8 && is_end_of_stream(data.subspan(0, 8)))
             {
                 break;

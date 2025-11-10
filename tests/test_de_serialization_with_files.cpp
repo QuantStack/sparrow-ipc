@@ -33,6 +33,7 @@ const std::vector<std::filesystem::path> files_paths_to_test = {
     tests_resources_files_path / "generated_large_binary",
     tests_resources_files_path / "generated_binary_zerolength",
     tests_resources_files_path / "generated_binary_no_batches",
+    tests_resources_files_path / "generated_interval",
 };
 
 const std::vector<std::filesystem::path> files_paths_to_test_with_lz4_compression = {
