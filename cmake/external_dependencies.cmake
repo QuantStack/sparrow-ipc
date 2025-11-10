@@ -148,7 +148,7 @@ if(NOT TARGET zstd::libzstd)
     endif()
 endif()
 
-if(SPARROW_IPC_BUILD_TESTS)
+if(${SPARROW_IPC_BUILD_TESTS} OR ${SPARROW_IPC_BUILD_INTEGRATION_TESTS})
     find_package_or_fetch(
         PACKAGE_NAME doctest
         GIT_REPOSITORY https://github.com/doctest/doctest.git
