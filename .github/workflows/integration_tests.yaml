@@ -48,10 +48,13 @@ jobs:
     - name: Build Docker image
       run: docker build -t sparrow/integration-tests -f ci/docker/integration.dockerfile .
 
+    - name: List all folders in workspace
+      run: ls -la ${{ github.workspace }}
+
     - name: Run Integration tests
       run: |
         docker run --rm \
-          -e ARCHERY_INTEGRATION_WITH_EXTERNAL_LIBRARY=/workspace/build/bin/RELEASE/integration_tests/ \
+          -e ARCHERY_INTEGRATION_WITH_EXTERNAL_LIBRARY=/workspace/build/bin/Release/integration_tests/ \
           -e ARCHERY_INTEGRATION_EXTERNAL_LIBRARY_IPC_PRODUCER=true \
           -e ARCHERY_INTEGRATION_EXTERNAL_LIBRARY_IPC_CONSUMER=true \
           -v ${{ github.workspace }}:/workspace \
