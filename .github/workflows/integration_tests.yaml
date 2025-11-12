@@ -49,7 +49,7 @@ jobs:
       run: docker build -t sparrow/integration-tests -f ci/docker/integration.dockerfile .
 
     - name: List all folders in workspace
-      run: ls -la ${{ github.workspace }}
+      run: ls -la ${{ github.workspace }}/build/bin/Release/
 
     - name: Run Integration tests
       run: |
