@@ -109,8 +109,8 @@ bool compare_record_batch(
                 std::cerr << "Error: Batch " << batch_idx << ", column " << col_idx << " ('"
                           << col_name1.value_or("unnamed") << "'), row " << row_idx
                           << " has different value\n";
-                std::cerr << "  JSON value:   " << col1[row_idx] << "\n";
-                std::cerr << "  Stream value: " << col2[row_idx] << "\n";
+                std::cerr << "  JSON value:   " << std::format("{}", col1[row_idx]) << "\n";
+                std::cerr << "  Stream value: " << std::format("{}", col2[row_idx]) << "\n";
                 all_match = false;
             }
         }
