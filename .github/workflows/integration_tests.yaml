@@ -8,57 +8,65 @@ on:
 
 jobs:
   build_integration_container_and_run_tests:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-22.04
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v5
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y mold libpthread-stubs0-dev libboost-thread-dev doctest-dev
 
-    - name: Create build environment
-      uses: mamba-org/setup-micromamba@v2
-      with:
-        environment-file: ./environment-dev.yml
-        environment-name: build_env
-        cache-environment: true
+      - name: Install specific version of tzdata
+        run: sudo apt-get install tzdata
+        
+      - name: Checkout code
+        uses: actions/checkout@v5
 
-    - name: Configure using CMake
-      run: |
-        cmake -G Ninja \
-          -Bbuild \
-          -DCMAKE_BUILD_TYPE:STRING=RELEASE \
-          -DSPARROW_IPC_BUILD_INTEGRATION_TESTS=ON \
-          -DFETCH_DEPENDENCIES_WITH_CMAKE=MISSING \
-          -DSPARROW_IPC_BUILD_SHARED=ON
+      - name: Create build environment
+        uses: mamba-org/setup-micromamba@v2
+        with:
+          environment-file: ./environment-dev.yml
+          environment-name: build_env
+          cache-environment: true
 
-    - name: Build arrow_file_to_stream target
-      working-directory: build
-      run: cmake --build . --config Release --target arrow_file_to_stream
+      - name: Configure using CMake
+        run: |
+          cmake -G Ninja \
+            -Bbuild \
+            -DCMAKE_BUILD_TYPE:STRING=RELEASE \
+            -DSPARROW_IPC_BUILD_INTEGRATION_TESTS=ON \
+            -DFETCH_DEPENDENCIES_WITH_CMAKE=MISSING \
+            -DSPARROW_IPC_BUILD_SHARED=ON
 
-    - name: Build arrow_stream_to_file target
-      working-directory: build
-      run: cmake --build . --config Release --target arrow_stream_to_file
+      - name: Build arrow_file_to_stream target
+        working-directory: build
+        run: cmake --build . --config Release --target arrow_file_to_stream
 
-    - name: Build arrow_json_to_file target
-      working-directory: build
-      run: cmake --build . --config Release --target arrow_json_to_file
+      - name: Build arrow_stream_to_file target
+        working-directory: build
+        run: cmake --build . --config Release --target arrow_stream_to_file
 
-    - name: Build arrow_validate target
-      working-directory: build
-      run: cmake --build . --config Release --target arrow_validate
+      - name: Build arrow_json_to_file target
+        working-directory: build
+        run: cmake --build . --config Release --target arrow_json_to_file
 
-    - name: List all folders and subfolders
-      run: |
-        echo "Listing all folders and subfolders:"
-        find . -type d
+      - name: Build arrow_validate target
+        working-directory: build
+        run: cmake --build . --config Release --target arrow_validate
 
-    - name: Build Docker image
-      run: docker build -t sparrow/integration-tests -f ci/docker/integration.dockerfile .
+      - name: List all folders and subfolders
+        run: |
+          echo "Listing all folders and subfolders:"
+          find . -type d
 
-    - name: Run Integration tests
-      run: |
-        docker run --rm \
-          -e ARCHERY_INTEGRATION_WITH_EXTERNAL_LIBRARY=/workspace/build/bin/RELEASE/ \
-          -e ARCHERY_INTEGRATION_EXTERNAL_LIBRARY_IPC_PRODUCER=true \
-          -e ARCHERY_INTEGRATION_EXTERNAL_LIBRARY_IPC_CONSUMER=true \
-          -v ${{ github.workspace }}:/workspace \
-          -w /arrow-integration sparrow/integration-tests \
-          "/arrow-integration/ci/scripts/integration_arrow.sh /arrow-integration /build"
+      - name: Build Docker image
+        run: docker build -t sparrow/integration-tests -f ci/docker/integration.dockerfile .
+
+      - name: Run Integration tests
+        run: |
+          docker run --rm \
+            -e ARCHERY_INTEGRATION_WITH_EXTERNAL_LIBRARY=/workspace/build/bin/RELEASE/ \
+            -e ARCHERY_INTEGRATION_EXTERNAL_LIBRARY_IPC_PRODUCER=true \
+            -e ARCHERY_INTEGRATION_EXTERNAL_LIBRARY_IPC_CONSUMER=true \
+            -v ${{ github.workspace }}:/workspace \
+            -w /arrow-integration sparrow/integration-tests \
+            "/arrow-integration/ci/scripts/integration_arrow.sh /arrow-integration /build"
