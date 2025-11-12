@@ -5,21 +5,20 @@
 #include <vector>
 
 #include <nlohmann/json.hpp>
-#include <sparrow/record_batch.hpp>
-
-#include "sparrow/json_reader/json_parser.hpp"
-
 #include <sparrow_ipc/memory_output_stream.hpp>
 #include <sparrow_ipc/serializer.hpp>
 
+#include <sparrow/json_reader/json_parser.hpp>
+#include <sparrow/record_batch.hpp>
+
 /**
- * @brief Reads a JSON file containing record batches and outputs the serialized Arrow IPC stream to stdout.
+ * @brief Reads a JSON file containing record batches and writes the serialized Arrow IPC stream to a file.
  *
- * This program takes a JSON file path as a command-line argument, parses the record batches
- * from the JSON data, serializes them into Arrow IPC stream format, and writes the binary
- * stream to stdout. The output can be redirected to a file or piped to another program.
+ * This program takes a JSON file path and an output file path as command-line arguments,
+ * parses the record batches from the JSON data, serializes them into Arrow IPC stream format,
+ * and writes the binary stream to the specified output file.
  *
- * Usage: file_to_stream <json_file_path>
+ * Usage: json_to_file <json_file_path> <output_file_path>
  *
  * @param argc Number of command-line arguments
  * @param argv Array of command-line arguments
@@ -28,21 +27,22 @@
 int main(int argc, char* argv[])
 {
     // Check command-line arguments
-    if (argc != 2)
+    if (argc != 3)
     {
-        std::cerr << "Usage: " << argv[0] << " <json_file_path>\n";
-        std::cerr << "Reads a JSON file and outputs the serialized Arrow IPC stream to stdout.\n";
+        std::cerr << "Usage: " << argv[0] << " <json_file_path> <output_file_path>\n";
+        std::cerr << "Reads a JSON file and writes the serialized Arrow IPC stream to a file.\n";
         return EXIT_FAILURE;
     }
 
     const std::filesystem::path json_path(argv[1]);
+    const std::filesystem::path output_path(argv[2]);
 
     try
     {
         // Check if the JSON file exists
         if (!std::filesystem::exists(json_path))
         {
-            std::cerr << "Error: File not found: " << json_path << "\n";
+            std::cerr << "Error: Input file not found: " << json_path << "\n";
             return EXIT_FAILURE;
         }
 
@@ -50,7 +50,7 @@ int main(int argc, char* argv[])
         std::ifstream json_file(json_path);
         if (!json_file.is_open())
         {
-            std::cerr << "Error: Could not open file: " << json_path << "\n";
+            std::cerr << "Error: Could not open input file: " << json_path << "\n";
             return EXIT_FAILURE;
         }
 
@@ -89,8 +89,7 @@ int main(int argc, char* argv[])
             }
             catch (const std::exception& e)
             {
-                std::cerr << "Error: Failed to build record batch " << batch_idx << ": " << e.what()
-                          << "\n";
+                std::cerr << "Error: Failed to build record batch " << batch_idx << ": " << e.what() << "\n";
                 return EXIT_FAILURE;
             }
         }
@@ -102,9 +101,22 @@ int main(int argc, char* argv[])
 
         serializer << record_batches << sparrow_ipc::end_stream;
 
-        // Write the binary stream to stdout
-        std::cout.write(reinterpret_cast<const char*>(stream_data.data()), stream_data.size());
-        std::cout.flush();
+        // Write the binary stream to the output file
+        std::ofstream output_file(output_path, std::ios::out | std::ios::binary);
+        if (!output_file.is_open())
+        {
+            std::cerr << "Error: Could not open output file: " << output_path << "\n";
+            return EXIT_FAILURE;
+        }
+
+        output_file.write(reinterpret_cast<const char*>(stream_data.data()), stream_data.size());
+        output_file.close();
+
+        if (!output_file.good())
+        {
+            std::cerr << "Error: Failed to write to output file: " << output_path << "\n";
+            return EXIT_FAILURE;
+        }
 
         return EXIT_SUCCESS;
     }

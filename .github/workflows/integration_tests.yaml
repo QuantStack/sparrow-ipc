@@ -29,13 +29,21 @@ jobs:
           -DFETCH_DEPENDENCIES_WITH_CMAKE=MISSING \
           -DSPARROW_IPC_BUILD_SHARED=ON
 
-    - name: Build file_to_stream target
+    - name: Build arrow_file_to_stream target
       working-directory: build
-      run: cmake --build . --config Release --target file_to_stream
+      run: cmake --build . --config Release --target arrow_file_to_stream
 
-    - name: Build stream_to_file target
+    - name: Build arrow_stream_to_file target
       working-directory: build
-      run: cmake --build . --config Release --target stream_to_file
+      run: cmake --build . --config Release --target arrow_stream_to_file
+
+    - name: Build arrow_json_to_file target
+      working-directory: build
+      run: cmake --build . --config Release --target arrow_json_to_file
+
+    - name: Build arrow_validate target
+      working-directory: build
+      run: cmake --build . --config Release --target arrow_validate
 
     - name: Build Docker image
       run: docker build -t sparrow/integration-tests -f ci/docker/integration.dockerfile .
