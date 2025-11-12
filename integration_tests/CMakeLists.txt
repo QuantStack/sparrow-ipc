@@ -12,9 +12,16 @@ target_link_libraries(arrow_file_to_stream
 
 set_target_properties(arrow_file_to_stream
     PROPERTIES
-    CXX_STANDARD 20
-    CXX_STANDARD_REQUIRED ON
-    CXX_EXTENSIONS OFF
+        CXX_STANDARD 20
+        CXX_STANDARD_REQUIRED ON
+        CXX_EXTENSIONS OFF
+        VERSION ${SPARROW_IPC_BINARY_VERSION}
+        SOVERSION ${SPARROW_IPC_BINARY_CURRENT}
+        FOLDER "integration_tests"
+        INSTALL_RPATH_USE_LINK_PATH TRUE
+        BUILD_WITH_INSTALL_RPATH FALSE
+        INSTALL_RPATH "$<$<PLATFORM_ID:Linux>:$ORIGIN>$<$<PLATFORM_ID:Darwin>:@loader_path>"
+        BUILD_RPATH_USE_ORIGIN TRUE
 )
 
 target_include_directories(arrow_file_to_stream
@@ -36,9 +43,17 @@ target_link_libraries(arrow_stream_to_file
 
 set_target_properties(arrow_stream_to_file
     PROPERTIES
-    CXX_STANDARD 20
-    CXX_STANDARD_REQUIRED ON
-    CXX_EXTENSIONS OFF
+        CXX_STANDARD 20
+        CXX_STANDARD_REQUIRED ON
+        CXX_EXTENSIONS OFF
+        VERSION ${SPARROW_IPC_BINARY_VERSION}
+        SOVERSION ${SPARROW_IPC_BINARY_CURRENT}
+        FOLDER integration_tests
+        # RPATH settings for Unix-like systems
+        INSTALL_RPATH_USE_LINK_PATH TRUE
+        BUILD_WITH_INSTALL_RPATH FALSE
+        INSTALL_RPATH "$<$<PLATFORM_ID:Linux>:$ORIGIN>$<$<PLATFORM_ID:Darwin>:@loader_path>"
+        BUILD_RPATH_USE_ORIGIN TRUE
 )
 
 target_include_directories(arrow_stream_to_file
@@ -61,9 +76,17 @@ target_link_libraries(arrow_json_to_file
 
 set_target_properties(arrow_json_to_file
     PROPERTIES
-    CXX_STANDARD 20
-    CXX_STANDARD_REQUIRED ON
-    CXX_EXTENSIONS OFF
+        CXX_STANDARD 20
+        CXX_STANDARD_REQUIRED ON
+        CXX_EXTENSIONS OFF
+        VERSION ${SPARROW_IPC_BINARY_VERSION}
+        SOVERSION ${SPARROW_IPC_BINARY_CURRENT}
+        FOLDER integration_tests
+        # RPATH settings for Unix-like systems
+        INSTALL_RPATH_USE_LINK_PATH TRUE
+        BUILD_WITH_INSTALL_RPATH FALSE
+        INSTALL_RPATH "$<$<PLATFORM_ID:Linux>:$ORIGIN>$<$<PLATFORM_ID:Darwin>:@loader_path>"
+        BUILD_RPATH_USE_ORIGIN TRUE
 )
 
 target_include_directories(arrow_json_to_file
@@ -79,16 +102,24 @@ add_executable(arrow_validate arrow_validate.cpp)
 
 target_link_libraries(arrow_validate
     PRIVATE
-    sparrow-ipc
-    sparrow::sparrow
-    sparrow::json_reader
+        sparrow-ipc
+        sparrow::sparrow
+        sparrow::json_reader
 )
 
 set_target_properties(arrow_validate
     PROPERTIES
-    CXX_STANDARD 20
-    CXX_STANDARD_REQUIRED ON
-    CXX_EXTENSIONS OFF
+        CXX_STANDARD 20
+        CXX_STANDARD_REQUIRED ON
+        CXX_EXTENSIONS OFF
+        VERSION ${SPARROW_IPC_BINARY_VERSION}
+        SOVERSION ${SPARROW_IPC_BINARY_CURRENT}
+        FOLDER integration_tests
+        # RPATH settings for Unix-like systems
+        INSTALL_RPATH_USE_LINK_PATH TRUE
+        BUILD_WITH_INSTALL_RPATH FALSE
+        INSTALL_RPATH "$<$<PLATFORM_ID:Linux>:$ORIGIN>$<$<PLATFORM_ID:Darwin>:@loader_path>"
+        BUILD_RPATH_USE_ORIGIN TRUE
 )
 
 target_include_directories(arrow_validate
