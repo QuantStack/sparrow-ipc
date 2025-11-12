@@ -45,11 +45,13 @@ jobs:
       working-directory: build
       run: cmake --build . --config Release --target arrow_validate
 
+    - name: List all folders and subfolders
+      run: |
+        echo "Listing all folders and subfolders:"
+        find . -type d
+
     - name: Build Docker image
       run: docker build -t sparrow/integration-tests -f ci/docker/integration.dockerfile .
-
-    - name: List all folders in workspace
-      run: ls -la ${{ github.workspace }}/build/bin/Release/
 
     - name: Run Integration tests
       run: |
