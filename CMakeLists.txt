@@ -143,6 +143,7 @@ set(SPARROW_IPC_SRC
     ${SPARROW_IPC_SOURCE_DIR}/serialize_utils.cpp
     ${SPARROW_IPC_SOURCE_DIR}/serialize.cpp
     ${SPARROW_IPC_SOURCE_DIR}/serializer.cpp
+    ${SPARROW_IPC_SOURCE_DIR}/stream_file_format.cpp
     ${SPARROW_IPC_SOURCE_DIR}/utils.cpp
 )
 
