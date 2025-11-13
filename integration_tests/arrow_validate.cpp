@@ -1,10 +1,12 @@
 #include <cstdlib>
 #include <filesystem>
-#include <format>
 #include <fstream>
 #include <iostream>
 #include <iterator>
 #include <vector>
+#if defined(__cpp_lib_format)
+#    include <format>
+#endif
 
 #include <nlohmann/json.hpp>
 #include <sparrow_ipc/deserialize.hpp>
@@ -105,8 +107,10 @@ bool compare_record_batch(const sparrow::record_batch& rb1, const sparrow::recor
                 std::cerr << "Error: Batch " << batch_idx << ", column " << col_idx << " ('"
                           << col_name1.value_or("unnamed") << "'), row " << row_idx
                           << " has different value\n";
+#if defined(__cpp_lib_format)
                 std::cerr << "  JSON value:   " << std::format("{}", col1[row_idx]) << "\n";
                 std::cerr << "  Stream value: " << std::format("{}", col2[row_idx]) << "\n";
+#endif
                 all_match = false;
             }
         }
