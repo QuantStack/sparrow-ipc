@@ -21,13 +21,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v5
 
-      - name: Create build environment
-        uses: mamba-org/setup-micromamba@v2
-        with:
-          environment-file: ./environment-dev.yml
-          environment-name: build_env
-          cache-environment: true
-
       - name: Configure using CMake
         run: |
           cmake -G Ninja \
@@ -35,7 +28,7 @@ jobs:
             -DCMAKE_BUILD_TYPE:STRING=RELEASE \
             -DSPARROW_IPC_BUILD_INTEGRATION_TESTS=ON \
             -DFETCH_DEPENDENCIES_WITH_CMAKE=MISSING \
-            -DSPARROW_IPC_BUILD_SHARED=ON
+            -DSPARROW_IPC_BUILD_SHARED=OFF
 
       - name: Build arrow_file_to_stream target
         working-directory: build
