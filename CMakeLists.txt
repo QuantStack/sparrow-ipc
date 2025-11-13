@@ -122,6 +122,9 @@ set(SPARROW_IPC_HEADERS
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/serialize_utils.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/serialize.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/serializer.hpp
+    ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/stream_file_format.hpp
+    ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/stream_file_format_impl.hpp
+    ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/stream_file_serializer.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/utils.hpp
 )
 
@@ -144,6 +147,7 @@ set(SPARROW_IPC_SRC
     ${SPARROW_IPC_SOURCE_DIR}/serialize.cpp
     ${SPARROW_IPC_SOURCE_DIR}/serializer.cpp
     ${SPARROW_IPC_SOURCE_DIR}/stream_file_format.cpp
+    ${SPARROW_IPC_SOURCE_DIR}/stream_file_serializer.cpp
     ${SPARROW_IPC_SOURCE_DIR}/utils.cpp
 )
 

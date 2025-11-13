@@ -17,6 +17,7 @@ set(SPARROW_IPC_TESTS_SRC
     test_memory_output_streams.cpp
     test_serialize_utils.cpp
     test_serializer.cpp
+    test_stream_file_serializer.cpp
     test_utils.cpp
 )
 
