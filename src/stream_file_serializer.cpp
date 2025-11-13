@@ -32,17 +32,6 @@ namespace sparrow_ipc
         write(std::ranges::single_view(rb));
     }
 
-    std::vector<sparrow::data_type> stream_file_serializer::get_column_dtypes(const sparrow::record_batch& rb)
-    {
-        std::vector<sparrow::data_type> dtypes;
-        dtypes.reserve(rb.nb_columns());
-        for (const auto& col : rb.columns())
-        {
-            dtypes.push_back(col.data_type());
-        }
-        return dtypes;
-    }
-
     void stream_file_serializer::end()
     {
         if (m_ended)

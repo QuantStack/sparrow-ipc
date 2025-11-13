@@ -270,10 +270,6 @@ namespace sparrow_ipc
          */
         void end();
 
-    private:
-
-        static std::vector<sparrow::data_type> get_column_dtypes(const sparrow::record_batch& rb);
-
         bool m_header_written{false};
         bool m_schema_received{false};
         std::optional<sparrow::record_batch> m_first_record_batch;
