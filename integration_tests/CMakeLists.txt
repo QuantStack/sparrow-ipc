@@ -18,6 +18,9 @@ set_target_properties(arrow_file_to_stream
         VERSION ${SPARROW_IPC_BINARY_VERSION}
         SOVERSION ${SPARROW_IPC_BINARY_CURRENT}
         FOLDER "integration_tests"
+        BUILD_RPATH_USE_ORIGIN ON
+        BUILD_RPATH "$ORIGIN"
+        INSTALL_RPATH "$ORIGIN"
 )
 
 target_include_directories(arrow_file_to_stream
@@ -45,6 +48,9 @@ set_target_properties(arrow_stream_to_file
         VERSION ${SPARROW_IPC_BINARY_VERSION}
         SOVERSION ${SPARROW_IPC_BINARY_CURRENT}
         FOLDER integration_tests
+        BUILD_RPATH_USE_ORIGIN ON
+        BUILD_RPATH "$ORIGIN"
+        INSTALL_RPATH "$ORIGIN"
 )
 
 target_include_directories(arrow_stream_to_file
@@ -73,6 +79,9 @@ set_target_properties(arrow_json_to_file
         VERSION ${SPARROW_IPC_BINARY_VERSION}
         SOVERSION ${SPARROW_IPC_BINARY_CURRENT}
         FOLDER integration_tests
+        BUILD_RPATH_USE_ORIGIN ON
+        BUILD_RPATH "$ORIGIN"
+        INSTALL_RPATH "$ORIGIN"
 )
 
 target_include_directories(arrow_json_to_file
@@ -101,6 +110,9 @@ set_target_properties(arrow_validate
         VERSION ${SPARROW_IPC_BINARY_VERSION}
         SOVERSION ${SPARROW_IPC_BINARY_CURRENT}
         FOLDER integration_tests
+        BUILD_RPATH_USE_ORIGIN ON
+        BUILD_RPATH "$ORIGIN"
+        INSTALL_RPATH "$ORIGIN"
 )
 
 target_include_directories(arrow_validate
