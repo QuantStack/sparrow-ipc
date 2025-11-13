@@ -17,6 +17,42 @@
 namespace sparrow_ipc
 {
     /**
+     * @brief Writes the Arrow IPC file footer.
+     *
+     * @param record_batch A record batch containing the schema for the footer
+     * @param stream The output stream to write the footer to
+     * @return The size of the footer in bytes
+     */
+    SPARROW_IPC_API size_t write_footer(
+        const sparrow::record_batch& record_batch,
+        any_output_stream& stream
+    );
+
+    /**
+     * @brief Deserializes Arrow IPC file format into a vector of record batches.
+     *
+     * Reads an Arrow IPC file format which consists of:
+     * 1. Magic bytes "ARROW1" with padding (8 bytes)
+     * 2. Stream format data (schema + record batches)
+     * 3. Footer containing metadata
+     * 4. Footer size (int32)
+     * 5. Trailing magic bytes "ARROW1" (6 bytes)
+     *
+     * @param data A span of bytes containing the serialized Arrow IPC file data
+     *
+     * @return std::vector<sparrow::record_batch> A vector containing all deserialized record batches
+     *
+     * @throws std::runtime_error If:
+     *         - The file magic bytes are incorrect
+     *         - The footer is missing or invalid
+     *         - Record batch deserialization fails
+     *
+     * @note The function validates the file structure including magic bytes at both start and end
+     */
+    [[nodiscard]] SPARROW_IPC_API std::vector<sparrow::record_batch>
+    deserialize_file(std::span<const uint8_t> data);
+
+    /**
      * @brief A class for serializing Apache Arrow record batches to the IPC file format.
      *
      * The stream_file_serializer class provides functionality to serialize single or multiple 
