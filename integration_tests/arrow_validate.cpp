@@ -1,16 +1,17 @@
 #include <cstdlib>
 #include <filesystem>
+#include <format>
 #include <fstream>
 #include <iostream>
 #include <iterator>
 #include <vector>
 
 #include <nlohmann/json.hpp>
+#include <sparrow_ipc/deserialize.hpp>
+
 #include <sparrow/record_batch.hpp>
 
 #include "sparrow/json_reader/json_parser.hpp"
-
-#include <sparrow_ipc/deserialize.hpp>
 
 /**
  * @brief Helper function to compare two record batches for equality.
@@ -23,11 +24,7 @@
  * @param batch_idx The index of the batch being compared (for error reporting)
  * @return true if the batches are identical, false otherwise
  */
-bool compare_record_batch(
-    const sparrow::record_batch& rb1,
-    const sparrow::record_batch& rb2,
-    size_t batch_idx
-)
+bool compare_record_batch(const sparrow::record_batch& rb1, const sparrow::record_batch& rb2, size_t batch_idx)
 {
     bool all_match = true;
 
@@ -77,8 +74,8 @@ bool compare_record_batch(
         // Check column size
         if (col1.size() != col2.size())
         {
-            std::cerr << "Error: Batch " << batch_idx << ", column " << col_idx << " has different size: "
-                      << col1.size() << " vs " << col2.size() << "\n";
+            std::cerr << "Error: Batch " << batch_idx << ", column " << col_idx
+                      << " has different size: " << col1.size() << " vs " << col2.size() << "\n";
             all_match = false;
             continue;
         }
@@ -86,8 +83,7 @@ bool compare_record_batch(
         // Check column data type
         if (col1.data_type() != col2.data_type())
         {
-            std::cerr << "Error: Batch " << batch_idx << ", column " << col_idx
-                      << " has different data type\n";
+            std::cerr << "Error: Batch " << batch_idx << ", column " << col_idx << " has different data type\n";
             all_match = false;
             continue;
         }
@@ -206,8 +202,8 @@ int main(int argc, char* argv[])
             }
             catch (const std::exception& e)
             {
-                std::cerr << "Error: Failed to build record batch " << batch_idx << " from JSON: "
-                          << e.what() << "\n";
+                std::cerr << "Error: Failed to build record batch " << batch_idx << " from JSON: " << e.what()
+                          << "\n";
                 return EXIT_FAILURE;
             }
         }
