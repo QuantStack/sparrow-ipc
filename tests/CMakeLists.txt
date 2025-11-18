@@ -44,7 +44,10 @@ if(WIN32)
         COMMAND ${CMAKE_COMMAND} -E copy
             "$<TARGET_FILE:date::date-tz>"
             "$<TARGET_FILE_DIR:${test_target}>"
-        COMMENT "Copying sparrow and sparrow-ipc DLLs to executable directory"
+        COMMAND ${CMAKE_COMMAND} -E copy
+            "$<TARGET_FILE:zstd::libzstd>"
+            "$<TARGET_FILE_DIR:${test_target}>"
+        COMMENT "Copying required DLLs to executable directory"
     )
 endif()
 
