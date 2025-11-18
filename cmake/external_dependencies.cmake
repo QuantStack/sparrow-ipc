@@ -127,7 +127,18 @@ find_package_or_fetch(
     PACKAGE_NAME zstd
     GIT_REPOSITORY https://github.com/facebook/zstd.git
     TAG v1.5.7
+    SOURCE_SUBDIR build/cmake
+    CMAKE_ARGS
+        "ZSTD_BUILD_PROGRAMS=OFF"
 )
+
+# if(NOT TARGET zstd::libzstd)
+#     if(TARGET libzstd_shared AND SPARROW_IPC_BUILD_SHARED)
+#         add_library(zstd::libzstd ALIAS libzstd_shared)
+#     elseif(TARGET libzstd_static)
+#         add_library(zstd::libzstd ALIAS libzstd_static)
+#     endif()
+# endif()
 
 if(SPARROW_IPC_BUILD_TESTS)
     find_package_or_fetch(
