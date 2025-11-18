@@ -132,13 +132,21 @@ find_package_or_fetch(
         "ZSTD_BUILD_PROGRAMS=OFF"
 )
 
-# if(NOT TARGET zstd::libzstd)
-#     if(TARGET libzstd_shared AND SPARROW_IPC_BUILD_SHARED)
-#         add_library(zstd::libzstd ALIAS libzstd_shared)
-#     elseif(TARGET libzstd_static)
-#         add_library(zstd::libzstd ALIAS libzstd_static)
-#     endif()
-# endif()
+if(NOT TARGET zstd::libzstd)
+    if(SPARROW_IPC_BUILD_SHARED)
+        if(TARGET zstd::libzstd_shared) # Linux case
+            add_library(zstd::libzstd ALIAS zstd::libzstd_shared)
+        elseif(TARGET libzstd_shared) # Windows case
+            add_library(zstd::libzstd ALIAS libzstd_shared)
+        endif()
+    else()
+        if(TARGET zstd::libzstd_static) # Linux case
+            add_library(zstd::libzstd ALIAS zstd::libzstd_static)
+        elseif(TARGET libzstd_static) # Windows case
+            add_library(zstd::libzstd ALIAS libzstd_static)
+        endif()
+    endif()
+endif()
 
 if(SPARROW_IPC_BUILD_TESTS)
     find_package_or_fetch(
