@@ -35,7 +35,6 @@ const std::vector<std::filesystem::path> files_paths_to_test = {
     tests_resources_files_path / "generated_binary_no_batches",
 };
 
-// TODO add similar tests for zstd elsewhere
 const std::vector<std::filesystem::path> files_paths_to_test_with_lz4_compression = {
     tests_resources_files_path_with_compression / "generated_lz4",
     tests_resources_files_path_with_compression/ "generated_uncompressible_lz4",

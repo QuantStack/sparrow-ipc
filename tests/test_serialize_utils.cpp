@@ -72,15 +72,7 @@ namespace sparrow_ipc
                 CHECK_EQ(body_uncompressed.size() % 8, 0);
 
                 // Compressed
-                struct CompressionParams
-                {
-                    CompressionType type;
-                    const char* name;
-                };
-                const auto params = {CompressionParams{CompressionType::LZ4_FRAME, "LZ4"},
-                                     CompressionParams{CompressionType::ZSTD, "ZSTD"}};
-
-                for (const auto& p : params)
+                for (const auto& p : compression_only_params)
                 {
                     SUBCASE(p.name)
                     {
@@ -104,16 +96,7 @@ namespace sparrow_ipc
             auto record_batch = create_test_record_batch();
             SUBCASE("Record batch with multiple columns")
             {
-                struct CompressionParams
-                {
-                    std::optional<CompressionType> type;
-                    const char* name;
-                };
-                const auto params = {CompressionParams{std::nullopt, "Uncompressed"},
-                                     CompressionParams{CompressionType::LZ4_FRAME, "LZ4"},
-                                     CompressionParams{CompressionType::ZSTD, "ZSTD"}};
-
-                for (const auto& p : params)
+                for (const auto& p : compression_params)
                 {
                     SUBCASE(p.name)
                     {
@@ -143,18 +126,11 @@ namespace sparrow_ipc
 
             SUBCASE("Single array (compressed)")
             {
-                struct CompressionParams
-                {
-                    CompressionType type;
-                    const char* name;
-                };
-                const auto params = {CompressionParams{CompressionType::LZ4_FRAME, "LZ4"},
-                                     CompressionParams{CompressionType::ZSTD, "ZSTD"}};
-                for (const auto& p : params)
+                for (const auto& p : compression_only_params)
                 {
                     SUBCASE(p.name)
                     {
-                        auto size = calculate_body_size(proxy, p.type);
+                        auto size = calculate_body_size(proxy, p.type.value());
                         CHECK_GT(size, 0);
                         CHECK_EQ(size % 8, 0);
                     }
@@ -176,24 +152,17 @@ namespace sparrow_ipc
 
             SUBCASE("Record batch (compressed)")
             {
-                struct CompressionParams
-                {
-                    CompressionType type;
-                    const char* name;
-                };
-                const auto params = {CompressionParams{CompressionType::LZ4_FRAME, "LZ4"},
-                                     CompressionParams{CompressionType::ZSTD, "ZSTD"}};
-                for (const auto& p : params)
+                for (const auto& p : compression_only_params)
                 {
                     SUBCASE(p.name)
                     {
-                        auto size = calculate_body_size(record_batch, p.type);
+                        auto size = calculate_body_size(record_batch, p.type.value());
                         CHECK_GT(size, 0);
                         CHECK_EQ(size % 8, 0);
                         std::vector<uint8_t> serialized;
                         memory_output_stream stream(serialized);
                         any_output_stream astream(stream);
-                        generate_body(record_batch, astream, p.type);
+                        generate_body(record_batch, astream, p.type.value());
                         CHECK_EQ(size, static_cast<int64_t>(serialized.size()));
                     }
                 }
@@ -386,15 +355,7 @@ namespace sparrow_ipc
                 auto record_batch = create_compressible_test_record_batch();
                 auto uncompressed_size = test_serialize_record_batch(record_batch, std::nullopt);
 
-                struct CompressionParams
-                {
-                    CompressionType type;
-                    const char* name;
-                };
-                const auto params = {CompressionParams{CompressionType::LZ4_FRAME, "LZ4"},
-                                     CompressionParams{CompressionType::ZSTD, "ZSTD"}};
-
-                for (const auto& p : params)
+                for (const auto& p : compression_only_params)
                 {
                     SUBCASE(p.name)
                     {

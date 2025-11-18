@@ -6,14 +6,13 @@
 
 #include "../src/compression_impl.hpp"
 
+#include "sparrow_ipc_tests_helpers.hpp"
+
 namespace sparrow_ipc
 {
-    struct Lz4Frame { static constexpr CompressionType type = CompressionType::LZ4_FRAME; };
-    struct Zstd { static constexpr CompressionType type = CompressionType::ZSTD; };
-
     TEST_SUITE("De/Compression")
     {
-        TEST_CASE_TEMPLATE("Decompress empty data", T, Lz4Frame, Zstd)
+        TEST_CASE_TEMPLATE("Decompress empty data", T, Lz4Compression, ZstdCompression)
         {
             const std::vector<uint8_t> empty_data;
             const auto compression_type = T::type;
@@ -21,7 +20,7 @@ namespace sparrow_ipc
             CHECK_THROWS_WITH_AS(decompress(compression_type, empty_data), "Trying to decompress empty data.", std::runtime_error);
         }
 
-        TEST_CASE_TEMPLATE("Empty data", T, Lz4Frame, Zstd)
+        TEST_CASE_TEMPLATE("Empty data", T, Lz4Compression, ZstdCompression)
         {
             const std::vector<uint8_t> empty_data;
             const auto compression_type = T::type;
@@ -37,7 +36,7 @@ namespace sparrow_ipc
             std::visit([](const auto& value) { CHECK(value.empty()); }, decompressed);
         }
 
-        TEST_CASE_TEMPLATE("Data compression and decompression round-trip", T, Lz4Frame, Zstd)
+        TEST_CASE_TEMPLATE("Data compression and decompression round-trip", T, Lz4Compression, ZstdCompression)
         {
             std::string original_string = "Hello world, this is a test of compression and decompression. But we need more words to make this compression worth it!";
             std::vector<uint8_t> original_data(original_string.begin(), original_string.end());
@@ -59,7 +58,7 @@ namespace sparrow_ipc
             );
         }
 
-        TEST_CASE_TEMPLATE("Data compression with incompressible data", T, Lz4Frame, Zstd)
+        TEST_CASE_TEMPLATE("Data compression with incompressible data", T, Lz4Compression, ZstdCompression)
         {
             std::string original_string = "abc";
             std::vector<uint8_t> original_data(original_string.begin(), original_string.end());

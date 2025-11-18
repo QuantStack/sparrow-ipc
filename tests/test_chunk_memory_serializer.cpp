@@ -29,21 +29,13 @@ namespace sparrow_ipc
                 CHECK_GT(chunks_uncompressed[1].size(), 0);  // Record batch message
                 CHECK_GT(stream_uncompressed.size(), 0);
 
-                struct CompressionParams
-                {
-                    CompressionType type;
-                    const char* name;
-                };
-                const auto params = {CompressionParams{CompressionType::LZ4_FRAME, "LZ4"},
-                                     CompressionParams{CompressionType::ZSTD, "ZSTD"}};
-
-                for (const auto& p : params)
+                for (const auto& p : compression_only_params)
                 {
                     SUBCASE(p.name)
                     {
                         std::vector<std::vector<uint8_t>> chunks_compressed;
                         chunked_memory_output_stream stream_compressed(chunks_compressed);
-                        chunk_serializer serializer_compressed(stream_compressed, p.type);
+                        chunk_serializer serializer_compressed(stream_compressed, p.type.value());
                         serializer_compressed << rb;
 
                         // After construction with single record batch, should have schema + record batch

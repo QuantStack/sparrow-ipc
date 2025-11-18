@@ -5,9 +5,6 @@
 
 namespace sparrow_ipc
 {
-    struct Lz4Compression { static constexpr CompressionType type = CompressionType::LZ4_FRAME; };
-    struct ZstdCompression { static constexpr CompressionType type = CompressionType::ZSTD; };
-
     TEST_SUITE("flatbuffer_utils")
     {
         TEST_CASE("create_metadata")

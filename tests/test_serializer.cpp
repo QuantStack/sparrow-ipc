@@ -46,20 +46,12 @@ namespace sparrow_ipc
                 // After writing first record batch, should have schema + record batch
                 CHECK_GT(wrapper_uncompressed.size(), 0);
 
-                struct CompressionParams
-                {
-                    CompressionType type;
-                    const char* name;
-                };
-                const auto params = {CompressionParams{CompressionType::LZ4_FRAME, "LZ4"},
-                                     CompressionParams{CompressionType::ZSTD, "ZSTD"}};
-
-                for (const auto& p : params)
+                for (const auto& p : compression_only_params)
                 {
                     SUBCASE(p.name)
                     {
                         StreamWrapper wrapper_compressed;
-                        serializer ser_compressed(wrapper_compressed.get_stream(), p.type);
+                        serializer ser_compressed(wrapper_compressed.get_stream(), p.type.value());
                         ser_compressed.write(rb);
                         CHECK_GT(wrapper_compressed.size(), 0);
                         CHECK_LT(wrapper_compressed.size(), wrapper_uncompressed.size());
