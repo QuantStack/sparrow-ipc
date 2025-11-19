@@ -30,8 +30,22 @@ target_link_libraries(${test_target}
 
 if(WIN32)
     find_package(date) # For copying DLLs
-    add_custom_command(
-        TARGET ${test_target} POST_BUILD
+
+    set(ZSTD_DLL_TARGET "")
+#     if(TARGET zstd::libzstd_shared) # Conda-forge case: full namespace shared target
+#         set(ZSTD_DLL_TARGET zstd::libzstd_shared)
+    if(TARGET libzstd_static) # FetchContent case: static target without namespace
+        set(ZSTD_DLL_TARGET libzstd_static)
+    elseif(TARGET libzstd_shared) # FetchContent case: shared target without namespace
+        set(ZSTD_DLL_TARGET libzstd_shared)
+#     elseif(TARGET zstd::libzstd) # General fallback: the zstd::libzstd alias
+#         set(ZSTD_DLL_TARGET zstd::libzstd)
+    endif()
+
+    set(DLL_COPY_COMMANDS "") # Initialize a list to hold all copy commands
+
+    # Add unconditional copy commands
+    list(APPEND DLL_COPY_COMMANDS
         COMMAND ${CMAKE_COMMAND} -E copy
             "$<TARGET_FILE:sparrow::sparrow>"
             "$<TARGET_FILE_DIR:${test_target}>"
@@ -44,9 +58,22 @@ if(WIN32)
         COMMAND ${CMAKE_COMMAND} -E copy
             "$<TARGET_FILE:date::date-tz>"
             "$<TARGET_FILE_DIR:${test_target}>"
-        COMMAND ${CMAKE_COMMAND} -E copy
-            "$<TARGET_FILE:zstd::libzstd>"
-            "$<TARGET_FILE_DIR:${test_target}>"
+    )
+
+    # Conditionally add ZSTD copy command
+    if(ZSTD_DLL_TARGET)
+        list(APPEND DLL_COPY_COMMANDS
+            COMMAND ${CMAKE_COMMAND} -E copy
+                "$<TARGET_FILE:${ZSTD_DLL_TARGET}>"
+                "$<TARGET_FILE_DIR:${test_target}>"
+        )
+    else()
+        message(WARNING "Could not determine a ZSTD DLL target. ZSTD DLL will not be copied for tests.")
+    endif()
+
+    add_custom_command(
+        TARGET ${test_target} POST_BUILD
+        ${DLL_COPY_COMMANDS} # Pass the list of commands
         COMMENT "Copying required DLLs to executable directory"
     )
 endif()
