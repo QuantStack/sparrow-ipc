@@ -31,16 +31,40 @@ add_dependencies(write_and_read_streams generate_flatbuffers_headers)
 
 # Optional: Copy to build directory for easy execution
 if(WIN32)
+    set(ZSTD_DLL_TARGET "")
+    if(TARGET libzstd_shared AND SPARROW_IPC_BUILD_SHARED) # Building deps from src case: shared target without namespace
+        set(ZSTD_DLL_TARGET libzstd_shared)
+    elseif(TARGET libzstd_static AND NOT SPARROW_IPC_BUILD_SHARED) # Building deps from src case: static target without namespace
+        set(ZSTD_DLL_TARGET libzstd_static)
+    endif()
+
     # On Windows, copy required DLLs
-    add_custom_command(
-        TARGET write_and_read_streams POST_BUILD
+    set(DLL_COPY_COMMANDS "") # Initialize a list to hold all copy commands
+    # Add unconditional copy commands
+    list(APPEND DLL_COPY_COMMANDS
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "$<TARGET_FILE:sparrow::sparrow>"
             "$<TARGET_FILE_DIR:write_and_read_streams>"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "$<TARGET_FILE:sparrow-ipc>"
             "$<TARGET_FILE_DIR:write_and_read_streams>"
-        COMMENT "Copying sparrow and sparrow-ipc DLLs to example executable directory"
+    )
+
+    # Conditionally add ZSTD copy command
+    if(ZSTD_DLL_TARGET)
+        list(APPEND DLL_COPY_COMMANDS
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "$<TARGET_FILE:${ZSTD_DLL_TARGET}>"
+                "$<TARGET_FILE_DIR:write_and_read_streams>"
+        )
+    else()
+        message(WARNING "ZSTD DLL will not be copied for examples.")
+    endif()
+
+    add_custom_command(
+        TARGET write_and_read_streams POST_BUILD
+        ${DLL_COPY_COMMANDS}
+        COMMENT "Copying required DLLs to example executable directory"
     )
 endif()
 
