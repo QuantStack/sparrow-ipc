@@ -123,6 +123,31 @@ if(NOT TARGET lz4::lz4)
     add_library(lz4::lz4 ALIAS lz4)
 endif()
 
+find_package_or_fetch(
+    PACKAGE_NAME zstd
+    GIT_REPOSITORY https://github.com/facebook/zstd.git
+    TAG v1.5.7
+    SOURCE_SUBDIR build/cmake
+    CMAKE_ARGS
+        "ZSTD_BUILD_PROGRAMS=OFF"
+)
+
+if(NOT TARGET zstd::libzstd)
+    if(SPARROW_IPC_BUILD_SHARED)
+        if(TARGET zstd::libzstd_shared) # Linux case
+            add_library(zstd::libzstd ALIAS zstd::libzstd_shared)
+        elseif(TARGET libzstd_shared) # Windows case
+            add_library(zstd::libzstd ALIAS libzstd_shared)
+        endif()
+    else()
+        if(TARGET zstd::libzstd_static) # Linux case
+            add_library(zstd::libzstd ALIAS zstd::libzstd_static)
+        elseif(TARGET libzstd_static) # Windows case
+            add_library(zstd::libzstd ALIAS libzstd_static)
+        endif()
+    endif()
+endif()
+
 if(SPARROW_IPC_BUILD_TESTS)
     find_package_or_fetch(
         PACKAGE_NAME doctest

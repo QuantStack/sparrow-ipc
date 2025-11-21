@@ -6,35 +6,24 @@
 
 #include "../src/compression_impl.hpp"
 
+#include "sparrow_ipc_tests_helpers.hpp"
+
 namespace sparrow_ipc
 {
     TEST_SUITE("De/Compression")
     {
-        TEST_CASE("Unsupported ZSTD de/compression")
-        {
-            std::string original_string = "some data to compress";
-            std::vector<uint8_t> original_data(original_string.begin(), original_string.end());
-            const auto compression_type = CompressionType::ZSTD;
-
-            // Test compression with ZSTD
-            CHECK_THROWS_WITH_AS(compress(compression_type, original_data), "Compression using zstd is not supported yet.", std::invalid_argument);
-
-            // Test decompression with ZSTD
-            CHECK_THROWS_WITH_AS(decompress(compression_type, original_data), "Decompression using zstd is not supported yet.", std::invalid_argument);
-        }
-
-        TEST_CASE("Decompress empty data")
+        TEST_CASE_TEMPLATE("Decompress empty data", T, Lz4Compression, ZstdCompression)
         {
             const std::vector<uint8_t> empty_data;
-            const auto compression_type = CompressionType::LZ4_FRAME;
+            const auto compression_type = T::type;
 
             CHECK_THROWS_WITH_AS(decompress(compression_type, empty_data), "Trying to decompress empty data.", std::runtime_error);
         }
 
-        TEST_CASE("Empty data")
+        TEST_CASE_TEMPLATE("Empty data", T, Lz4Compression, ZstdCompression)
         {
             const std::vector<uint8_t> empty_data;
-            const auto compression_type = CompressionType::LZ4_FRAME;
+            const auto compression_type = T::type;
 
             // Test compression of empty data
             auto compressed = compress(compression_type, empty_data);
@@ -47,13 +36,13 @@ namespace sparrow_ipc
             std::visit([](const auto& value) { CHECK(value.empty()); }, decompressed);
         }
 
-        TEST_CASE("Data compression and decompression round-trip")
+        TEST_CASE_TEMPLATE("Data compression and decompression round-trip", T, Lz4Compression, ZstdCompression)
         {
             std::string original_string = "Hello world, this is a test of compression and decompression. But we need more words to make this compression worth it!";
             std::vector<uint8_t> original_data(original_string.begin(), original_string.end());
 
             // Compress data
-            auto compression_type = CompressionType::LZ4_FRAME;
+            auto compression_type = T::type;
             std::vector<uint8_t> compressed_data = compress(compression_type, original_data);
 
             // Decompress
@@ -69,13 +58,13 @@ namespace sparrow_ipc
             );
         }
 
-        TEST_CASE("Data compression with incompressible data")
+        TEST_CASE_TEMPLATE("Data compression with incompressible data", T, Lz4Compression, ZstdCompression)
         {
             std::string original_string = "abc";
             std::vector<uint8_t> original_data(original_string.begin(), original_string.end());
 
             // Compress data
-            auto compression_type = CompressionType::LZ4_FRAME;
+            auto compression_type = T::type;
             std::vector<uint8_t> compressed_data = compress(compression_type, original_data);
 
             // Decompress

@@ -1,13 +1,36 @@
 #pragma once
 
+#include <optional>
+
 #include <doctest/doctest.h>
 
 #include <sparrow/record_batch.hpp>
 
+#include "sparrow_ipc/compression.hpp"
 
 namespace sparrow_ipc
 {
     namespace sp = sparrow;
+
+    struct Lz4Compression { static constexpr CompressionType type = CompressionType::LZ4_FRAME; };
+    struct ZstdCompression { static constexpr CompressionType type = CompressionType::ZSTD; };
+
+    struct CompressionParams
+    {
+        std::optional<CompressionType> type;
+        const char* name;
+    };
+
+    inline constexpr std::array<CompressionParams, 3> compression_params = {{
+        { std::nullopt, "Uncompressed" },
+        { CompressionType::LZ4_FRAME, "LZ4" },
+        { CompressionType::ZSTD, "ZSTD" }
+    }};
+
+    inline constexpr std::array<CompressionParams, 2> compression_only_params = {{
+        { CompressionType::LZ4_FRAME, "LZ4" },
+        { CompressionType::ZSTD, "ZSTD" }
+    }};
 
     template <typename T1, typename T2>
     void compare_metadata(const T1& arr1, const T2& arr2)
