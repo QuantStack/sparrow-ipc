@@ -290,7 +290,7 @@ namespace sparrow_ipc
      * @param compression The compression type to use when serializing
      * @return int64_t The total aligned size in bytes of all buffers in the array hierarchy
      */
-    [[nodiscard]] SPARROW_IPC_API int64_t calculate_body_size(const sparrow::arrow_proxy& arrow_proxy, std::optional<CompressionType> compression = std::nullopt);
+    [[nodiscard]] int64_t calculate_body_size(const sparrow::arrow_proxy& arrow_proxy, std::optional<CompressionType> compression = std::nullopt);
 
     /**
      * @brief Calculates the total body size of a record batch by summing the body sizes of all its columns.
@@ -303,7 +303,7 @@ namespace sparrow_ipc
      * @param compression The compression type to use when serializing
      * @return int64_t The total body size in bytes of all columns in the record batch
      */
-    [[nodiscard]] SPARROW_IPC_API int64_t calculate_body_size(const sparrow::record_batch& record_batch, std::optional<CompressionType> compression = std::nullopt);
+    [[nodiscard]] int64_t calculate_body_size(const sparrow::record_batch& record_batch, std::optional<CompressionType> compression = std::nullopt);
 
     /**
      * @brief Creates a FlatBuffer message containing a serialized Apache Arrow RecordBatch.
@@ -321,6 +321,6 @@ namespace sparrow_ipc
      * @note The returned message uses Arrow IPC format version V5
      * @note Variadic buffer counts is not currently implemented (set to 0)
      */
-    [[nodiscard]] SPARROW_IPC_API flatbuffers::FlatBufferBuilder
+    [[nodiscard]] flatbuffers::FlatBufferBuilder
     get_record_batch_message_builder(const sparrow::record_batch& record_batch, std::optional<CompressionType> compression = std::nullopt);
 }
