@@ -26,7 +26,7 @@ namespace sparrow_ipc
      * The magic string is "ARROW1" (6 bytes) followed by 2 padding bytes to reach 8-byte alignment
      */
     inline constexpr std::array<std::uint8_t, 6> arrow_file_magic = {'A', 'R', 'R', 'O', 'W', '1'};
-    inline constexpr std::size_t arrow_file_magic_size = 6;
+    inline constexpr std::size_t arrow_file_magic_size = arrow_file_magic.size();
     
     /**
      * Magic bytes with padding for file header (8 bytes total for alignment)

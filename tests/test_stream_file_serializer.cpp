@@ -5,6 +5,7 @@
 
 #include "sparrow_ipc/memory_output_stream.hpp"
 #include "sparrow_ipc/stream_file_serializer.hpp"
+#include "sparrow_ipc/magic_values.hpp"
 
 TEST_SUITE("Stream file serializer tests")
 {
@@ -46,7 +47,7 @@ TEST_SUITE("Stream file serializer tests")
         CHECK_EQ(file_data[5], '1');
 
         // Check trailing magic
-        const size_t trailing_offset = file_data.size() - 6;
+        const size_t trailing_offset = file_data.size() - sparrow_ipc::arrow_file_magic_size;
         CHECK_EQ(file_data[trailing_offset], 'A');
         CHECK_EQ(file_data[trailing_offset + 1], 'R');
         CHECK_EQ(file_data[trailing_offset + 2], 'R');

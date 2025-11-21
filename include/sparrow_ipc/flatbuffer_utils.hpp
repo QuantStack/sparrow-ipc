@@ -87,7 +87,7 @@ namespace sparrow_ipc
      * @note This function properly handles the case where Arrow schemas may not have names
      *       by using the record batch's explicit column names via the name_override parameter
      */
-    [[nodiscard]] SPARROW_IPC_API ::flatbuffers::Offset<
+    [[nodiscard]] ::flatbuffers::Offset<
         ::flatbuffers::Vector<::flatbuffers::Offset<org::apache::arrow::flatbuf::Field>>>
     create_children(flatbuffers::FlatBufferBuilder& builder, const sparrow::record_batch& record_batch);
 
