@@ -107,9 +107,11 @@ void stream_record_batches(std::ostream& os, record_batch_source& source)
 
 ### Deserialize a stream into record batches
 
+#### Using the function API
+
 ```cpp
 #include <vector>
-#include <sparrow_ipc/deserializer.hpp>
+#include <sparrow_ipc/deserialize.hpp>
 #include <sparrow/record_batch.hpp>
 
 namespace sp = sparrow;
@@ -119,6 +121,36 @@ std::vector<sp::record_batch> deserialize_stream_to_batches(const std::vector<ui
 {
     auto batches = sp_ipc::deserialize_stream(stream_data);
     return batches;
+}
+```
+
+#### Using the deserializer class
+
+```cpp
+#include <span>
+#include <vector>
+#include <sparrow_ipc/deserializer.hpp>
+#include <sparrow/record_batch.hpp>
+
+namespace sp = sparrow;
+namespace sp_ipc = sparrow_ipc;
+
+void deserialize_incremental_stream(const std::vector<std::vector<uint8_t>>& stream_chunks)
+{
+    std::vector<sp::record_batch> batches;
+    sp_ipc::deserializer deser(batches);
+
+    // Deserialize chunks incrementally as they arrive
+    for (const auto& chunk : stream_chunks)
+    {
+        deser << std::span<const uint8_t>(chunk);
+    }
+
+    // Process accumulated batches
+    for (const auto& batch : batches)
+    {
+        // Process each batch...
+    }
 }
 ```
 
