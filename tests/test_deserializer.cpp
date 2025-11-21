@@ -45,6 +45,68 @@ namespace sparrow_ipc
         return batches;
     }
 
+    // Helper function to verify test_record_batch content (from create_test_record_batch)
+    void verify_test_record_batch_content(const sp::record_batch& batch)
+    {
+        CHECK_EQ(batch.nb_columns(), 2);
+        CHECK_EQ(batch.nb_rows(), 5);
+
+        // Verify int column content
+        const auto& int_col = batch.get_column(0);
+        int_col.visit([](const auto& impl) {
+            if constexpr (sp::is_primitive_array_v<std::decay_t<decltype(impl)>>)
+            {
+                CHECK_EQ(impl[0].value(), 1);
+                CHECK_EQ(impl[1].value(), 2);
+                CHECK_EQ(impl[2].value(), 3);
+                CHECK_EQ(impl[3].value(), 4);
+                CHECK_EQ(impl[4].value(), 5);
+            }
+        });
+
+        // Verify string column content
+        const auto& string_col = batch.get_column(1);
+        string_col.visit([](const auto& impl) {
+            if constexpr (sp::is_string_array_v<std::decay_t<decltype(impl)>>)
+            {
+                CHECK_EQ(impl[0].value(), "hello");
+                CHECK_EQ(impl[1].value(), "world");
+                CHECK_EQ(impl[2].value(), "test");
+                CHECK_EQ(impl[3].value(), "data");
+                CHECK_EQ(impl[4].value(), "batch");
+            }
+        });
+    }
+
+    // Helper function to verify content of batches created by create_test_record_batches
+    void verify_test_record_batches_content(const sp::record_batch& batch, size_t batch_index)
+    {
+        CHECK_EQ(batch.nb_columns(), 2);
+        CHECK_EQ(batch.nb_rows(), 3);
+
+        // Verify int column content
+        const auto& int_col = batch.get_column(0);
+        int_col.visit([batch_index](const auto& impl) {
+            if constexpr (sp::is_primitive_array_v<std::decay_t<decltype(impl)>>)
+            {
+                CHECK_EQ(impl[0].value(), static_cast<int32_t>(batch_index * 10));
+                CHECK_EQ(impl[1].value(), static_cast<int32_t>(batch_index * 10 + 1));
+                CHECK_EQ(impl[2].value(), static_cast<int32_t>(batch_index * 10 + 2));
+            }
+        });
+
+        // Verify string column content
+        const auto& string_col = batch.get_column(1);
+        string_col.visit([batch_index](const auto& impl) {
+            if constexpr (sp::is_string_array_v<std::decay_t<decltype(impl)>>)
+            {
+                CHECK_EQ(impl[0].value(), "batch_" + std::to_string(batch_index) + "_a");
+                CHECK_EQ(impl[1].value(), "batch_" + std::to_string(batch_index) + "_b");
+                CHECK_EQ(impl[2].value(), "batch_" + std::to_string(batch_index) + "_c");
+            }
+        });
+    }
+
     TEST_SUITE("deserializer")
     {
         TEST_CASE("construction with empty vector")
@@ -75,6 +137,7 @@ namespace sparrow_ipc
                 REQUIRE_EQ(batches.size(), 1);
                 CHECK_EQ(batches[0].nb_columns(), original_batch.nb_columns());
                 CHECK_EQ(batches[0].nb_rows(), original_batch.nb_rows());
+                verify_test_record_batch_content(batches[0]);
             }
 
             SUBCASE("Deserialize batch with different data types")
@@ -96,6 +159,39 @@ namespace sparrow_ipc
                 REQUIRE_EQ(batches.size(), 1);
                 CHECK_EQ(batches[0].nb_columns(), 3);
                 CHECK_EQ(batches[0].nb_rows(), 3);
+
+                // Verify int column content
+                const auto& int_col = batches[0].get_column(0);
+                int_col.visit([](const auto& impl) {
+                    if constexpr (sp::is_primitive_array_v<std::decay_t<decltype(impl)>>)
+                    {
+                        CHECK_EQ(impl[0].value(), 1);
+                        CHECK_EQ(impl[1].value(), 2);
+                        CHECK_EQ(impl[2].value(), 3);
+                    }
+                });
+
+                // Verify double column content
+                const auto& double_col = batches[0].get_column(1);
+                double_col.visit([](const auto& impl) {
+                    if constexpr (sp::is_primitive_array_v<std::decay_t<decltype(impl)>>)
+                    {
+                        CHECK_EQ(impl[0].value(), doctest::Approx(1.5));
+                        CHECK_EQ(impl[1].value(), doctest::Approx(2.5));
+                        CHECK_EQ(impl[2].value(), doctest::Approx(3.5));
+                    }
+                });
+
+                // Verify float column content
+                const auto& float_col = batches[0].get_column(2);
+                float_col.visit([](const auto& impl) {
+                    if constexpr (sp::is_primitive_array_v<std::decay_t<decltype(impl)>>)
+                    {
+                        CHECK_EQ(impl[0].value(), doctest::Approx(1.0f));
+                        CHECK_EQ(impl[1].value(), doctest::Approx(2.0f));
+                        CHECK_EQ(impl[2].value(), doctest::Approx(3.0f));
+                    }
+                });
             }
 
             SUBCASE("Deserialize empty record batch")
@@ -132,6 +228,7 @@ namespace sparrow_ipc
                 {
                     CHECK_EQ(batches[i].nb_columns(), original_batches[i].nb_columns());
                     CHECK_EQ(batches[i].nb_rows(), original_batches[i].nb_rows());
+                    verify_test_record_batches_content(batches[i], i);
                 }
             }
 
@@ -308,6 +405,7 @@ namespace sparrow_ipc
                 {
                     CHECK_EQ(deserialized_batches[0].names()[i], original_batch.names()[i]);
                 }
+                verify_test_record_batch_content(deserialized_batches[0]);
             }
 
             SUBCASE("Multiple batches round-trip")
@@ -377,6 +475,50 @@ namespace sparrow_ipc
 
                 REQUIRE_EQ(batches.size(), 1);
                 CHECK_EQ(batches[0].nb_columns(), 4);
+
+                // Verify int8 column
+                const auto& int8_col = batches[0].get_column(0);
+                int8_col.visit([](const auto& impl) {
+                    if constexpr (sp::is_primitive_array_v<std::decay_t<decltype(impl)>>)
+                    {
+                        CHECK_EQ(impl[0].value(), 1);
+                        CHECK_EQ(impl[1].value(), 2);
+                        CHECK_EQ(impl[2].value(), 3);
+                    }
+                });
+
+                // Verify int16 column
+                const auto& int16_col = batches[0].get_column(1);
+                int16_col.visit([](const auto& impl) {
+                    if constexpr (sp::is_primitive_array_v<std::decay_t<decltype(impl)>>)
+                    {
+                        CHECK_EQ(impl[0].value(), 100);
+                        CHECK_EQ(impl[1].value(), 200);
+                        CHECK_EQ(impl[2].value(), 300);
+                    }
+                });
+
+                // Verify int32 column
+                const auto& int32_col = batches[0].get_column(2);
+                int32_col.visit([](const auto& impl) {
+                    if constexpr (sp::is_primitive_array_v<std::decay_t<decltype(impl)>>)
+                    {
+                        CHECK_EQ(impl[0].value(), 1000);
+                        CHECK_EQ(impl[1].value(), 2000);
+                        CHECK_EQ(impl[2].value(), 3000);
+                    }
+                });
+
+                // Verify int64 column
+                const auto& int64_col = batches[0].get_column(3);
+                int64_col.visit([](const auto& impl) {
+                    if constexpr (sp::is_primitive_array_v<std::decay_t<decltype(impl)>>)
+                    {
+                        CHECK_EQ(impl[0].value(), 10000);
+                        CHECK_EQ(impl[1].value(), 20000);
+                        CHECK_EQ(impl[2].value(), 30000);
+                    }
+                });
             }
 
             SUBCASE("String arrays")
@@ -394,6 +536,18 @@ namespace sparrow_ipc
 
                 REQUIRE_EQ(batches.size(), 1);
                 CHECK_EQ(batches[0].nb_rows(), 4);
+
+                // Verify string column content
+                const auto& string_col = batches[0].get_column(0);
+                string_col.visit([](const auto& impl) {
+                    if constexpr (sp::is_string_array_v<std::decay_t<decltype(impl)>>)
+                    {
+                        CHECK_EQ(impl[0].value(), "hello");
+                        CHECK_EQ(impl[1].value(), "world");
+                        CHECK_EQ(impl[2].value(), "test");
+                        CHECK_EQ(impl[3].value(), "data");
+                    }
+                });
             }
         }
 
@@ -430,6 +584,19 @@ namespace sparrow_ipc
 
                 REQUIRE_EQ(batches.size(), 1);
                 CHECK_EQ(batches[0].nb_rows(), 10000);
+
+                // Verify some sample values
+                const auto& col = batches[0].get_column(0);
+                col.visit([](const auto& impl) {
+                    if constexpr (sp::is_primitive_array_v<std::decay_t<decltype(impl)>>)
+                    {
+                        CHECK_EQ(impl[0].value(), 0);
+                        CHECK_EQ(impl[100].value(), 100);
+                        CHECK_EQ(impl[1000].value(), 1000);
+                        CHECK_EQ(impl[5000].value(), 5000);
+                        CHECK_EQ(impl[9999].value(), 9999);
+                    }
+                });
             }
 
             SUBCASE("Single row batches")
@@ -447,6 +614,23 @@ namespace sparrow_ipc
 
                 REQUIRE_EQ(batches.size(), 1);
                 CHECK_EQ(batches[0].nb_rows(), 1);
+
+                // Verify content
+                const auto& int_col = batches[0].get_column(0);
+                int_col.visit([](const auto& impl) {
+                    if constexpr (sp::is_primitive_array_v<std::decay_t<decltype(impl)>>)
+                    {
+                        CHECK_EQ(impl[0].value(), 42);
+                    }
+                });
+
+                const auto& string_col = batches[0].get_column(1);
+                string_col.visit([](const auto& impl) {
+                    if constexpr (sp::is_string_array_v<std::decay_t<decltype(impl)>>)
+                    {
+                        CHECK_EQ(impl[0].value(), "single");
+                    }
+                });
             }
         }
 
