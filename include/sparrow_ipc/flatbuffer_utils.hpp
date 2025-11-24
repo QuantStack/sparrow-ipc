@@ -280,7 +280,7 @@ namespace sparrow_ipc
     get_compressed_buffers(const sparrow::record_batch& record_batch, const CompressionType compression_type);
 
     /**
-     * @brief Calculates the total size of the body section for an Arrow array.
+     * @brief Calculates the total aligned size in bytes of all buffers in an Arrow array structure.
      *
      * This function recursively computes the total size needed for all buffers
      * in an Arrow array structure, including buffers from child arrays. Each
