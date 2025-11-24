@@ -7,7 +7,7 @@
 
 #include <sparrow_ipc/deserialize.hpp>
 #include <sparrow_ipc/memory_output_stream.hpp>
-#include <sparrow_ipc/serializer.hpp>
+#include <sparrow_ipc/stream_file_serializer.hpp>
 
 /**
  * @brief Reads an Arrow IPC stream from a file and writes it to another file.
@@ -79,9 +79,9 @@ int main(int argc, char* argv[])
         // Re-serialize the record batches to ensure a valid output stream
         std::vector<uint8_t> output_stream_data;
         sparrow_ipc::memory_output_stream stream(output_stream_data);
-        sparrow_ipc::serializer serializer(stream);
-
-        serializer << record_batches << sparrow_ipc::end_stream;
+        sparrow_ipc::stream_file_serializer serializer(stream);
+        serializer << record_batches;
+        serializer.end();
 
         // Write the stream to the output file
         std::ofstream output_file(output_path, std::ios::out | std::ios::binary);

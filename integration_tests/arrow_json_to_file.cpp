@@ -6,7 +6,7 @@
 
 #include <nlohmann/json.hpp>
 #include <sparrow_ipc/memory_output_stream.hpp>
-#include <sparrow_ipc/serializer.hpp>
+#include <sparrow_ipc/stream_file_serializer.hpp>
 
 #include <sparrow/json_reader/json_parser.hpp>
 #include <sparrow/record_batch.hpp>
@@ -97,9 +97,9 @@ int main(int argc, char* argv[])
         // Serialize record batches to Arrow IPC stream format
         std::vector<uint8_t> stream_data;
         sparrow_ipc::memory_output_stream stream(stream_data);
-        sparrow_ipc::serializer serializer(stream);
-
-        serializer << record_batches << sparrow_ipc::end_stream;
+        sparrow_ipc::stream_file_serializer serializer(stream);
+        serializer << record_batches;
+        serializer.end();
 
         // Write the binary stream to the output file
         std::ofstream output_file(output_path, std::ios::out | std::ios::binary);

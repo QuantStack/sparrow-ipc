@@ -10,7 +10,7 @@
 #include "sparrow/json_reader/json_parser.hpp"
 
 #include <sparrow_ipc/memory_output_stream.hpp>
-#include <sparrow_ipc/serializer.hpp>
+#include <sparrow_ipc/stream_file_serializer.hpp>
 
 /**
  * @brief Reads a JSON file containing record batches and outputs the serialized Arrow IPC stream to stdout.
@@ -98,9 +98,9 @@ int main(int argc, char* argv[])
         // Serialize record batches to Arrow IPC stream format
         std::vector<uint8_t> stream_data;
         sparrow_ipc::memory_output_stream stream(stream_data);
-        sparrow_ipc::serializer serializer(stream);
-
-        serializer << record_batches << sparrow_ipc::end_stream;
+        sparrow_ipc::stream_file_serializer serializer(stream);
+        serializer << record_batches;
+        serializer.end();
 
         // Write the binary stream to stdout
         std::cout.write(reinterpret_cast<const char*>(stream_data.data()), stream_data.size());
