@@ -5,7 +5,6 @@
 
 #include <sparrow/record_batch.hpp>
 
-#include "Message_generated.h"
 #include "sparrow_ipc/any_output_stream.hpp"
 #include "sparrow_ipc/compression.hpp"
 #include "sparrow_ipc/config/config.hpp"

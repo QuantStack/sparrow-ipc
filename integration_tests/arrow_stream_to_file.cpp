@@ -5,9 +5,7 @@
 #include <iterator>
 #include <vector>
 
-#include <sparrow_ipc/deserialize.hpp>
-#include <sparrow_ipc/memory_output_stream.hpp>
-#include <sparrow_ipc/stream_file_serializer.hpp>
+#include "integration_tools.hpp"
 
 /**
  * @brief Reads an Arrow IPC stream from a file and writes it to another file.
@@ -64,24 +62,10 @@ int main(int argc, char* argv[])
             return EXIT_FAILURE;
         }
 
-        // Deserialize the stream to validate it and extract record batches
-        std::vector<sparrow::record_batch> record_batches;
-        try
-        {
-            record_batches = sparrow_ipc::deserialize_stream(std::span<const uint8_t>(input_stream_data));
-        }
-        catch (const std::exception& e)
-        {
-            std::cerr << "Error: Failed to deserialize stream: " << e.what() << "\n";
-            return EXIT_FAILURE;
-        }
-
-        // Re-serialize the record batches to ensure a valid output stream
-        std::vector<uint8_t> output_stream_data;
-        sparrow_ipc::memory_output_stream stream(output_stream_data);
-        sparrow_ipc::stream_file_serializer serializer(stream);
-        serializer << record_batches;
-        serializer.end();
+        // Convert stream to file format using the library
+        std::vector<uint8_t> output_stream_data = integration_tools::stream_to_file(
+            std::span<const uint8_t>(input_stream_data)
+        );
 
         // Write the stream to the output file
         std::ofstream output_file(output_path, std::ios::out | std::ios::binary);
