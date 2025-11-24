@@ -1,6 +1,8 @@
 #pragma once
 
 #include <cstdint>
+#include <map>
+#include <optional>
 #include <span>
 #include <variant>
 #include <vector>
@@ -15,9 +17,18 @@ namespace sparrow_ipc
         ZSTD
     };
 
-    [[nodiscard]] SPARROW_IPC_API std::vector<std::uint8_t> compress(
+    using compression_cache_t = std::map<const void*, std::vector<uint8_t>>;
+
+    [[nodiscard]] SPARROW_IPC_API std::span<const uint8_t> compress(
         const CompressionType compression_type,
-        std::span<const std::uint8_t> data);
+        std::span<const std::uint8_t> data,
+        std::optional<std::reference_wrapper<compression_cache_t>> cache = std::nullopt);
+
+    // TODO add tests for this
+    [[nodiscard]] SPARROW_IPC_API size_t get_compressed_size(
+        const CompressionType compression_type,
+        std::span<const std::uint8_t> data,
+        std::optional<std::reference_wrapper<compression_cache_t>> cache = std::nullopt);
 
     [[nodiscard]] SPARROW_IPC_API std::variant<std::vector<std::uint8_t>, std::span<const std::uint8_t>> decompress(
         const CompressionType compression_type,

@@ -43,6 +43,7 @@ namespace sparrow_ipc
 
         TEST_CASE("fill_body")
         {
+            compression_cache_t cache;
             SUBCASE("Simple primitive array (uncompressed)")
             {
                 auto array = sp::primitive_array<int32_t>({1, 2, 3, 4, 5});
@@ -50,7 +51,7 @@ namespace sparrow_ipc
                 std::vector<uint8_t> body;
                 sparrow_ipc::memory_output_stream stream(body);
                 sparrow_ipc::any_output_stream astream(stream);
-                fill_body(proxy, astream, std::nullopt);
+                fill_body(proxy, astream, std::nullopt, cache);
                 CHECK_GT(body.size(), 0);
                 // Body size should be aligned
                 CHECK_EQ(body.size() % 8, 0);
@@ -66,7 +67,7 @@ namespace sparrow_ipc
                 std::vector<uint8_t> body_uncompressed;
                 sparrow_ipc::memory_output_stream stream_uncompressed(body_uncompressed);
                 sparrow_ipc::any_output_stream astream_uncompressed(stream_uncompressed);
-                fill_body(proxy, astream_uncompressed, std::nullopt);
+                fill_body(proxy, astream_uncompressed, std::nullopt, cache);
                 CHECK_GT(body_uncompressed.size(), 0);
                 // Body size should be aligned
                 CHECK_EQ(body_uncompressed.size() % 8, 0);
@@ -80,7 +81,7 @@ namespace sparrow_ipc
                         std::vector<uint8_t> body_compressed;
                         sparrow_ipc::memory_output_stream stream_compressed(body_compressed);
                         sparrow_ipc::any_output_stream astream_compressed(stream_compressed);
-                        fill_body(proxy, astream_compressed, p.type);
+                        fill_body(proxy, astream_compressed, p.type, cache);
                         CHECK_GT(body_compressed.size(), 0);
                         // Body size should be aligned
                         CHECK_EQ(body_compressed.size() % 8, 0);
@@ -96,6 +97,7 @@ namespace sparrow_ipc
             auto record_batch = create_test_record_batch();
             SUBCASE("Record batch with multiple columns")
             {
+                compression_cache_t cache;
                 for (const auto& p : compression_params)
                 {
                     SUBCASE(p.name)
@@ -103,7 +105,7 @@ namespace sparrow_ipc
                         std::vector<uint8_t> serialized;
                         memory_output_stream stream(serialized);
                         any_output_stream astream(stream);
-                        generate_body(record_batch, astream, p.type);
+                        generate_body(record_batch, astream, p.type, cache);
                         CHECK_GT(serialized.size(), 0);
                         CHECK_EQ(serialized.size() % 8, 0);
                     }
@@ -114,12 +116,13 @@ namespace sparrow_ipc
 #if defined(SPARROW_IPC_STATIC_LIB)
         TEST_CASE("calculate_body_size")
         {
+            compression_cache_t cache;
             auto array = sp::primitive_array<int32_t>({1, 2, 3, 4, 5});
             auto proxy = sp::detail::array_access::get_arrow_proxy(array);
 
             SUBCASE("Single array (uncompressed)")
             {
-                auto size = calculate_body_size(proxy);
+                auto size = calculate_body_size(proxy, std::nullopt, cache);
                 CHECK_GT(size, 0);
                 CHECK_EQ(size % 8, 0);
             }
@@ -130,7 +133,7 @@ namespace sparrow_ipc
                 {
                     SUBCASE(p.name)
                     {
-                        auto size = calculate_body_size(proxy, p.type.value());
+                        auto size = calculate_body_size(proxy, p.type.value(), cache);
                         CHECK_GT(size, 0);
                         CHECK_EQ(size % 8, 0);
                     }
@@ -140,13 +143,13 @@ namespace sparrow_ipc
             auto record_batch = create_test_record_batch();
             SUBCASE("Record batch (uncompressed)")
             {
-                auto size = calculate_body_size(record_batch);
+                auto size = calculate_body_size(record_batch, std::nullopt, cache);
                 CHECK_GT(size, 0);
                 CHECK_EQ(size % 8, 0);
                 std::vector<uint8_t> serialized;
                 memory_output_stream stream(serialized);
                 any_output_stream astream(stream);
-                generate_body(record_batch, astream);
+                generate_body(record_batch, astream, std::nullopt, cache);
                 CHECK_EQ(size, static_cast<int64_t>(serialized.size()));
             }
 
@@ -156,13 +159,13 @@ namespace sparrow_ipc
                 {
                     SUBCASE(p.name)
                     {
-                        auto size = calculate_body_size(record_batch, p.type.value());
+                        auto size = calculate_body_size(record_batch, p.type.value(), cache);
                         CHECK_GT(size, 0);
                         CHECK_EQ(size % 8, 0);
                         std::vector<uint8_t> serialized;
                         memory_output_stream stream(serialized);
                         any_output_stream astream(stream);
-                        generate_body(record_batch, astream, p.type.value());
+                        generate_body(record_batch, astream, p.type.value(), cache);
                         CHECK_EQ(size, static_cast<int64_t>(serialized.size()));
                     }
                 }
@@ -211,14 +214,16 @@ namespace sparrow_ipc
         {
             auto test_calculate_record_batch_message_size = [](const sp::record_batch& record_batch, std::optional<CompressionType> compression)
             {
-                auto estimated_size = calculate_record_batch_message_size(record_batch, compression);
+                compression_cache_t cache_estimated;
+                auto estimated_size = calculate_record_batch_message_size(record_batch, compression, cache_estimated);
                 CHECK_GT(estimated_size, 0);
                 CHECK_EQ(estimated_size % 8, 0);
 
                 std::vector<uint8_t> serialized;
                 memory_output_stream stream(serialized);
                 any_output_stream astream(stream);
-                serialize_record_batch(record_batch, astream, compression);
+                compression_cache_t cache_serialized;
+                serialize_record_batch(record_batch, astream, compression, cache_serialized);
 
                 CHECK_EQ(estimated_size, serialized.size());
             };
@@ -245,7 +250,8 @@ namespace sparrow_ipc
         {
             auto test_calculate_total_serialized_size = [](const std::vector<sp::record_batch>& batches, std::optional<CompressionType> compression)
             {
-                auto estimated_size = calculate_total_serialized_size(batches, compression);
+                compression_cache_t cache;
+                auto estimated_size = calculate_total_serialized_size(batches, compression, cache);
                 CHECK_GT(estimated_size, 0);
 
                 // Should be equal to schema size + sum of record batch sizes
@@ -253,7 +259,7 @@ namespace sparrow_ipc
                 int64_t batches_size = 0;
                 for(const auto& batch : batches)
                 {
-                    batches_size += calculate_record_batch_message_size(batch, compression);
+                    batches_size += calculate_record_batch_message_size(batch, compression, cache);
                 }
                 CHECK_EQ(estimated_size, schema_size + batches_size);
             };
@@ -319,7 +325,8 @@ namespace sparrow_ipc
                 std::vector<uint8_t> serialized;
                 memory_output_stream stream(serialized);
                 any_output_stream astream(stream);
-                serialize_record_batch(record_batch_to_serialize, astream, compression);
+                compression_cache_t cache;
+                serialize_record_batch(record_batch_to_serialize, astream, compression, cache);
                 CHECK_GT(serialized.size(), 0);
 
                 // Check that it starts with continuation bytes
@@ -371,6 +378,41 @@ namespace sparrow_ipc
                 test_serialize_record_batch(empty_batch, std::nullopt);
                 test_serialize_record_batch(empty_batch, CompressionType::LZ4_FRAME);
                 test_serialize_record_batch(empty_batch, CompressionType::ZSTD);
+            }
+        }
+
+        TEST_CASE("compression_caching_behavior")
+        {
+            auto record_batch = create_compressible_test_record_batch(); // A record batch that should compress well
+
+            for (const auto& p : compression_only_params)
+            {
+                SUBCASE(p.name)
+                {
+                    compression_cache_t cache;
+
+                    // 1. Prime the cache by calculating the size
+                    // This should cause compression to happen and populate the cache
+                    calculate_record_batch_message_size(record_batch, p.type, cache);
+
+                    CHECK_FALSE(cache.empty()); // Ensure cache got populated
+
+                    size_t initial_cache_size = cache.size(); // Number of unique buffers in cache
+
+                    // 2. Generate the body using the same cache
+                    // This should use the cached compressed data and not re-compress
+                    std::vector<uint8_t> serialized_body;
+                    memory_output_stream stream_body(serialized_body);
+                    any_output_stream astream_body(stream_body);
+                    generate_body(record_batch, astream_body, p.type, cache);
+
+                    // Ensure no new entries were added to the cache, indicating re-use
+                    CHECK_EQ(cache.size(), initial_cache_size);
+                    CHECK_FALSE(serialized_body.empty()); // Ensure something was written
+
+                    // Clear cache for next iteration (if any)
+                    cache.clear();
+                }
             }
         }
     }

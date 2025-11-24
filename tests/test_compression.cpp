@@ -24,9 +24,10 @@ namespace sparrow_ipc
         {
             const std::vector<uint8_t> empty_data;
             const auto compression_type = T::type;
+            compression_cache_t cache;
 
             // Test compression of empty data
-            auto compressed = compress(compression_type, empty_data);
+            auto compressed = compress(compression_type, empty_data, cache);
             CHECK_EQ(compressed.size(), details::CompressionHeaderSize);
             const std::int64_t header = *reinterpret_cast<const std::int64_t*>(compressed.data());
             CHECK_EQ(header, -1);
@@ -40,10 +41,11 @@ namespace sparrow_ipc
         {
             std::string original_string = "Hello world, this is a test of compression and decompression. But we need more words to make this compression worth it!";
             std::vector<uint8_t> original_data(original_string.begin(), original_string.end());
+            compression_cache_t cache;
 
             // Compress data
             auto compression_type = T::type;
-            std::vector<uint8_t> compressed_data = compress(compression_type, original_data);
+            auto compressed_data = compress(compression_type, original_data, cache);
 
             // Decompress
             auto decompressed_result = decompress(compression_type, compressed_data);
@@ -62,10 +64,11 @@ namespace sparrow_ipc
         {
             std::string original_string = "abc";
             std::vector<uint8_t> original_data(original_string.begin(), original_string.end());
+            compression_cache_t cache;
 
             // Compress data
             auto compression_type = T::type;
-            std::vector<uint8_t> compressed_data = compress(compression_type, original_data);
+            auto compressed_data = compress(compression_type, original_data, cache);
 
             // Decompress
             auto decompressed_result = decompress(compression_type, compressed_data);

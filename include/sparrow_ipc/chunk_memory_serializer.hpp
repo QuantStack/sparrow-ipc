@@ -130,6 +130,7 @@ namespace sparrow_ipc
         chunked_memory_output_stream<std::vector<std::vector<uint8_t>>>* m_pstream;
         bool m_ended{false};
         std::optional<CompressionType> m_compression;
+        compression_cache_t m_cache; // TODO do we need optional here as well?
     };
 
     // Implementation
@@ -165,7 +166,7 @@ namespace sparrow_ipc
             std::vector<uint8_t> buffer;
             memory_output_stream stream(buffer);
             any_output_stream astream(stream);
-            serialize_record_batch(rb, astream, m_compression);
+            serialize_record_batch(rb, astream, m_compression, m_cache);
             m_pstream->write(std::move(buffer));
         }
     }
