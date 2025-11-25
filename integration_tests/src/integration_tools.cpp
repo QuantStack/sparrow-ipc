@@ -4,6 +4,7 @@
 #include <iostream>
 #include <iterator>
 #include <sstream>
+#include "sparrow_ipc/stream_file_serializer.hpp"
 
 #if defined(__cpp_lib_format)
 #    include <format>
@@ -17,6 +18,15 @@
 
 namespace integration_tools
 {
+    std::vector<uint8_t> json_file_to_arrow_file(const std::filesystem::path& json_path)
+    {
+        // Convert JSON file to stream first
+        std::vector<uint8_t> stream_data = json_file_to_stream(json_path);
+
+        // Then convert stream to file format
+        return stream_to_file(std::span<const uint8_t>(stream_data));
+    }
+
     std::vector<uint8_t> json_file_to_stream(const std::filesystem::path& json_path)
     {
         // Check if the JSON file exists
@@ -106,8 +116,8 @@ namespace integration_tools
         // Re-serialize the record batches to ensure a valid output stream
         std::vector<uint8_t> output_stream_data;
         sparrow_ipc::memory_output_stream stream(output_stream_data);
-        sparrow_ipc::serializer serializer(stream);
-        serializer << record_batches << sparrow_ipc::end_stream;
+        sparrow_ipc::stream_file_serializer serializer(stream);
+        serializer << record_batches << sparrow_ipc::end_file;
 
         return output_stream_data;
     }

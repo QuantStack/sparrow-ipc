@@ -5,10 +5,26 @@
 #include <vector>
 
 #include <nlohmann/json.hpp>
+
 #include <sparrow/record_batch.hpp>
 
 namespace integration_tools
 {
+    /**
+     * @brief Converts a JSON file to Arrow IPC file format.
+     *
+     * Reads a JSON file from the specified path and converts its contents into
+     * Apache Arrow IPC (Inter-Process Communication) file format, returning the
+     * serialized Arrow data as a byte vector.
+     *
+     * @param json_path The filesystem path to the input JSON file to be converted.
+     * @return std::vector<uint8_t> A byte vector containing the Arrow IPC file data.
+     *
+     * @throws std::filesystem::filesystem_error If the file cannot be accessed or read.
+     * @throws std::runtime_error If the JSON parsing or Arrow conversion fails.
+     */
+    std::vector<uint8_t> json_file_to_arrow_file(const std::filesystem::path& json_path);
+
     /**
      * @brief Reads a JSON file and converts it to Arrow IPC stream format.
      *
@@ -44,10 +60,8 @@ namespace integration_tools
      * @return true if the data matches, false otherwise
      * @throws std::runtime_error on parsing or deserialization errors
      */
-    bool validate_json_against_stream(
-        const std::filesystem::path& json_path,
-        std::span<const uint8_t> stream_data
-    );
+    bool
+    validate_json_against_stream(const std::filesystem::path& json_path, std::span<const uint8_t> stream_data);
 
     /**
      * @brief Compares two record batches for equality.

@@ -35,7 +35,7 @@ int main(int argc, char* argv[])
     try
     {
         // Convert JSON file to stream using the library
-        std::vector<uint8_t> stream_data = integration_tools::json_file_to_stream(json_path);
+        std::vector<uint8_t> stream_data = integration_tools::json_file_to_arrow_file(json_path);
 
         // Write the binary stream to the output file
         std::ofstream output_file(output_path, std::ios::out | std::ios::binary);

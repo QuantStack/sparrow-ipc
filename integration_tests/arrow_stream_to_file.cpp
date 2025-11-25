@@ -26,7 +26,7 @@ int main(int argc, char* argv[])
     if (argc != 3)
     {
         std::cerr << "Usage: " << argv[0] << " <input_file_path> <output_file_path>\n";
-        std::cerr << "Reads an Arrow IPC stream from a file and writes it to another file.\n";
+        std::cerr << "Reads an Arrow IPC stream from a file and writes it to an Arrow file.\n";
         return EXIT_FAILURE;
     }
 
