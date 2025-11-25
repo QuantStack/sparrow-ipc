@@ -40,6 +40,7 @@ namespace sparrow_ipc
          * @tparam TStream The type of the stream to be used for serialization.
          * @param stream Reference to the stream object that will be used for serialization operations.
          *               The serializer stores a pointer to this stream for later use.
+         * @param compression Optional: The compression type to use for record batch bodies.
          */
         template <writable_stream TStream>
         serializer(TStream& stream, std::optional<CompressionType> compression = std::nullopt)

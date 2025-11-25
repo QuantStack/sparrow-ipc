@@ -159,7 +159,7 @@ namespace sparrow_ipc
                            m_stream.size(),
                            [this](size_t acc, const sparrow::record_batch& rb)
                            {
-                               return acc + calculate_record_batch_message_size(rb, m_compression);
+                               return acc + calculate_record_batch_message_size(rb, m_compression, m_cache);
                            }
                        )
                        + (m_schema_received ? 0 : calculate_schema_message_size(*record_batches.begin()));
@@ -181,7 +181,7 @@ namespace sparrow_ipc
                 {
                     throw std::invalid_argument("Record batch schema does not match file serializer schema");
                 }
-                serialize_record_batch(rb, m_stream, m_compression);
+                serialize_record_batch(rb, m_stream, m_compression, m_cache);
             }
         }
 
@@ -277,6 +277,7 @@ namespace sparrow_ipc
         any_output_stream m_stream;
         bool m_ended{false};
         std::optional<CompressionType> m_compression;
+        compression_cache_t m_cache;
     };
 
     /**

@@ -7,6 +7,8 @@
 #include "sparrow_ipc/stream_file_serializer.hpp"
 #include "sparrow_ipc/magic_values.hpp"
 
+#include "sparrow_ipc_tests_helpers.hpp"
+
 TEST_SUITE("Stream file serializer tests")
 {
     TEST_CASE("Basic file serialization with stream_file_serializer")
@@ -162,49 +164,55 @@ TEST_SUITE("Stream file serializer tests")
 
     TEST_CASE("File serialization with compression")
     {
-        std::vector<std::string> names = {"data"};
-
-        std::vector<int32_t> data;
-        for (int i = 0; i < 100; ++i)
+        for (const auto& p : sparrow_ipc::compression_only_params)
         {
-            data.push_back(i);
-        }
-        sparrow::primitive_array<int32_t> array(std::move(data));
-
-        std::vector<sparrow::array> arrays;
-        arrays.emplace_back(std::move(array));
-
-        sparrow::record_batch batch(names, std::move(arrays));
-
-        // Serialize with compression
-        std::vector<uint8_t> compressed_data;
-        sparrow_ipc::memory_output_stream mem_stream(compressed_data);
-        
-        {
-            sparrow_ipc::stream_file_serializer serializer(mem_stream, sparrow_ipc::CompressionType::LZ4_FRAME);
-            serializer << batch << sparrow_ipc::end_file;
-        }
-
-        // Deserialize and verify
-        auto deserialized = sparrow_ipc::deserialize_file(std::span<const uint8_t>(compressed_data));
-
-        REQUIRE_EQ(deserialized.size(), 1);
-        const auto& deserialized_batch = deserialized[0];
-        CHECK_EQ(deserialized_batch.nb_rows(), 100);
-
-        const auto& col = deserialized_batch.get_column(0);
-        col.visit(
-            [](const auto& impl)
+            SUBCASE(p.name)
             {
-                if constexpr (sparrow::is_primitive_array_v<std::decay_t<decltype(impl)>>)
+                std::vector<std::string> names = {"data"};
+
+                std::vector<int32_t> data;
+                for (int i = 0; i < 100; ++i)
                 {
-                    for (size_t i = 0; i < 100; ++i)
-                    {
-                        CHECK_EQ(impl[i].value(), static_cast<int32_t>(i));
-                    }
+                    data.push_back(i);
                 }
+                sparrow::primitive_array<int32_t> array(std::move(data));
+
+                std::vector<sparrow::array> arrays;
+                arrays.emplace_back(std::move(array));
+
+                sparrow::record_batch batch(names, std::move(arrays));
+
+                // Serialize with compression
+                std::vector<uint8_t> compressed_data;
+                sparrow_ipc::memory_output_stream mem_stream(compressed_data);
+
+                {
+                    sparrow_ipc::stream_file_serializer serializer(mem_stream, p.type.value());
+                    serializer << batch << sparrow_ipc::end_file;
+                }
+
+                // Deserialize and verify
+                auto deserialized = sparrow_ipc::deserialize_file(std::span<const uint8_t>(compressed_data));
+
+                REQUIRE_EQ(deserialized.size(), 1);
+                const auto& deserialized_batch = deserialized[0];
+                CHECK_EQ(deserialized_batch.nb_rows(), 100);
+
+                const auto& col = deserialized_batch.get_column(0);
+                col.visit(
+                    [](const auto& impl)
+                    {
+                        if constexpr (sparrow::is_primitive_array_v<std::decay_t<decltype(impl)>>)
+                        {
+                            for (size_t i = 0; i < 100; ++i)
+                            {
+                                CHECK_EQ(impl[i].value(), static_cast<int32_t>(i));
+                            }
+                        }
+                    }
+                );
             }
-        );
+        }
     }
 
     TEST_CASE("File serialization with destructor auto-end")
