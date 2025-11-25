@@ -311,7 +311,7 @@ namespace integration_tools
         std::vector<sparrow::record_batch> stream_batches;
         try
         {
-            stream_batches = sparrow_ipc::deserialize_stream(stream_data);
+            stream_batches = sparrow_ipc::deserialize_file(stream_data);
         }
         catch (const std::exception& e)
         {
