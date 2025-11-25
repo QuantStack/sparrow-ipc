@@ -41,8 +41,9 @@ namespace sparrow_ipc
      *
      * @param record_batch The sparrow record batch to be serialized.
      * @param stream The output stream where the serialized record batch will be written.
-     * @param compression The compression type to use when serializing.
-     * @param cache An optional cache for compressed buffers to avoid recompression if compression is enabled.
+     * @param compression Optional: The compression type to use when serializing.
+     * @param cache Optional: A cache for compressed buffers to avoid recompression if compression is enabled.
+     * If compression is given, cache should be set as well.
      */
     SPARROW_IPC_API void
     serialize_record_batch(const sparrow::record_batch& record_batch, any_output_stream& stream,
@@ -77,8 +78,9 @@ namespace sparrow_ipc
      * - Body data with 8-byte alignment between buffers
      *
      * @param record_batch The record batch to be measured.
-     * @param compression The compression type to use when serializing.
-     * @param cache An optional cache to store and retrieve compressed buffer sizes, avoiding recompression.
+     * @param compression Optional: The compression type to use when serializing.
+     * @param cache Optional: A cache to store and retrieve compressed buffer sizes, avoiding recompression.
+     * If compression is given, cache should be set as well.
      * @return The total size in bytes that the serialized record batch would occupy.
      */
     [[nodiscard]] SPARROW_IPC_API std::size_t
@@ -94,8 +96,9 @@ namespace sparrow_ipc
      *
      * @tparam R Range type containing sparrow::record_batch objects.
      * @param record_batches Collection of record batches to be measured.
-     * @param compression The compression type to use when serializing.
-     * @param cache An optional cache to store and retrieve compressed buffer sizes, avoiding recompression.
+     * @param compression Optional: The compression type to use when serializing.
+     * @param cache Optional: A cache to store and retrieve compressed buffer sizes, avoiding recompression.
+     * If compression is given, cache should be set as well.
      * @return The total size in bytes for the complete serialized output.
      * @throws std::invalid_argument if record batches have inconsistent schemas.
      */
@@ -142,8 +145,9 @@ namespace sparrow_ipc
      *
      * @param arrow_proxy The arrow proxy containing buffers and potential child proxies to serialize.
      * @param stream The output stream where the serialized body data will be written.
-     * @param compression The compression type to use when serializing.
-     * @param cache An optional cache for compressed buffers to avoid recompression if compression is enabled.
+     * @param compression Optional: The compression type to use when serializing.
+     * @param cache Optional: A cache for compressed buffers to avoid recompression if compression is enabled.
+     * If compression is given, cache should be set as well.
      * @throws std::invalid_argument if compression is given but not cache.
      */
     SPARROW_IPC_API void fill_body(const sparrow::arrow_proxy& arrow_proxy, any_output_stream& stream,
@@ -159,8 +163,9 @@ namespace sparrow_ipc
      *
      * @param record_batch The record batch containing columns to be serialized.
      * @param stream The output stream where the serialized body will be written.
-     * @param compression The compression type to use when serializing.
-     * @param cache An optional cache for compressed buffers to avoid recompression if compression is enabled.
+     * @param compression Optional: The compression type to use when serializing.
+     * @param cache Optional: A cache for compressed buffers to avoid recompression if compression is enabled.
+     * If compression is given, cache should be set as well.
      */
     SPARROW_IPC_API void generate_body(const sparrow::record_batch& record_batch, any_output_stream& stream,
                                        std::optional<CompressionType> compression = std::nullopt,

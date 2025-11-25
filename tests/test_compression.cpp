@@ -10,6 +10,12 @@
 
 namespace sparrow_ipc
 {
+    namespace
+    {
+        const std::string compressible_test_string = "Hello world, this is a test of compression and decompression. But we need more words to make this compression worth it!";
+        const std::string incompressible_test_string = "abc";
+    }
+
     TEST_SUITE("De/Compression")
     {
         TEST_CASE_TEMPLATE("Decompress empty data", T, Lz4Compression, ZstdCompression)
@@ -39,8 +45,7 @@ namespace sparrow_ipc
 
         TEST_CASE_TEMPLATE("Data compression and decompression round-trip", T, Lz4Compression, ZstdCompression)
         {
-            std::string original_string = "Hello world, this is a test of compression and decompression. But we need more words to make this compression worth it!";
-            std::vector<uint8_t> original_data(original_string.begin(), original_string.end());
+            std::vector<uint8_t> original_data(compressible_test_string.begin(), compressible_test_string.end());
             compression_cache_t cache;
 
             // Compress data
@@ -62,10 +67,8 @@ namespace sparrow_ipc
 
         TEST_CASE_TEMPLATE("Data compression with incompressible data", T, Lz4Compression, ZstdCompression)
         {
-            std::string original_string = "abc";
-            std::vector<uint8_t> original_data(original_string.begin(), original_string.end());
+            std::vector<uint8_t> original_data(incompressible_test_string.begin(), incompressible_test_string.end());
             compression_cache_t cache;
-
             // Compress data
             auto compression_type = T::type;
             auto compressed_data = compress(compression_type, original_data, cache);
@@ -87,6 +90,28 @@ namespace sparrow_ipc
             CHECK_EQ(header, -1);
             std::vector<uint8_t> body(compressed_data.begin() + sizeof(header), compressed_data.end());
             CHECK_EQ(body, original_data);
+        }
+
+        TEST_CASE_TEMPLATE("Get compressed size", T, Lz4Compression, ZstdCompression)
+        {
+            std::vector<uint8_t> original_data(compressible_test_string.begin(), compressible_test_string.end());
+            auto compression_type = T::type;
+            compression_cache_t cache;
+            // Check compressed size
+            size_t compressed_size = get_compressed_size(compression_type, original_data, cache);
+            auto compressed_data_for_check = compress(compression_type, original_data, cache);
+            CHECK_EQ(compressed_size, compressed_data_for_check.size());
+            CHECK(cache.count(original_data.data()) == 1);
+
+            // Test with incompressible data
+            std::vector<uint8_t> incompressible_data(incompressible_test_string.begin(), incompressible_test_string.end());
+            size_t incompressible_size = get_compressed_size(compression_type, incompressible_data, cache);
+            CHECK_EQ(incompressible_size, incompressible_data.size() + details::CompressionHeaderSize);
+
+            // Test with empty data
+            std::vector<uint8_t> empty_data;
+            size_t empty_size = get_compressed_size(compression_type, empty_data, cache);
+            CHECK_EQ(empty_size, details::CompressionHeaderSize);
         }
     }
 }

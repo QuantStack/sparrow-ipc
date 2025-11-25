@@ -2,7 +2,6 @@
 
 #include <cstdint>
 #include <map>
-#include <optional>
 #include <span>
 #include <variant>
 #include <vector>
@@ -24,7 +23,6 @@ namespace sparrow_ipc
         const std::span<const uint8_t>& data,
         compression_cache_t& cache);
 
-    // TODO add tests for this
     [[nodiscard]] SPARROW_IPC_API size_t get_compressed_size(
         const CompressionType compression_type,
         const std::span<const uint8_t>& data,

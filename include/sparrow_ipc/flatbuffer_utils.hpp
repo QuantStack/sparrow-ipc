@@ -262,7 +262,8 @@ namespace sparrow_ipc
         std::vector<org::apache::arrow::flatbuf::Buffer>& flatbuf_compressed_buffers,
         int64_t& offset,
         const CompressionType compression_type,
-        compression_cache_t& cache);
+        compression_cache_t& cache
+    );
 
     /**
      * @brief Retrieves metadata describing the layout of compressed buffers within a record batch.
@@ -289,11 +290,11 @@ namespace sparrow_ipc
      * This function recursively computes the total size needed for all buffers
      * in an Arrow array structure, including buffers from child arrays. Each
      * buffer size is aligned to 8-byte boundaries as required by the Arrow format.
-     * When compression is enabled, the compressed size is used.
      *
      * @param arrow_proxy The Arrow array proxy containing buffers and child arrays.
-     * @param compression The compression type to use when serializing. If not provided, sizes are for uncompressed buffers.
-     * @param cache An optional cache to store and retrieve compressed buffer sizes, avoiding recompression.
+     * @param compression Optional: The compression type to use when serializing.
+     * @param cache Optional: A cache to store and retrieve compressed buffer sizes, avoiding recompression.
+     * If compression is given, cache should be set as well.
      * @return int64_t The total aligned size in bytes of all buffers in the array hierarchy.
      * @throws std::invalid_argument if compression is given but not cache.
      */
@@ -307,11 +308,10 @@ namespace sparrow_ipc
      * This function iterates through all columns in the given record batch and accumulates
      * the body size of each column's underlying Arrow array proxy. The body size represents
      * the total memory required for the serialized data content of the record batch.
-     * When compression is enabled, the compressed sizes are used.
      *
      * @param record_batch The sparrow record batch containing columns to calculate size for.
-     * @param compression The compression type to use when serializing. If not provided, sizes are for uncompressed buffers.
-     * @param cache An optional cache to store and retrieve compressed buffer sizes, avoiding recompression.
+     * @param compression Optional: The compression type to use when serializing. If not provided, sizes are for uncompressed buffers.
+     * @param cache Optional: A cache to store and retrieve compressed buffer sizes, avoiding recompression.
      * If compression is given, cache should be set as well.
      * @return int64_t The total body size in bytes of all columns in the record batch.
      */
