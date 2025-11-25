@@ -574,7 +574,7 @@ namespace sparrow_ipc
 
     int64_t calculate_body_size(const sparrow::arrow_proxy& arrow_proxy,
                                 std::optional<CompressionType> compression,
-                                std::optional<std::reference_wrapper<compression_cache_t>> cache) // TODO add docstring throws
+                                std::optional<std::reference_wrapper<compression_cache_t>> cache)
     {
         int64_t total_size = 0;
         if (compression.has_value())
@@ -621,7 +621,7 @@ namespace sparrow_ipc
 
     flatbuffers::FlatBufferBuilder get_record_batch_message_builder(const sparrow::record_batch& record_batch,
                                                                   std::optional<CompressionType> compression,
-                                                                  std::optional<std::reference_wrapper<compression_cache_t>> cache) // TODO add throws in docstring
+                                                                  std::optional<std::reference_wrapper<compression_cache_t>> cache)
     {
         flatbuffers::FlatBufferBuilder record_batch_builder;
         flatbuffers::Offset<org::apache::arrow::flatbuf::BodyCompression> compression_offset = 0;

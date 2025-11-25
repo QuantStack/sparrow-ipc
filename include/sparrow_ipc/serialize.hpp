@@ -27,8 +27,9 @@ namespace sparrow_ipc
      * @param record_batches Collection of record batches to serialize. All batches must have identical
      * schemas.
      * @param stream The output stream where the serialized data will be written.
-     * @param compression The compression type to use when serializing.
-     *
+     * @param compression Optional: The compression type to use when serializing.
+     * @param cache Optional: A cache to store and retrieve compressed buffers, avoiding recompression.
+     * If compression is given, cache should be set as well.
      * @throws std::invalid_argument If record batches have inconsistent schemas or if the collection
      *                               contains batches that cannot be serialized together.
      *
@@ -72,14 +73,16 @@ namespace sparrow_ipc
      *
      * @param record_batch The sparrow record batch to serialize
      * @param stream The output stream where the serialized record batch will be written
-     * @param compression The compression type to use when serializing.
-     *
+     * @param compression Optional: The compression type to use when serializing.
+     * @param cache Optional: A cache to store and retrieve compressed buffers, avoiding recompression.
+     * @note If compression is given, cache should be set as well.
      * @note The output follows Arrow IPC message format with proper alignment and
      *       includes both metadata and data portions of the record batch
      */
 
     SPARROW_IPC_API void
-    serialize_record_batch(const sparrow::record_batch& record_batch, any_output_stream& stream,
+    serialize_record_batch(const sparrow::record_batch& record_batch,
+                           any_output_stream& stream,
                            std::optional<CompressionType> compression,
                            std::optional<std::reference_wrapper<compression_cache_t>> cache);
     

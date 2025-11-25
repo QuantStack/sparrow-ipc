@@ -130,7 +130,7 @@ namespace sparrow_ipc
         chunked_memory_output_stream<std::vector<std::vector<uint8_t>>>* m_pstream;
         bool m_ended{false};
         std::optional<CompressionType> m_compression;
-        compression_cache_t m_cache; // TODO do we need optional here as well?
+        compression_cache_t m_cache;
     };
 
     // Implementation

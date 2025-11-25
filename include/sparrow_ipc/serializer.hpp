@@ -213,7 +213,7 @@ namespace sparrow_ipc
         any_output_stream m_stream;
         bool m_ended{false};
         std::optional<CompressionType> m_compression;
-        compression_cache_t m_cache; // TODO should this be optional?
+        compression_cache_t m_cache;
     };
 
     inline serializer& end_stream(serializer& serializer)

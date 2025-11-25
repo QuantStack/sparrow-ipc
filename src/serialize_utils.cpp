@@ -10,7 +10,7 @@ namespace sparrow_ipc
 {
     void fill_body(const sparrow::arrow_proxy& arrow_proxy, any_output_stream& stream,
                    std::optional<CompressionType> compression,
-                   std::optional<std::reference_wrapper<compression_cache_t>> cache) // TODO add throws in docstring
+                   std::optional<std::reference_wrapper<compression_cache_t>> cache)
     {
         std::for_each(arrow_proxy.buffers().begin(), arrow_proxy.buffers().end(), [&](const auto& buffer) {
             if (compression.has_value())
