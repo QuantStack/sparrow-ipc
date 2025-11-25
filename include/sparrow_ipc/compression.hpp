@@ -21,14 +21,14 @@ namespace sparrow_ipc
 
     [[nodiscard]] SPARROW_IPC_API std::span<const uint8_t> compress(
         const CompressionType compression_type,
-        std::span<const std::uint8_t> data,
-        std::optional<std::reference_wrapper<compression_cache_t>> cache = std::nullopt);
+        const std::span<const uint8_t>& data,
+        compression_cache_t& cache);
 
     // TODO add tests for this
     [[nodiscard]] SPARROW_IPC_API size_t get_compressed_size(
         const CompressionType compression_type,
-        std::span<const std::uint8_t> data,
-        std::optional<std::reference_wrapper<compression_cache_t>> cache = std::nullopt);
+        const std::span<const uint8_t>& data,
+        compression_cache_t& cache);
 
     [[nodiscard]] SPARROW_IPC_API std::variant<std::vector<std::uint8_t>, std::span<const std::uint8_t>> decompress(
         const CompressionType compression_type,

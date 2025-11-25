@@ -1,3 +1,5 @@
+#include <stdexcept>
+
 #include "sparrow_ipc/flatbuffer_utils.hpp"
 #include "sparrow_ipc/magic_values.hpp"
 #include "sparrow_ipc/serialize.hpp"
@@ -8,12 +10,16 @@ namespace sparrow_ipc
 {
     void fill_body(const sparrow::arrow_proxy& arrow_proxy, any_output_stream& stream,
                    std::optional<CompressionType> compression,
-                   std::optional<std::reference_wrapper<compression_cache_t>> cache)
+                   std::optional<std::reference_wrapper<compression_cache_t>> cache) // TODO add throws in docstring
     {
         std::for_each(arrow_proxy.buffers().begin(), arrow_proxy.buffers().end(), [&](const auto& buffer) {
             if (compression.has_value())
             {
-                auto compressed_buffer_with_header = compress(compression.value(), std::span<const uint8_t>(buffer.data(), buffer.size()), cache);
+                if (!cache)
+                {
+                    throw std::invalid_argument("Compression type set but no cache is given.");
+                }
+                auto compressed_buffer_with_header = compress(compression.value(), std::span<const uint8_t>(buffer.data(), buffer.size()), cache.value());
                 stream.write(compressed_buffer_with_header);
             }
             else

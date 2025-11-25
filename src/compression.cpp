@@ -98,35 +98,31 @@ namespace sparrow_ipc
             return decompressed_data;
         }
 
-        // TODO These functions could be moved to serialize_utils and deserialize_utils if preferred
-        // as they are handling the header size
-        std::vector<std::uint8_t> uncompressed_data_with_header(std::span<const std::uint8_t> data)
+        void insert_compressed_data(std::vector<uint8_t>& result, std::int64_t original_size, const std::vector<uint8_t>& compressed_body)
         {
-            std::vector<std::uint8_t> result;
-            result.reserve(details::CompressionHeaderSize + data.size());
+            result.reserve(details::CompressionHeaderSize + compressed_body.size());
+            result.insert(result.end(), reinterpret_cast<const uint8_t*>(&original_size), reinterpret_cast<const uint8_t*>(&original_size) + sizeof(original_size));
+            result.insert(result.end(), compressed_body.begin(), compressed_body.end());
+        }
+
+        void insert_uncompressed_data(std::vector<uint8_t>& result, const std::span<const uint8_t>& data)
+        {
             const std::int64_t header = -1;
+            result.reserve(details::CompressionHeaderSize + data.size());
             result.insert(result.end(), reinterpret_cast<const uint8_t*>(&header), reinterpret_cast<const uint8_t*>(&header) + sizeof(header));
             result.insert(result.end(), data.begin(), data.end());
-            return result;
         }
 
         std::span<const std::uint8_t> compress_with_header(
-            std::span<const std::uint8_t> data,
+            const std::span<const std::uint8_t>& data,
             compress_func comp_func,
-            bool compression_enabled,
-            std::optional<std::reference_wrapper<compression_cache_t>> cache)
+            compression_cache_t& cache)
         {
-            if (!cache)
-            {
-                throw std::logic_error("compress_with_header with span return type requires a cache.");
-            }
-
-            auto& cache_ref = cache->get();
             const void* buffer_ptr = data.data();
 
             // Check cache
-            auto it = cache_ref.find(buffer_ptr);
-            if (it != cache_ref.end())
+            auto it = cache.find(buffer_ptr);
+            if (it != cache.end())
             {
                 return it->second;
             }
@@ -135,59 +131,23 @@ namespace sparrow_ipc
             const std::int64_t original_size = data.size();
 
             std::vector<std::uint8_t> compressed_body;
-            if (compression_enabled)
+            if (comp_func)
             {
                 compressed_body = comp_func(data);
             }
 
-            auto& result_vec_in_cache = cache_ref[buffer_ptr];
+            auto& result_vec_in_cache = cache[buffer_ptr];
 
-            if (compression_enabled && compressed_body.size() < static_cast<size_t>(original_size))
+            if (comp_func && compressed_body.size() < static_cast<size_t>(original_size))
             {
-                result_vec_in_cache.reserve(details::CompressionHeaderSize + compressed_body.size());
-                result_vec_in_cache.insert(result_vec_in_cache.end(), reinterpret_cast<const uint8_t*>(&original_size), reinterpret_cast<const uint8_t*>(&original_size) + sizeof(original_size));
-                result_vec_in_cache.insert(result_vec_in_cache.end(), compressed_body.begin(), compressed_body.end());
+                insert_compressed_data(result_vec_in_cache, original_size, compressed_body);
             }
             else
             {
-                const std::int64_t header = -1;
-                result_vec_in_cache.reserve(details::CompressionHeaderSize + data.size());
-                result_vec_in_cache.insert(result_vec_in_cache.end(), reinterpret_cast<const uint8_t*>(&header), reinterpret_cast<const uint8_t*>(&header) + sizeof(header));
-                result_vec_in_cache.insert(result_vec_in_cache.end(), data.begin(), data.end());
+                insert_uncompressed_data(result_vec_in_cache, data);
             }
 
             return result_vec_in_cache;
-        }
-
-        size_t get_compressed_size_no_cache(const CompressionType compression_type, std::span<const std::uint8_t> data)
-        {
-            compress_func comp_func;
-            bool compression_enabled = false;
-
-            switch (compression_type)
-            {
-                case CompressionType::LZ4_FRAME:
-                    comp_func = lz4_compress;
-                    compression_enabled = true;
-                    break;
-                case CompressionType::ZSTD:
-                    comp_func = zstd_compress;
-                    compression_enabled = true;
-                    break;
-                default:
-                    break;
-            }
-
-            if (compression_enabled)
-            {
-                auto compressed_body = comp_func(data);
-                if (compressed_body.size() < data.size())
-                {
-                    return details::CompressionHeaderSize + compressed_body.size();
-                }
-            }
-
-            return details::CompressionHeaderSize + data.size();
         }
 
         std::variant<std::vector<std::uint8_t>, std::span<const std::uint8_t>> decompress_with_header(std::span<const std::uint8_t> data, decompress_func decomp_func)
@@ -219,34 +179,30 @@ namespace sparrow_ipc
 
     std::span<const std::uint8_t> compress(
         const CompressionType compression_type,
-        std::span<const std::uint8_t> data,
-        std::optional<std::reference_wrapper<compression_cache_t>> cache)
+        const std::span<const std::uint8_t>& data,
+        compression_cache_t& cache)
     {
         switch (compression_type)
         {
             case CompressionType::LZ4_FRAME:
             {
-                return compress_with_header(data, lz4_compress, true, cache);
+                return compress_with_header(data, lz4_compress, cache);
             }
             case CompressionType::ZSTD:
             {
-                return compress_with_header(data, zstd_compress, true, cache);
+                return compress_with_header(data, zstd_compress, cache);
             }
         }
         assert(false && "Unhandled compression type");
-        return compress_with_header(data, nullptr, false, cache);
+        return compress_with_header(data, nullptr, cache);
     }
 
     size_t get_compressed_size(
         const CompressionType compression_type,
-        std::span<const std::uint8_t> data,
-        std::optional<std::reference_wrapper<compression_cache_t>> cache)
+        const std::span<const std::uint8_t>& data,
+        compression_cache_t& cache)
     {
-        if (cache)
-        {
-            return compress(compression_type, data, cache).size();
-        }
-        return get_compressed_size_no_cache(compression_type, data);
+        return compress(compression_type, data, cache).size();
     }
 
     std::variant<std::vector<std::uint8_t>, std::span<const std::uint8_t>> decompress(const CompressionType compression_type, std::span<const std::uint8_t> data)

@@ -263,7 +263,7 @@ namespace sparrow_ipc
         std::vector<org::apache::arrow::flatbuf::Buffer>& flatbuf_compressed_buffers,
         int64_t& offset,
         const CompressionType compression_type,
-        std::optional<std::reference_wrapper<compression_cache_t>> cache);
+        compression_cache_t& cache);
 
     /**
      * @brief Retrieves metadata describing the layout of compressed buffers within a record batch.
@@ -281,7 +281,7 @@ namespace sparrow_ipc
     [[nodiscard]] std::vector<org::apache::arrow::flatbuf::Buffer>
     get_compressed_buffers(const sparrow::record_batch& record_batch,
                            const CompressionType compression_type,
-                           std::optional<std::reference_wrapper<compression_cache_t>> cache);
+                           compression_cache_t& cache);
 
     /**
      * @brief Calculates the total aligned size in bytes of all buffers in an Arrow array structure.
