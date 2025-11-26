@@ -20,22 +20,17 @@ namespace integration_tools
 {
     std::vector<uint8_t> json_file_to_arrow_file(const std::filesystem::path& json_path)
     {
-        // Convert JSON file to stream first
-        std::vector<uint8_t> stream_data = json_file_to_stream(json_path);
-
-        // Then convert stream to file format
+        const std::vector<uint8_t> stream_data = json_file_to_stream(json_path);
         return stream_to_file(std::span<const uint8_t>(stream_data));
     }
 
     std::vector<uint8_t> json_file_to_stream(const std::filesystem::path& json_path)
     {
-        // Check if the JSON file exists
         if (!std::filesystem::exists(json_path))
         {
             throw std::runtime_error("JSON file not found: " + json_path.string());
         }
 
-        // Open and parse the JSON file
         std::ifstream json_file(json_path);
         if (!json_file.is_open())
         {
@@ -311,7 +306,7 @@ namespace integration_tools
         std::vector<sparrow::record_batch> stream_batches;
         try
         {
-            stream_batches = sparrow_ipc::deserialize_file(stream_data);
+            stream_batches = sparrow_ipc::deserialize_stream(stream_data);
         }
         catch (const std::exception& e)
         {
