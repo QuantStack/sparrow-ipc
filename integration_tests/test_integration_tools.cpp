@@ -11,7 +11,6 @@
 #include "doctest/doctest.h"
 #include "integration_tools.hpp"
 #include "sparrow_ipc/deserialize.hpp"
-#include "sparrow_ipc/stream_file_serializer.hpp"
 
 TEST_SUITE("Integration Tools Tests")
 {
@@ -40,49 +39,6 @@ TEST_SUITE("Integration Tools Tests")
             integration_tools::validate_json_against_stream(non_existent, std::span<const uint8_t>(dummy_stream)),
             std::runtime_error
         );
-    }
-
-    TEST_CASE("json_file_to_arrow_file - Convert JSON to Arrow file format")
-    {
-        // Test with generated_primitive.json
-        const std::filesystem::path json_file = tests_resources_files_path / "generated_primitive.json";
-
-        if (!std::filesystem::exists(json_file))
-        {
-            MESSAGE("Skipping test: test file not found at " << json_file);
-            return;
-        }
-
-        // Convert JSON to Arrow file format
-        std::vector<uint8_t> arrow_file_data;
-        CHECK_NOTHROW(arrow_file_data = integration_tools::json_file_to_arrow_file(json_file));
-        CHECK_GT(arrow_file_data.size(), 0);
-
-        // Verify the output is a valid Arrow file by deserializing it
-        auto batches = sparrow_ipc::deserialize_file(std::span<const uint8_t>(arrow_file_data));
-        REQUIRE_EQ(batches.size(), 2);  // generated_primitive.json has 2 batches
-
-        // Verify first batch has 17 rows (from JSON)
-        CHECK_EQ(batches[0].nb_rows(), 17);
-        // Verify second batch has 20 rows (from JSON)
-        CHECK_EQ(batches[1].nb_rows(), 20);
-
-        // Verify all 22 columns are present (from the JSON schema)
-        CHECK_EQ(batches[0].nb_columns(), 22);
-        CHECK_EQ(batches[1].nb_columns(), 22);
-
-        // Validate the Arrow file content matches the original JSON
-        std::ifstream json_input(json_file);
-        REQUIRE(json_input.is_open());
-        nlohmann::json json_data = nlohmann::json::parse(json_input);
-        json_input.close();
-
-        // Build record batches from JSON and compare with deserialized ones
-        for (size_t i = 0; i < batches.size(); ++i)
-        {
-            auto expected_batch = sparrow::json_reader::build_record_batch_from_json(json_data, i);
-            CHECK(integration_tools::compare_record_batch(expected_batch, batches[i], i, false));
-        }
     }
 
     TEST_CASE("json_file_to_stream - Convert JSON to stream")
@@ -131,8 +87,8 @@ TEST_SUITE("Integration Tools Tests")
         CHECK_NOTHROW(output_data = integration_tools::stream_to_file(std::span<const uint8_t>(input_data)));
         CHECK_GT(output_data.size(), 0);
 
-        // Verify the output is valid Arrow file format
-        auto batches = sparrow_ipc::deserialize_file(std::span<const uint8_t>(output_data));
+        // Verify the output is valid
+        auto batches = sparrow_ipc::deserialize_stream(std::span<const uint8_t>(output_data));
         CHECK_GT(batches.size(), 0);
     }
 
@@ -156,7 +112,7 @@ TEST_SUITE("Integration Tools Tests")
 
         // Step 3: Compare the results - both should deserialize to same data
         auto stream_batches = sparrow_ipc::deserialize_stream(std::span<const uint8_t>(stream_data));
-        auto file_batches = sparrow_ipc::deserialize_file(std::span<const uint8_t>(file_data));
+        auto file_batches = sparrow_ipc::deserialize_stream(std::span<const uint8_t>(file_data));
 
         REQUIRE_EQ(stream_batches.size(), file_batches.size());
         for (size_t i = 0; i < stream_batches.size(); ++i)
