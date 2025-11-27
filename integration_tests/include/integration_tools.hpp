@@ -53,15 +53,15 @@ namespace integration_tools
     std::vector<uint8_t> stream_to_file(std::span<const uint8_t> input_stream_data);
 
     /**
-     * @brief Validates that a JSON file and an Arrow stream contain identical data.
+     * @brief Validates that a JSON file and an Arrow file contain identical data.
      *
      * @param json_path Path to the JSON file
-     * @param stream_data Binary Arrow IPC stream data
+     * @param stream_data Binary Arrow IPC file data
      * @return true if the data matches, false otherwise
      * @throws std::runtime_error on parsing or deserialization errors
      */
     bool
-    validate_json_against_stream(const std::filesystem::path& json_path, std::span<const uint8_t> stream_data);
+    validate_json_against_arrow_file(const std::filesystem::path& json_path, std::span<const uint8_t> arrow_file_data);
 
     /**
      * @brief Compares two record batches for equality.

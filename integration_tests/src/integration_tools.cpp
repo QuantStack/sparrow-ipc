@@ -245,9 +245,9 @@ namespace integration_tools
         return all_match;
     }
 
-    bool validate_json_against_stream(
+    bool validate_json_against_arrow_file(
         const std::filesystem::path& json_path,
-        std::span<const uint8_t> stream_data
+        std::span<const uint8_t> arrow_file_data
     )
     {
         // Check if the JSON file exists
@@ -303,7 +303,7 @@ namespace integration_tools
         }
 
         // Deserialize the stream
-        if (stream_data.empty())
+        if (arrow_file_data.empty())
         {
             throw std::runtime_error("Stream data is empty");
         }
@@ -311,7 +311,7 @@ namespace integration_tools
         std::vector<sparrow::record_batch> stream_batches;
         try
         {
-            stream_batches = sparrow_ipc::deserialize_file(stream_data);
+            stream_batches = sparrow_ipc::deserialize_file(arrow_file_data);
         }
         catch (const std::exception& e)
         {
