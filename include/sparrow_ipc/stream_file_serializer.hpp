@@ -17,14 +17,28 @@
 namespace sparrow_ipc
 {
     /**
+     * @brief Represents a block entry in the Arrow IPC file footer.
+     *
+     * Each block describes the location and size of a record batch in the file.
+     */
+    struct record_batch_block
+    {
+        int64_t offset;          ///< Offset from the start of the file to the record batch message
+        int32_t metadata_length; ///< Length of the metadata (FlatBuffer message)
+        int64_t body_length;     ///< Length of the record batch body (data buffers)
+    };
+
+    /**
      * @brief Writes the Arrow IPC file footer.
      *
      * @param record_batch A record batch containing the schema for the footer
+     * @param record_batch_blocks Vector of block information for each record batch
      * @param stream The output stream to write the footer to
      * @return The size of the footer in bytes
      */
     SPARROW_IPC_API size_t write_footer(
         const sparrow::record_batch& record_batch,
+        const std::vector<record_batch_block>& record_batch_blocks,
         any_output_stream& stream
     );
 
@@ -184,7 +198,14 @@ namespace sparrow_ipc
                 {
                     throw std::invalid_argument("Record batch schema does not match file serializer schema");
                 }
-                serialize_record_batch(rb, m_stream, m_compression, compressed_buffers_cache);
+                
+                // Offset is from the start of the file to the record batch message
+                const int64_t offset = static_cast<int64_t>(m_stream.size());
+                
+                // Serialize and get block info
+                const auto info = serialize_record_batch(rb, m_stream, m_compression, compressed_buffers_cache);
+                
+                m_record_batch_blocks.push_back({offset, info.metadata_length, info.body_length});
             }
         }
 
@@ -280,6 +301,7 @@ namespace sparrow_ipc
         any_output_stream m_stream;
         bool m_ended{false};
         std::optional<CompressionType> m_compression;
+        std::vector<record_batch_block> m_record_batch_blocks;
     };
 
     /**

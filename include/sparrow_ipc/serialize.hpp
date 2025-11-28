@@ -13,6 +13,21 @@
 namespace sparrow_ipc
 {
     /**
+     * @brief Information about a serialized record batch block.
+     *
+     * Contains the metadata length and body length of a serialized record batch,
+     * used for populating the Arrow IPC file format footer.
+     */
+    struct serialized_record_batch_info
+    {
+        int32_t metadata_length; ///< Length of the metadata (FlatBuffer message + padding)
+        int64_t body_length;     ///< Length of the record batch body (data buffers)
+    };
+}
+
+namespace sparrow_ipc
+{
+    /**
      * @brief Serializes a collection of record batches into a binary format.
      *
      * This function takes a collection of record batches and serializes them into a single

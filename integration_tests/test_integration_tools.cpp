@@ -173,7 +173,7 @@ TEST_SUITE("Integration Tools Tests")
 
     TEST_CASE("json_to_stream and validate - Round-trip with validation")
     {
-        const std::filesystem::path json_file = tests_resources_files_path / "generated_binary.json";
+        const std::filesystem::path json_file = tests_resources_files_path / "generated_primitive.json";
 
         if (!std::filesystem::exists(json_file))
         {
@@ -190,11 +190,17 @@ TEST_SUITE("Integration Tools Tests")
             json_file,
             std::span<const uint8_t>(arrow_file_data)
         );
+        // write to a temp file
+        std::filesystem::path temp_file = std::filesystem::temp_directory_path() / "temp.arrow_file";
+        std::ofstream out(temp_file, std::ios::binary);
+        out.write(reinterpret_cast<const char*>(arrow_file_data.data()), arrow_file_data.size());
+        out.close();
+
         CHECK(matches);
 
         // Also verify by deserializing
-        auto batches = sparrow_ipc::deserialize_file(std::span<const uint8_t>(arrow_file_data));
-        CHECK_GT(batches.size(), 0);
+        const auto batches = sparrow_ipc::deserialize_file(std::span<const uint8_t>(arrow_file_data));
+        CHECK_EQ(batches.size(), 2);
     }
 
     TEST_CASE("compare_record_batch - Identical batches")
