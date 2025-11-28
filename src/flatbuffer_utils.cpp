@@ -553,7 +553,7 @@ namespace sparrow_ipc
         std::vector<org::apache::arrow::flatbuf::Buffer>& flatbuf_compressed_buffers,
         int64_t& offset,
         const CompressionType compression_type,
-        compression_cache_t& cache
+        CompressionCache& cache
     )
     {
         details::fill_buffers_impl(
@@ -565,7 +565,7 @@ namespace sparrow_ipc
     std::vector<org::apache::arrow::flatbuf::Buffer>
     get_compressed_buffers(const sparrow::record_batch& record_batch,
                            const CompressionType compression_type,
-                           compression_cache_t& cache)
+                           CompressionCache& cache)
     {
         return details::get_buffers_impl(record_batch, [&](const sparrow::arrow_proxy& proxy, std::vector<org::apache::arrow::flatbuf::Buffer>& buffers, int64_t& offset) {
             fill_compressed_buffers(proxy, buffers, offset, compression_type, cache);
@@ -574,7 +574,7 @@ namespace sparrow_ipc
 
     int64_t calculate_body_size(const sparrow::arrow_proxy& arrow_proxy,
                                 std::optional<CompressionType> compression,
-                                std::optional<std::reference_wrapper<compression_cache_t>> cache)
+                                std::optional<std::reference_wrapper<CompressionCache>> cache)
     {
         int64_t total_size = 0;
         if (compression.has_value())
@@ -585,7 +585,7 @@ namespace sparrow_ipc
             }
             for (const auto& buffer : arrow_proxy.buffers())
             {
-                total_size += utils::align_to_8(get_compressed_size(compression.value(), std::span<const uint8_t>(buffer.data(), buffer.size()), cache.value()));
+                total_size += utils::align_to_8(get_compressed_size(compression.value(), std::span<const uint8_t>(buffer.data(), buffer.size()), cache.value().get()));
             }
         }
         else
@@ -605,7 +605,7 @@ namespace sparrow_ipc
 
     int64_t calculate_body_size(const sparrow::record_batch& record_batch,
                                 std::optional<CompressionType> compression,
-                                std::optional<std::reference_wrapper<compression_cache_t>> cache)
+                                std::optional<std::reference_wrapper<CompressionCache>> cache)
     {
         return std::accumulate(
             record_batch.columns().begin(),
@@ -621,7 +621,7 @@ namespace sparrow_ipc
 
     flatbuffers::FlatBufferBuilder get_record_batch_message_builder(const sparrow::record_batch& record_batch,
                                                                   std::optional<CompressionType> compression,
-                                                                  std::optional<std::reference_wrapper<compression_cache_t>> cache)
+                                                                  std::optional<std::reference_wrapper<CompressionCache>> cache)
     {
         flatbuffers::FlatBufferBuilder record_batch_builder;
         flatbuffers::Offset<org::apache::arrow::flatbuf::BodyCompression> compression_offset = 0;
@@ -632,7 +632,7 @@ namespace sparrow_ipc
             {
                 throw std::invalid_argument("Compression type set but no cache is given.");
             }
-            compressed_buffers = get_compressed_buffers(record_batch, compression.value(), cache.value());
+            compressed_buffers = get_compressed_buffers(record_batch, compression.value(), cache.value().get());
             compression_offset = org::apache::arrow::flatbuf::CreateBodyCompression(record_batch_builder, details::to_fb_compression_type(compression.value()), org::apache::arrow::flatbuf::BodyCompressionMethod::BUFFER);
         }
         const auto& buffers = compressed_buffers ? *compressed_buffers : get_buffers(record_batch);

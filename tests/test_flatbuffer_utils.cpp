@@ -213,7 +213,7 @@ namespace sparrow_ipc
             SUBCASE("Simple primitive array")
             {
                 test_fill_buffers_variant([](const sparrow::arrow_proxy& proxy, std::vector<org::apache::arrow::flatbuf::Buffer>& buffers, int64_t& offset) {
-                    compression_cache_t cache;
+                    CompressionCache cache;
                     fill_compressed_buffers(proxy, buffers, offset, Compression::type, cache);
                 });
             }
@@ -246,7 +246,7 @@ namespace sparrow_ipc
             SUBCASE("Record batch with multiple columns")
             {
                 test_get_buffers_variant([](const sparrow::record_batch& record_batch) {
-                    compression_cache_t cache;
+                    CompressionCache cache;
                     return get_compressed_buffers(record_batch, Compression::type, cache);
                 });
             }
@@ -563,7 +563,7 @@ namespace sparrow_ipc
             auto test_get_record_batch_message_builder = [](std::optional<CompressionType> compression)
             {
                 auto record_batch = create_test_record_batch();
-                compression_cache_t cache;
+                CompressionCache cache;
                 auto builder = get_record_batch_message_builder(record_batch, compression, cache);
                 CHECK_GT(builder.GetSize(), 0);
                 CHECK_NE(builder.GetBufferPointer(), nullptr);

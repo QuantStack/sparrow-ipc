@@ -40,7 +40,7 @@ namespace sparrow_ipc
         requires std::same_as<std::ranges::range_value_t<R>, sparrow::record_batch>
     void serialize_record_batches_to_ipc_stream(const R& record_batches, any_output_stream& stream,
                                                 std::optional<CompressionType> compression,
-                                                std::optional<std::reference_wrapper<compression_cache_t>> cache)
+                                                std::optional<std::reference_wrapper<CompressionCache>> cache)
     {
         if (record_batches.empty())
         {
@@ -84,7 +84,7 @@ namespace sparrow_ipc
     serialize_record_batch(const sparrow::record_batch& record_batch,
                            any_output_stream& stream,
                            std::optional<CompressionType> compression,
-                           std::optional<std::reference_wrapper<compression_cache_t>> cache);
+                           std::optional<std::reference_wrapper<CompressionCache>> cache);
     
     /**
      * @brief Serializes a schema message for a record batch into a byte buffer.

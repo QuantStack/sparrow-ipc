@@ -83,7 +83,7 @@ namespace sparrow_ipc
             requires std::same_as<std::ranges::range_value_t<R>, sparrow::record_batch>
         void write(const R& record_batches)
         {
-            compression_cache_t compressed_buffers_cache;
+            CompressionCache compressed_buffers_cache;
             if (std::ranges::empty(record_batches))
             {
                 return;

@@ -30,7 +30,7 @@ namespace sparrow_ipc
         {
             const std::vector<uint8_t> empty_data;
             const auto compression_type = T::type;
-            compression_cache_t cache;
+            CompressionCache cache;
 
             // Test compression of empty data
             auto compressed = compress(compression_type, empty_data, cache);
@@ -46,7 +46,7 @@ namespace sparrow_ipc
         TEST_CASE_TEMPLATE("Data compression and decompression round-trip", T, Lz4Compression, ZstdCompression)
         {
             std::vector<uint8_t> original_data(compressible_test_string.begin(), compressible_test_string.end());
-            compression_cache_t cache;
+            CompressionCache cache;
 
             // Compress data
             auto compression_type = T::type;
@@ -68,7 +68,7 @@ namespace sparrow_ipc
         TEST_CASE_TEMPLATE("Data compression with incompressible data", T, Lz4Compression, ZstdCompression)
         {
             std::vector<uint8_t> original_data(incompressible_test_string.begin(), incompressible_test_string.end());
-            compression_cache_t cache;
+            CompressionCache cache;
             // Compress data
             auto compression_type = T::type;
             auto compressed_data = compress(compression_type, original_data, cache);
@@ -96,7 +96,7 @@ namespace sparrow_ipc
         {
             std::vector<uint8_t> original_data(compressible_test_string.begin(), compressible_test_string.end());
             auto compression_type = T::type;
-            compression_cache_t cache;
+            CompressionCache cache;
             // Check compressed size
             size_t compressed_size = get_compressed_size(compression_type, original_data, cache);
             auto compressed_data_for_check = compress(compression_type, original_data, cache);

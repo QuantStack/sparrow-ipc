@@ -1,6 +1,8 @@
 #include <cassert>
 #include <functional>
+#include <iterator>
 #include <stdexcept>
+#include <unordered_map>
 
 #include <lz4frame.h>
 #include <zstd.h>
@@ -9,6 +11,99 @@
 
 namespace sparrow_ipc
 {
+    class CompressionCacheImpl
+    {
+        public:
+            CompressionCacheImpl() = default;
+            ~CompressionCacheImpl() = default;
+
+            CompressionCacheImpl(CompressionCacheImpl&&) noexcept = default;
+            CompressionCacheImpl& operator=(CompressionCacheImpl&&) noexcept = default;
+
+            CompressionCacheImpl(const CompressionCacheImpl&) = delete;
+            CompressionCacheImpl& operator=(const CompressionCacheImpl&) = delete;
+
+            std::optional<std::span<const uint8_t>> find(const void* key)
+            {
+                auto it = m_cache.find(key);
+                if (it != m_cache.end())
+                {
+                    return it->second;
+                }
+                return std::nullopt;
+            }
+
+            std::span<const uint8_t> store(const void* key, std::vector<uint8_t>&& data)
+            {
+                auto [it, inserted] = m_cache.emplace(key, std::move(data));
+                if (!inserted)
+                {
+                    throw std::runtime_error("Key already exists in compression cache");
+                }
+                return it->second;
+            }
+
+            size_t size() const
+            {
+                return m_cache.size();
+            }
+
+            size_t count(const void* key) const
+            {
+                return m_cache.count(key);
+            }
+
+            bool empty() const
+            {
+                return m_cache.empty();
+            }
+
+            void clear()
+            {
+                m_cache.clear();
+            }
+
+        private:
+            using compression_cache_t = std::unordered_map<const void*, std::vector<std::uint8_t>>;
+            compression_cache_t m_cache;
+    };
+
+    CompressionCache::CompressionCache() : m_pimpl(std::make_unique<CompressionCacheImpl>()) {}
+    CompressionCache::~CompressionCache() = default;
+
+    CompressionCache::CompressionCache(CompressionCache&&) noexcept = default;
+    CompressionCache& CompressionCache::operator=(CompressionCache&&) noexcept = default;
+
+    std::optional<std::span<const std::uint8_t>> CompressionCache::find(const void* key)
+    {
+        return m_pimpl->find(key);
+    }
+
+    std::span<const std::uint8_t> CompressionCache::store(const void* key, std::vector<std::uint8_t>&& data)
+    {
+        return m_pimpl->store(key, std::move(data));
+    }
+
+    size_t CompressionCache::size() const
+    {
+        return m_pimpl->size();
+    }
+
+    size_t CompressionCache::count(const void* key) const
+    {
+        return m_pimpl->count(key);
+    }
+
+    bool CompressionCache::empty() const
+    {
+        return m_pimpl->empty();
+    }
+
+    void CompressionCache::clear()
+    {
+        m_pimpl->clear();
+    }
+
     namespace details
     {
         org::apache::arrow::flatbuf::CompressionType to_fb_compression_type(CompressionType compression_type)
@@ -98,11 +193,11 @@ namespace sparrow_ipc
             return decompressed_data;
         }
 
-        void insert_compressed_data(std::vector<uint8_t>& result, std::int64_t original_size, const std::vector<uint8_t>& compressed_body)
+        void insert_compressed_data(std::vector<uint8_t>& result, std::int64_t original_size, std::vector<uint8_t>&& compressed_body)
         {
             result.reserve(details::CompressionHeaderSize + compressed_body.size());
             result.insert(result.end(), reinterpret_cast<const uint8_t*>(&original_size), reinterpret_cast<const uint8_t*>(&original_size) + sizeof(original_size));
-            result.insert(result.end(), compressed_body.begin(), compressed_body.end());
+            result.insert(result.end(), std::make_move_iterator(compressed_body.begin()), std::make_move_iterator(compressed_body.end()));
         }
 
         void insert_uncompressed_data(std::vector<uint8_t>& result, const std::span<const uint8_t>& data)
@@ -116,15 +211,14 @@ namespace sparrow_ipc
         std::span<const std::uint8_t> compress_with_header(
             const std::span<const std::uint8_t>& data,
             compress_func comp_func,
-            compression_cache_t& cache)
+            CompressionCache& cache)
         {
             const void* buffer_ptr = data.data();
 
             // Check cache
-            auto it = cache.find(buffer_ptr);
-            if (it != cache.end())
+            if (auto cached_result = cache.find(buffer_ptr))
             {
-                return it->second;
+                return cached_result.value();
             }
 
             // Not in cache, compress and store
@@ -136,18 +230,17 @@ namespace sparrow_ipc
                 compressed_body = comp_func(data);
             }
 
-            auto& result_vec_in_cache = cache[buffer_ptr];
-
+            std::vector<uint8_t> result_vec;
             if (comp_func && compressed_body.size() < static_cast<size_t>(original_size))
             {
-                insert_compressed_data(result_vec_in_cache, original_size, compressed_body);
+                insert_compressed_data(result_vec, original_size, std::move(compressed_body));
             }
             else
             {
-                insert_uncompressed_data(result_vec_in_cache, data);
+                insert_uncompressed_data(result_vec, data);
             }
 
-            return result_vec_in_cache;
+            return cache.store(buffer_ptr, std::move(result_vec));
         }
 
         std::variant<std::vector<std::uint8_t>, std::span<const std::uint8_t>> decompress_with_header(std::span<const std::uint8_t> data, decompress_func decomp_func)
@@ -180,7 +273,7 @@ namespace sparrow_ipc
     std::span<const std::uint8_t> compress(
         const CompressionType compression_type,
         const std::span<const std::uint8_t>& data,
-        compression_cache_t& cache)
+        CompressionCache& cache)
     {
         switch (compression_type)
         {
@@ -200,7 +293,7 @@ namespace sparrow_ipc
     size_t get_compressed_size(
         const CompressionType compression_type,
         const std::span<const std::uint8_t>& data,
-        compression_cache_t& cache)
+        CompressionCache& cache)
     {
         return compress(compression_type, data, cache).size();
     }

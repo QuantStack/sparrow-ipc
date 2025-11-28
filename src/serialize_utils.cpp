@@ -10,7 +10,7 @@ namespace sparrow_ipc
 {
     void fill_body(const sparrow::arrow_proxy& arrow_proxy, any_output_stream& stream,
                    std::optional<CompressionType> compression,
-                   std::optional<std::reference_wrapper<compression_cache_t>> cache)
+                   std::optional<std::reference_wrapper<CompressionCache>> cache)
     {
         std::for_each(arrow_proxy.buffers().begin(), arrow_proxy.buffers().end(), [&](const auto& buffer) {
             if (compression.has_value())
@@ -19,7 +19,7 @@ namespace sparrow_ipc
                 {
                     throw std::invalid_argument("Compression type set but no cache is given.");
                 }
-                auto compressed_buffer_with_header = compress(compression.value(), std::span<const uint8_t>(buffer.data(), buffer.size()), cache.value());
+                auto compressed_buffer_with_header = compress(compression.value(), std::span<const uint8_t>(buffer.data(), buffer.size()), cache.value().get());
                 stream.write(compressed_buffer_with_header);
             }
             else
@@ -36,7 +36,7 @@ namespace sparrow_ipc
 
     void generate_body(const sparrow::record_batch& record_batch, any_output_stream& stream,
                        std::optional<CompressionType> compression,
-                       std::optional<std::reference_wrapper<compression_cache_t>> cache)
+                       std::optional<std::reference_wrapper<CompressionCache>> cache)
     {
         std::for_each(record_batch.columns().begin(), record_batch.columns().end(), [&](const auto& column) {
             const auto& arrow_proxy = sparrow::detail::array_access::get_arrow_proxy(column);
@@ -61,7 +61,7 @@ namespace sparrow_ipc
 
     std::size_t calculate_record_batch_message_size(const sparrow::record_batch& record_batch,
                                                     std::optional<CompressionType> compression,
-                                                    std::optional<std::reference_wrapper<compression_cache_t>> cache)
+                                                    std::optional<std::reference_wrapper<CompressionCache>> cache)
     {
         // Build the record batch message to get its exact metadata size
         flatbuffers::FlatBufferBuilder record_batch_builder = get_record_batch_message_builder(record_batch, compression, cache);

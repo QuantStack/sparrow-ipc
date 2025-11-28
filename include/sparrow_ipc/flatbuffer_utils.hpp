@@ -262,7 +262,7 @@ namespace sparrow_ipc
         std::vector<org::apache::arrow::flatbuf::Buffer>& flatbuf_compressed_buffers,
         int64_t& offset,
         const CompressionType compression_type,
-        compression_cache_t& cache
+        CompressionCache& cache
     );
 
     /**
@@ -282,7 +282,7 @@ namespace sparrow_ipc
     [[nodiscard]] std::vector<org::apache::arrow::flatbuf::Buffer>
     get_compressed_buffers(const sparrow::record_batch& record_batch,
                            const CompressionType compression_type,
-                           compression_cache_t& cache);
+                           CompressionCache& cache);
 
     /**
      * @brief Calculates the total aligned size in bytes of all buffers in an Arrow array structure.
@@ -300,7 +300,7 @@ namespace sparrow_ipc
      */
     [[nodiscard]] int64_t calculate_body_size(const sparrow::arrow_proxy& arrow_proxy,
                                             std::optional<CompressionType> compression = std::nullopt,
-                                            std::optional<std::reference_wrapper<compression_cache_t>> cache = std::nullopt);
+                                            std::optional<std::reference_wrapper<CompressionCache>> cache = std::nullopt);
 
     /**
      * @brief Calculates the total body size of a record batch by summing the body sizes of all its columns.
@@ -317,7 +317,7 @@ namespace sparrow_ipc
      */
     [[nodiscard]] int64_t calculate_body_size(const sparrow::record_batch& record_batch,
                                             std::optional<CompressionType> compression = std::nullopt,
-                                            std::optional<std::reference_wrapper<compression_cache_t>> cache = std::nullopt);
+                                            std::optional<std::reference_wrapper<CompressionCache>> cache = std::nullopt);
 
     /**
      * @brief Creates a FlatBuffer message containing a serialized Apache Arrow RecordBatch.
@@ -341,5 +341,5 @@ namespace sparrow_ipc
     [[nodiscard]] flatbuffers::FlatBufferBuilder
     get_record_batch_message_builder(const sparrow::record_batch& record_batch,
                                      std::optional<CompressionType> compression = std::nullopt,
-                                     std::optional<std::reference_wrapper<compression_cache_t>> cache = std::nullopt);
+                                     std::optional<std::reference_wrapper<CompressionCache>> cache = std::nullopt);
 }
