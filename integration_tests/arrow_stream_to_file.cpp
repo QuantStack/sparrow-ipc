@@ -63,7 +63,7 @@ int main(int argc, char* argv[])
         }
 
         // Convert stream to file format using the library
-        std::vector<uint8_t> output_stream_data = integration_tools::stream_to_file(
+        const std::vector<uint8_t> output_stream_data = integration_tools::stream_to_file(
             std::span<const uint8_t>(input_stream_data)
         );
 

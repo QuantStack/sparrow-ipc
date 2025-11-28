@@ -3,15 +3,30 @@
 #include <string>
 #include <vector>
 
+#include <File_generated.h>
 #include <nlohmann/json.hpp>
 
-#include <sparrow/record_batch.hpp>
 #include <sparrow/json_reader/json_parser.hpp>
+#include <sparrow/record_batch.hpp>
 
 #include "doctest/doctest.h"
 #include "integration_tools.hpp"
 #include "sparrow_ipc/deserialize.hpp"
 #include "sparrow_ipc/stream_file_serializer.hpp"
+
+// Helper function to extract and parse the footer from Arrow IPC file data
+const org::apache::arrow::flatbuf::Footer* get_footer_from_file_data(const std::vector<uint8_t>& file_data)
+{
+    // Footer size is stored 4 bytes before the trailing magic
+    const size_t footer_size_offset = file_data.size() - sparrow_ipc::arrow_file_magic_size - sizeof(int32_t);
+    int32_t footer_size = 0;
+    std::memcpy(&footer_size, file_data.data() + footer_size_offset, sizeof(int32_t));
+
+    // Footer data starts at footer_size_offset - footer_size
+    const size_t footer_offset = footer_size_offset - footer_size;
+
+    return org::apache::arrow::flatbuf::GetFooter(file_data.data() + footer_offset);
+}
 
 TEST_SUITE("Integration Tools Tests")
 {
@@ -29,7 +44,10 @@ TEST_SUITE("Integration Tools Tests")
     TEST_CASE("stream_to_file - Empty input")
     {
         std::vector<uint8_t> empty_data;
-        CHECK_THROWS_AS(integration_tools::stream_to_file(std::span<const uint8_t>(empty_data)), std::runtime_error);
+        CHECK_THROWS_AS(
+            integration_tools::stream_to_file(std::span<const uint8_t>(empty_data)),
+            std::runtime_error
+        );
     }
 
     TEST_CASE("validate_json_against_arrow_file - Non-existent JSON file")
@@ -37,7 +55,10 @@ TEST_SUITE("Integration Tools Tests")
         const std::filesystem::path non_existent = "non_existent_file_12345.json";
         std::vector<uint8_t> dummy_stream = {1, 2, 3};
         CHECK_THROWS_AS(
-            integration_tools::validate_json_against_arrow_file(non_existent, std::span<const uint8_t>(dummy_stream)),
+            integration_tools::validate_json_against_arrow_file(
+                non_existent,
+                std::span<const uint8_t>(dummy_stream)
+            ),
             std::runtime_error
         );
     }
@@ -91,6 +112,21 @@ TEST_SUITE("Integration Tools Tests")
         // Verify the output is valid
         const auto batches = sparrow_ipc::deserialize_file(std::span<const uint8_t>(output_data));
         CHECK_GT(batches.size(), 0);
+
+        // Check footer
+        const auto* footer = get_footer_from_file_data(output_data);
+        REQUIRE(footer != nullptr);
+        REQUIRE(footer->recordBatches() != nullptr);
+        CHECK_EQ(footer->recordBatches()->size(), batches.size());
+
+        // Check alignment of record batch blocks
+        for (size_t i = 0; i < footer->recordBatches()->size(); ++i)
+        {
+            const auto& block = *footer->recordBatches()->Get(static_cast<uint32_t>(i));
+            CHECK_EQ(block.offset() % 8, 0);
+            CHECK_EQ(block.bodyLength() % 8, 0);
+            CHECK_EQ(block.metaDataLength() % 8, 0);
+        }
     }
 
     TEST_CASE("Round-trip: JSON -> stream -> file")
@@ -107,8 +143,10 @@ TEST_SUITE("Integration Tools Tests")
         const std::vector<uint8_t> stream_data = integration_tools::json_file_to_stream(json_file);
         REQUIRE_GT(stream_data.size(), 0);
 
-        // Step 2: stream -> file  
-        const std::vector<uint8_t> file_data = integration_tools::stream_to_file(std::span<const uint8_t>(stream_data));
+        // Step 2: stream -> file
+        const std::vector<uint8_t> file_data = integration_tools::stream_to_file(
+            std::span<const uint8_t>(stream_data)
+        );
         REQUIRE_GT(file_data.size(), 0);
 
         // Step 3: Compare the results - both should deserialize to same data
@@ -250,7 +288,9 @@ TEST_SUITE("Integration Tools Tests")
             SUBCASE(filename.c_str())
             {
                 // Convert to stream
-                const std::vector<uint8_t> arrow_file_data = integration_tools::json_file_to_arrow_file(json_file);
+                const std::vector<uint8_t> arrow_file_data = integration_tools::json_file_to_arrow_file(
+                    json_file
+                );
                 REQUIRE_GT(arrow_file_data.size(), 0);
 
                 // Validate
