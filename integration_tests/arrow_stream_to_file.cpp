@@ -62,12 +62,10 @@ int main(int argc, char* argv[])
             return EXIT_FAILURE;
         }
 
-        // Convert stream to file format using the library
-        const std::vector<uint8_t> output_stream_data = integration_tools::stream_to_file(
+        const std::vector<uint8_t> output_file_data = integration_tools::stream_to_file(
             std::span<const uint8_t>(input_stream_data)
         );
 
-        // Write the stream to the output file
         std::ofstream output_file(output_path, std::ios::out | std::ios::binary);
         if (!output_file.is_open())
         {
@@ -75,7 +73,7 @@ int main(int argc, char* argv[])
             return EXIT_FAILURE;
         }
 
-        output_file.write(reinterpret_cast<const char*>(output_stream_data.data()), output_stream_data.size());
+        output_file.write(reinterpret_cast<const char*>(output_file_data.data()), output_file_data.size());
         output_file.close();
 
         if (!output_file.good())

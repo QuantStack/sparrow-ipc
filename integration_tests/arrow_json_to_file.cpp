@@ -21,7 +21,6 @@
  */
 int main(int argc, char* argv[])
 {
-    // Check command-line arguments
     if (argc != 3)
     {
         std::cerr << "Usage: " << argv[0] << " <json_file_path> <output_file_path>\n";
@@ -34,10 +33,7 @@ int main(int argc, char* argv[])
 
     try
     {
-        // Convert JSON file to stream using the library
-        std::vector<uint8_t> stream_data = integration_tools::json_file_to_arrow_file(json_path);
-
-        // Write the binary stream to the output file
+        const std::vector<uint8_t> file_data = integration_tools::json_file_to_arrow_file(json_path);
         std::ofstream output_file(output_path, std::ios::out | std::ios::binary);
         if (!output_file.is_open())
         {
@@ -45,7 +41,7 @@ int main(int argc, char* argv[])
             return EXIT_FAILURE;
         }
 
-        output_file.write(reinterpret_cast<const char*>(stream_data.data()), stream_data.size());
+        output_file.write(reinterpret_cast<const char*>(file_data.data()), file_data.size());
         output_file.close();
 
         if (!output_file.good())

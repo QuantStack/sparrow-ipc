@@ -22,7 +22,6 @@
  */
 int main(int argc, char* argv[])
 {
-    // Check command-line arguments
     if (argc != 3)
     {
         std::cerr << "Usage: " << argv[0] << " <json_file_path> <stream_file_path>\n";
@@ -35,7 +34,6 @@ int main(int argc, char* argv[])
 
     try
     {
-        // Check if the stream file exists
         if (!std::filesystem::exists(arrow_file_path))
         {
             std::cerr << "Error: Arrow file not found: " << arrow_file_path << "\n";
@@ -45,7 +43,6 @@ int main(int argc, char* argv[])
         std::cout << "Loading JSON file: " << json_path << "\n";
         std::cout << "Loading Arrow file: " << arrow_file_path << "\n";
 
-        // Read the stream file
         std::ifstream arrow_file(arrow_file_path, std::ios::in | std::ios::binary);
         if (!arrow_file.is_open())
         {

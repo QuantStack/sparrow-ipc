@@ -1,18 +1,19 @@
 #include <cstdlib>
 #include <filesystem>
+#include <fstream>
 #include <iostream>
 #include <vector>
 
 #include "integration_tools.hpp"
 
 /**
- * @brief Reads a JSON file containing record batches and outputs the serialized Arrow IPC stream to stdout.
+ * @brief Reads a JSON file containing record batches and outputs the serialized Arrow IPC stream to a file.
  *
- * This program takes a JSON file path as a command-line argument, parses the record batches
- * from the JSON data, serializes them into Arrow IPC stream format, and writes the binary
- * stream to stdout. The output can be redirected to a file or piped to another program.
+ * This program takes a JSON file path and an output file path as command-line arguments,
+ * parses the record batches from the JSON data, serializes them into Arrow IPC stream format,
+ * and writes the binary stream to the specified output file.
  *
- * Usage: arrow_file_to_stream <json_file_path>
+ * Usage: arrow_file_to_stream <json_file_path> <output_arrow_file>
  *
  * @param argc Number of command-line arguments
  * @param argv Array of command-line arguments
@@ -20,24 +21,29 @@
  */
 int main(int argc, char* argv[])
 {
-    // Check command-line arguments
-    if (argc != 2)
+    if (argc != 3)
     {
-        std::cerr << "Usage: " << argv[0] << " <json_file_path>\n";
-        std::cerr << "Reads a JSON file and outputs the serialized Arrow IPC stream to stdout.\n";
+        std::cerr << "Usage: " << argv[0] << " <json_file_path> <output_arrow_file>\n";
+        std::cerr << "Reads a JSON file and outputs the serialized Arrow IPC stream to a file.\n";
         return EXIT_FAILURE;
     }
 
     const std::filesystem::path json_path(argv[1]);
+    const std::filesystem::path output_path(argv[2]);
 
     try
     {
-        // Convert JSON file to stream using the library
-        std::vector<uint8_t> stream_data = integration_tools::json_file_to_stream(json_path);
-
-        // Write the binary stream to stdout
-        std::cout.write(reinterpret_cast<const char*>(stream_data.data()), stream_data.size());
-        std::cout.flush();
+        const std::vector<uint8_t> stream_data = integration_tools::json_file_to_stream(json_path);
+        
+        std::ofstream output_file(output_path, std::ios::binary);
+        if (!output_file)
+        {
+            std::cerr << "Error: Could not open output file: " << output_path << "\n";
+            return EXIT_FAILURE;
+        }
+        
+        output_file.write(reinterpret_cast<const char*>(stream_data.data()), static_cast<std::streamsize>(stream_data.size()));
+        output_file.close();
 
         return EXIT_SUCCESS;
     }
