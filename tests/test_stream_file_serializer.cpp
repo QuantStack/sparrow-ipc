@@ -545,4 +545,113 @@ TEST_SUITE("Stream file serializer tests")
         CHECK_EQ(footer->schema()->fields()->Get(1)->type_type(), org::apache::arrow::flatbuf::Type::FloatingPoint);
         CHECK_EQ(footer->schema()->fields()->Get(2)->type_type(), org::apache::arrow::flatbuf::Type::Utf8);
     }
+
+    TEST_CASE("Footer block alignment - all fields must be multiples of 8")
+    {
+        // Arrow IPC format requires that offset, metaDataLength, and bodyLength
+        // in FileBlock are all multiples of 8. This test verifies the alignment.
+        
+        std::vector<std::string> names = {"a", "b", "c", "d"};
+
+        // Create arrays with the same number of rows (7 elements each)
+        std::vector<int32_t> int_data = {1, 2, 3, 4, 5, 6, 7};
+        sparrow::primitive_array<int32_t> int_array(std::move(int_data));
+
+        std::vector<float> float_data = {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f};
+        sparrow::primitive_array<float> float_array(std::move(float_data));
+
+        std::vector<bool> bool_data = {true, false, true, false, true, false, true};
+        sparrow::primitive_array<bool> bool_array(std::move(bool_data));
+        
+        std::vector<double> double_data = {1.1, 2.2, 3.3, 4.4, 5.5, 6.6, 7.7};
+        sparrow::primitive_array<double> double_array(std::move(double_data));
+
+        std::vector<sparrow::array> arrays;
+        arrays.emplace_back(std::move(int_array));
+        arrays.emplace_back(std::move(float_array));
+        arrays.emplace_back(std::move(bool_array));
+        arrays.emplace_back(std::move(double_array));
+        sparrow::record_batch batch(names, std::move(arrays));
+
+        std::vector<uint8_t> file_data;
+        sparrow_ipc::memory_output_stream mem_stream(file_data);
+        
+        {
+            sparrow_ipc::stream_file_serializer serializer(mem_stream);
+            serializer << batch << sparrow_ipc::end_file;
+        }
+
+        const auto* footer = get_footer_from_file_data(file_data);
+        REQUIRE(footer != nullptr);
+        REQUIRE(footer->recordBatches() != nullptr);
+        REQUIRE_EQ(footer->recordBatches()->size(), 1);
+
+        const auto& block = *footer->recordBatches()->Get(0);
+        
+        // All three fields must be multiples of 8 per Arrow spec
+        // (see Apache Arrow reader.cc CheckAligned function)
+        CHECK_EQ(block.offset() % 8, 0);
+        CHECK_EQ(block.metaDataLength() % 8, 0);
+        CHECK_EQ(block.bodyLength() % 8, 0);
+        
+        // metaDataLength should include continuation (4) + size (4) + flatbuffer + padding
+        // so it should be at least 8
+        CHECK_GE(block.metaDataLength(), 8);
+    }
+
+    TEST_CASE("Footer block alignment with multiple batches")
+    {
+        std::vector<std::string> names = {"x", "y"};
+        
+        std::vector<uint8_t> file_data;
+        sparrow_ipc::memory_output_stream mem_stream(file_data);
+        
+        {
+            sparrow_ipc::stream_file_serializer serializer(mem_stream);
+            
+            // Create multiple batches with different sizes to test alignment edge cases
+            for (int batch_idx = 0; batch_idx < 5; ++batch_idx)
+            {
+                const size_t num_rows = 3 + batch_idx * 2;  // 3, 5, 7, 9, 11 rows
+                
+                std::vector<int32_t> int_data(num_rows);
+                std::vector<float> float_data(num_rows);
+                for (size_t i = 0; i < num_rows; ++i)
+                {
+                    int_data[i] = static_cast<int32_t>(batch_idx * 100 + i);
+                    float_data[i] = static_cast<float>(i) * 0.1f;
+                }
+                
+                sparrow::primitive_array<int32_t> int_array(std::move(int_data));
+                sparrow::primitive_array<float> float_array(std::move(float_data));
+                
+                std::vector<sparrow::array> arrays;
+                arrays.emplace_back(std::move(int_array));
+                arrays.emplace_back(std::move(float_array));
+                
+                auto names_copy = names;
+                sparrow::record_batch batch(std::move(names_copy), std::move(arrays));
+                
+                serializer << batch;
+            }
+            
+            serializer << sparrow_ipc::end_file;
+        }
+
+        const auto* footer = get_footer_from_file_data(file_data);
+        REQUIRE(footer != nullptr);
+        REQUIRE(footer->recordBatches() != nullptr);
+        REQUIRE_EQ(footer->recordBatches()->size(), 5);
+
+        // Check alignment for all blocks
+        for (size_t i = 0; i < footer->recordBatches()->size(); ++i)
+        {
+            const auto& block = *footer->recordBatches()->Get(static_cast<uint32_t>(i));
+            
+            // All three fields must be multiples of 8
+            CHECK_MESSAGE(block.offset() % 8 == 0, "Block ", i, " offset not aligned");
+            CHECK_MESSAGE(block.metaDataLength() % 8 == 0, "Block ", i, " metaDataLength not aligned");
+            CHECK_MESSAGE(block.bodyLength() % 8 == 0, "Block ", i, " bodyLength not aligned");
+        }
+    }
 }

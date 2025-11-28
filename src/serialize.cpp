@@ -32,11 +32,19 @@ namespace sparrow_ipc
         flatbuffers::FlatBufferBuilder builder = get_record_batch_message_builder(record_batch, compression, cache);
         const flatbuffers::uoffset_t flatbuffer_size = builder.GetSize();
         
-        // Calculate metadata length: flatbuffer size + padding to 8-byte alignment
-        // Note: The metadata_length in the Arrow file footer includes the size prefix (4 bytes)
-        // but not the continuation bytes
+        // Calculate metadata length for the Block in the footer
+        // According to Arrow spec, metadata_length must be a multiple of 8.
+        // The encapsulated message format is:
+        //   - continuation (4 bytes)
+        //   - size prefix (4 bytes)
+        //   - flatbuffer metadata (flatbuffer_size bytes)
+        //   - padding to 8-byte boundary
+        // 
+        // Arrow's WriteMessage returns metadata_length = align_to_8(8 + flatbuffer_size)
+        // which INCLUDES the continuation bytes.
+        const size_t prefix_size = continuation.size() + sizeof(uint32_t);  // 8 bytes
         const int32_t metadata_length = static_cast<int32_t>(
-            sizeof(uint32_t) + utils::align_to_8(static_cast<size_t>(flatbuffer_size))
+            utils::align_to_8(prefix_size + flatbuffer_size)
         );
         
         // Write metadata
@@ -48,7 +56,7 @@ namespace sparrow_ipc
         // Write body
         generate_body(record_batch, stream, compression, cache);
         
-        // Calculate body length
+        // Calculate body length (should already be 8-aligned since generate_body pads each buffer)
         const int64_t body_length = static_cast<int64_t>(stream.size() - body_start);
         
         return {metadata_length, body_length};
