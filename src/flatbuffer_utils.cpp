@@ -467,8 +467,8 @@ namespace sparrow_ipc
     ::flatbuffers::Offset<::flatbuffers::Vector<::flatbuffers::Offset<org::apache::arrow::flatbuf::Field>>>
     create_children(flatbuffers::FlatBufferBuilder& builder, const sparrow::record_batch& record_batch)
     {
-        std::vector<flatbuffers::Offset<org::apache::arrow::flatbuf::Field>> children_vec;
         const auto& columns = record_batch.columns();
+        std::vector<flatbuffers::Offset<org::apache::arrow::flatbuf::Field>> children_vec;
         children_vec.reserve(columns.size());
         const auto names = record_batch.names();
         for (size_t i = 0; i < columns.size(); ++i)

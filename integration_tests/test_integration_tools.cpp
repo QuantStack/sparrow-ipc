@@ -1,11 +1,15 @@
 #include <filesystem>
 #include <fstream>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 #include <File_generated.h>
+#include <Message_generated.h>
+#include <Schema_generated.h>
 #include <nlohmann/json.hpp>
 
+#include <sparrow/c_interface.hpp>
 #include <sparrow/json_reader/json_parser.hpp>
 #include <sparrow/record_batch.hpp>
 
@@ -303,6 +307,384 @@ TEST_SUITE("Integration Tools Tests")
                 // Verify we can deserialize
                 const auto batches = sparrow_ipc::deserialize_file(std::span<const uint8_t>(arrow_file_data));
                 CHECK_GE(batches.size(), 0);
+            }
+        }
+    }
+
+    TEST_CASE("Schema validation through JSON -> record_batch -> stream pipeline")
+    {
+        // This test validates schema content at each stage of the pipeline:
+        // 1. Parse schema from JSON
+        // 2. Build record batches and verify schema
+        // 3. Serialize to Arrow IPC stream and verify schema in the stream
+
+        const std::filesystem::path json_file = tests_resources_files_path / "generated_primitive.json";
+
+        if (!std::filesystem::exists(json_file))
+        {
+            MESSAGE("Skipping test: test file not found at " << json_file);
+            return;
+        }
+
+        // Load and parse the JSON file
+        std::ifstream json_input(json_file);
+        REQUIRE(json_input.is_open());
+        const nlohmann::json json_data = nlohmann::json::parse(json_input);
+        json_input.close();
+
+        // Expected schema from generated_primitive.json
+        struct ExpectedField
+        {
+            std::string name;
+            bool nullable;
+            org::apache::arrow::flatbuf::Type type_enum;
+            // For Int types
+            bool is_signed = false;
+            int bit_width = 0;
+            // For FloatingPoint types
+            org::apache::arrow::flatbuf::Precision precision = org::apache::arrow::flatbuf::Precision::SINGLE;
+        };
+
+        const std::vector<ExpectedField> expected_fields = {
+            {"bool_nullable", true, org::apache::arrow::flatbuf::Type::Bool},
+            {"bool_nonnullable", false, org::apache::arrow::flatbuf::Type::Bool},
+            {"int8_nullable", true, org::apache::arrow::flatbuf::Type::Int, true, 8},
+            {"int8_nonnullable", false, org::apache::arrow::flatbuf::Type::Int, true, 8},
+            {"int16_nullable", true, org::apache::arrow::flatbuf::Type::Int, true, 16},
+            {"int16_nonnullable", false, org::apache::arrow::flatbuf::Type::Int, true, 16},
+            {"int32_nullable", true, org::apache::arrow::flatbuf::Type::Int, true, 32},
+            {"int32_nonnullable", false, org::apache::arrow::flatbuf::Type::Int, true, 32},
+            {"int64_nullable", true, org::apache::arrow::flatbuf::Type::Int, true, 64},
+            {"int64_nonnullable", false, org::apache::arrow::flatbuf::Type::Int, true, 64},
+            {"uint8_nullable", true, org::apache::arrow::flatbuf::Type::Int, false, 8},
+            {"uint8_nonnullable", false, org::apache::arrow::flatbuf::Type::Int, false, 8},
+            {"uint16_nullable", true, org::apache::arrow::flatbuf::Type::Int, false, 16},
+            {"uint16_nonnullable", false, org::apache::arrow::flatbuf::Type::Int, false, 16},
+            {"uint32_nullable", true, org::apache::arrow::flatbuf::Type::Int, false, 32},
+            {"uint32_nonnullable", false, org::apache::arrow::flatbuf::Type::Int, false, 32},
+            {"uint64_nullable", true, org::apache::arrow::flatbuf::Type::Int, false, 64},
+            {"uint64_nonnullable", false, org::apache::arrow::flatbuf::Type::Int, false, 64},
+            {"float32_nullable", true, org::apache::arrow::flatbuf::Type::FloatingPoint, false, 0, org::apache::arrow::flatbuf::Precision::SINGLE},
+            {"float32_nonnullable", false, org::apache::arrow::flatbuf::Type::FloatingPoint, false, 0, org::apache::arrow::flatbuf::Precision::SINGLE},
+            {"float64_nullable", true, org::apache::arrow::flatbuf::Type::FloatingPoint, false, 0, org::apache::arrow::flatbuf::Precision::DOUBLE},
+            {"float64_nonnullable", false, org::apache::arrow::flatbuf::Type::FloatingPoint, false, 0, org::apache::arrow::flatbuf::Precision::DOUBLE},
+        };
+
+        SUBCASE("Step 1: Verify JSON schema structure")
+        {
+            REQUIRE(json_data.contains("schema"));
+            const auto& schema = json_data["schema"];
+            REQUIRE(schema.contains("fields"));
+            const auto& fields = schema["fields"];
+            REQUIRE(fields.is_array());
+            CHECK_EQ(fields.size(), expected_fields.size());
+
+            for (size_t i = 0; i < expected_fields.size() && i < fields.size(); ++i)
+            {
+                const auto& field = fields[i];
+                const auto& expected = expected_fields[i];
+
+                CHECK_EQ(field["name"].get<std::string>(), expected.name);
+                CHECK_EQ(field["nullable"].get<bool>(), expected.nullable);
+
+                const auto& type = field["type"];
+                const std::string type_name = type["name"].get<std::string>();
+
+                if (expected.type_enum == org::apache::arrow::flatbuf::Type::Bool)
+                {
+                    CHECK_EQ(type_name, "bool");
+                }
+                else if (expected.type_enum == org::apache::arrow::flatbuf::Type::Int)
+                {
+                    CHECK_EQ(type_name, "int");
+                    CHECK_EQ(type["isSigned"].get<bool>(), expected.is_signed);
+                    CHECK_EQ(type["bitWidth"].get<int>(), expected.bit_width);
+                }
+                else if (expected.type_enum == org::apache::arrow::flatbuf::Type::FloatingPoint)
+                {
+                    CHECK_EQ(type_name, "floatingpoint");
+                    const std::string precision = type["precision"].get<std::string>();
+                    if (expected.precision == org::apache::arrow::flatbuf::Precision::SINGLE)
+                    {
+                        CHECK_EQ(precision, "SINGLE");
+                    }
+                    else if (expected.precision == org::apache::arrow::flatbuf::Precision::DOUBLE)
+                    {
+                        CHECK_EQ(precision, "DOUBLE");
+                    }
+                }
+            }
+        }
+
+        SUBCASE("Step 2: Verify record batch schema from JSON parsing")
+        {
+            REQUIRE(json_data.contains("batches"));
+            REQUIRE(json_data["batches"].size() >= 1);
+
+            const auto record_batch = sparrow::json_reader::build_record_batch_from_json(json_data, 0);
+
+            CHECK_EQ(record_batch.nb_columns(), expected_fields.size());
+
+            const auto& names = record_batch.names();
+            for (size_t i = 0; i < expected_fields.size() && i < names.size(); ++i)
+            {
+                CHECK_EQ(names[i], expected_fields[i].name);
+            }
+
+            // Verify data types of columns and nullable flags
+            for (size_t i = 0; i < expected_fields.size() && i < record_batch.nb_columns(); ++i)
+            {
+                const auto& column = record_batch.get_column(i);
+                const auto& expected = expected_fields[i];
+
+                // Check nullable flag via arrow proxy flags
+                const auto& flags = sparrow::detail::array_access::get_arrow_proxy(column).flags();
+                const bool is_nullable = flags.contains(sparrow::ArrowFlag::NULLABLE);
+                CHECK_EQ(is_nullable, expected.nullable);
+
+                // Check metadata (generated_primitive.json doesn't have custom metadata, so it should be empty)
+                const auto metadata = column.metadata();
+                // For primitive types without custom metadata, metadata should be nullopt or empty
+                if (metadata.has_value())
+                {
+                    // If metadata exists, it should be empty for this test file
+                    CHECK_EQ(metadata->size(), 0);
+                }
+
+                // Map expected FlatBuffer type to sparrow data_type
+                sparrow::data_type expected_data_type;
+                if (expected.type_enum == org::apache::arrow::flatbuf::Type::Bool)
+                {
+                    expected_data_type = sparrow::data_type::BOOL;
+                }
+                else if (expected.type_enum == org::apache::arrow::flatbuf::Type::Int)
+                {
+                    if (expected.is_signed)
+                    {
+                        switch (expected.bit_width)
+                        {
+                            case 8: expected_data_type = sparrow::data_type::INT8; break;
+                            case 16: expected_data_type = sparrow::data_type::INT16; break;
+                            case 32: expected_data_type = sparrow::data_type::INT32; break;
+                            case 64: expected_data_type = sparrow::data_type::INT64; break;
+                            default: FAIL("Unknown bit width");
+                        }
+                    }
+                    else
+                    {
+                        switch (expected.bit_width)
+                        {
+                            case 8: expected_data_type = sparrow::data_type::UINT8; break;
+                            case 16: expected_data_type = sparrow::data_type::UINT16; break;
+                            case 32: expected_data_type = sparrow::data_type::UINT32; break;
+                            case 64: expected_data_type = sparrow::data_type::UINT64; break;
+                            default: FAIL("Unknown bit width");
+                        }
+                    }
+                }
+                else if (expected.type_enum == org::apache::arrow::flatbuf::Type::FloatingPoint)
+                {
+                    if (expected.precision == org::apache::arrow::flatbuf::Precision::SINGLE)
+                    {
+                        expected_data_type = sparrow::data_type::FLOAT;
+                    }
+                    else
+                    {
+                        expected_data_type = sparrow::data_type::DOUBLE;
+                    }
+                }
+
+                CHECK_EQ(column.data_type(), expected_data_type);
+            }
+        }
+
+        SUBCASE("Step 3: Verify schema in serialized Arrow IPC stream")
+        {
+            // Convert JSON to stream
+            const std::vector<uint8_t> stream_data = integration_tools::json_file_to_stream(json_file);
+            REQUIRE_GT(stream_data.size(), 0);
+
+            // The stream format starts with a Schema message
+            // Parse the first message to verify schema
+            // Stream format: [continuation (4)] [size (4)] [flatbuffer message] [padding] [body]...
+
+            // Skip continuation marker (0xFFFFFFFF)
+            size_t offset = 4;
+            REQUIRE_LT(offset + 4, stream_data.size());
+
+            // Read message size
+            int32_t message_size = 0;
+            std::memcpy(&message_size, stream_data.data() + offset, sizeof(int32_t));
+            offset += 4;
+
+            REQUIRE_GT(message_size, 0);
+            REQUIRE_LT(offset + message_size, stream_data.size());
+
+            // Parse the Message FlatBuffer
+            const auto* message = org::apache::arrow::flatbuf::GetMessage(stream_data.data() + offset);
+            REQUIRE(message != nullptr);
+
+            // First message should be Schema
+            CHECK_EQ(message->header_type(), org::apache::arrow::flatbuf::MessageHeader::Schema);
+
+            const auto* schema = message->header_as_Schema();
+            REQUIRE(schema != nullptr);
+            REQUIRE(schema->fields() != nullptr);
+            CHECK_EQ(schema->fields()->size(), expected_fields.size());
+
+            // Verify each field in the schema
+            for (size_t i = 0; i < expected_fields.size() && i < schema->fields()->size(); ++i)
+            {
+                const auto* field = schema->fields()->Get(static_cast<uint32_t>(i));
+                REQUIRE(field != nullptr);
+                const auto& expected = expected_fields[i];
+
+                CHECK_EQ(field->name()->str(), expected.name);
+                CHECK_EQ(field->nullable(), expected.nullable);
+                CHECK_EQ(field->type_type(), expected.type_enum);
+
+                if (expected.type_enum == org::apache::arrow::flatbuf::Type::Int)
+                {
+                    const auto* int_type = field->type_as_Int();
+                    REQUIRE(int_type != nullptr);
+                    CHECK_EQ(int_type->is_signed(), expected.is_signed);
+                    CHECK_EQ(int_type->bitWidth(), expected.bit_width);
+                }
+                else if (expected.type_enum == org::apache::arrow::flatbuf::Type::FloatingPoint)
+                {
+                    const auto* fp_type = field->type_as_FloatingPoint();
+                    REQUIRE(fp_type != nullptr);
+                    CHECK_EQ(fp_type->precision(), expected.precision);
+                }
+            }
+        }
+
+        SUBCASE("Step 4: Verify schema in Arrow IPC file format footer")
+        {
+            // Convert JSON to Arrow file format
+            const std::vector<uint8_t> file_data = integration_tools::json_file_to_arrow_file(json_file);
+            REQUIRE_GT(file_data.size(), 0);
+
+            // Parse the footer
+            const auto* footer = get_footer_from_file_data(file_data);
+            REQUIRE(footer != nullptr);
+            REQUIRE(footer->schema() != nullptr);
+            REQUIRE(footer->schema()->fields() != nullptr);
+
+            const auto* schema = footer->schema();
+            CHECK_EQ(schema->fields()->size(), expected_fields.size());
+
+            // Verify each field in the footer schema
+            for (size_t i = 0; i < expected_fields.size() && i < schema->fields()->size(); ++i)
+            {
+                const auto* field = schema->fields()->Get(static_cast<uint32_t>(i));
+                REQUIRE(field != nullptr);
+                const auto& expected = expected_fields[i];
+
+                CHECK_EQ(field->name()->str(), expected.name);
+                CHECK_EQ(field->nullable(), expected.nullable);
+                CHECK_EQ(field->type_type(), expected.type_enum);
+
+                if (expected.type_enum == org::apache::arrow::flatbuf::Type::Int)
+                {
+                    const auto* int_type = field->type_as_Int();
+                    REQUIRE(int_type != nullptr);
+                    CHECK_EQ(int_type->is_signed(), expected.is_signed);
+                    CHECK_EQ(int_type->bitWidth(), expected.bit_width);
+                }
+                else if (expected.type_enum == org::apache::arrow::flatbuf::Type::FloatingPoint)
+                {
+                    const auto* fp_type = field->type_as_FloatingPoint();
+                    REQUIRE(fp_type != nullptr);
+                    CHECK_EQ(fp_type->precision(), expected.precision);
+                }
+            }
+        }
+
+        SUBCASE("Step 5: Verify deserialized record batches have correct schema, nullable flags, and metadata")
+        {
+            // Convert JSON to Arrow file format
+            const std::vector<uint8_t> file_data = integration_tools::json_file_to_arrow_file(json_file);
+            REQUIRE_GT(file_data.size(), 0);
+
+            // Deserialize the file
+            const auto batches = sparrow_ipc::deserialize_file(std::span<const uint8_t>(file_data));
+            REQUIRE_EQ(batches.size(), 2);  // generated_primitive.json has 2 batches
+
+            for (size_t batch_idx = 0; batch_idx < batches.size(); ++batch_idx)
+            {
+                const auto& batch = batches[batch_idx];
+                CHECK_EQ(batch.nb_columns(), expected_fields.size());
+
+                const auto& names = batch.names();
+                for (size_t i = 0; i < expected_fields.size() && i < names.size(); ++i)
+                {
+                    CHECK_EQ(names[i], expected_fields[i].name);
+                }
+
+                // Verify nullable flags and metadata for each column
+                for (size_t i = 0; i < expected_fields.size() && i < batch.nb_columns(); ++i)
+                {
+                    const auto& column = batch.get_column(i);
+                    const auto& expected = expected_fields[i];
+
+                    // Check nullable flag via arrow proxy flags
+                    const auto& flags = sparrow::detail::array_access::get_arrow_proxy(column).flags();
+                    const bool is_nullable = flags.contains(sparrow::ArrowFlag::NULLABLE);
+                    CHECK_EQ(is_nullable, expected.nullable);
+
+                    // Check metadata is preserved (should be empty for generated_primitive.json)
+                    const auto metadata = column.metadata();
+                    if (metadata.has_value())
+                    {
+                        CHECK_EQ(metadata->size(), 0);
+                    }
+
+                    // Verify data type is preserved after deserialization
+                    sparrow::data_type expected_data_type;
+                    if (expected.type_enum == org::apache::arrow::flatbuf::Type::Bool)
+                    {
+                        expected_data_type = sparrow::data_type::BOOL;
+                    }
+                    else if (expected.type_enum == org::apache::arrow::flatbuf::Type::Int)
+                    {
+                        if (expected.is_signed)
+                        {
+                            switch (expected.bit_width)
+                            {
+                                case 8: expected_data_type = sparrow::data_type::INT8; break;
+                                case 16: expected_data_type = sparrow::data_type::INT16; break;
+                                case 32: expected_data_type = sparrow::data_type::INT32; break;
+                                case 64: expected_data_type = sparrow::data_type::INT64; break;
+                                default: FAIL("Unknown bit width");
+                            }
+                        }
+                        else
+                        {
+                            switch (expected.bit_width)
+                            {
+                                case 8: expected_data_type = sparrow::data_type::UINT8; break;
+                                case 16: expected_data_type = sparrow::data_type::UINT16; break;
+                                case 32: expected_data_type = sparrow::data_type::UINT32; break;
+                                case 64: expected_data_type = sparrow::data_type::UINT64; break;
+                                default: FAIL("Unknown bit width");
+                            }
+                        }
+                    }
+                    else if (expected.type_enum == org::apache::arrow::flatbuf::Type::FloatingPoint)
+                    {
+                        if (expected.precision == org::apache::arrow::flatbuf::Precision::SINGLE)
+                        {
+                            expected_data_type = sparrow::data_type::FLOAT;
+                        }
+                        else
+                        {
+                            expected_data_type = sparrow::data_type::DOUBLE;
+                        }
+                    }
+
+                    CHECK_EQ(column.data_type(), expected_data_type);
+                }
             }
         }
     }

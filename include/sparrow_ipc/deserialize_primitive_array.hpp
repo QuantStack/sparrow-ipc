@@ -1,6 +1,7 @@
 #pragma once
 
 #include <optional>
+#include <unordered_set>
 #include <vector>
 
 #include <sparrow/arrow_interface/arrow_array_schema_proxy.hpp>
@@ -19,17 +20,26 @@ namespace sparrow_ipc
         std::span<const uint8_t> body,
         std::string_view name,
         const std::optional<std::vector<sparrow::metadata_pair>>& metadata,
+        bool nullable,
         size_t& buffer_index
     )
     {
         const std::string_view format = data_type_to_format(
             sparrow::detail::get_data_type_from_array<sparrow::primitive_array<T>>::get()
         );
+        
+        // Set up flags based on nullable
+        std::optional<std::unordered_set<sparrow::ArrowFlag>> flags;
+        if (nullable)
+        {
+            flags = std::unordered_set<sparrow::ArrowFlag>{sparrow::ArrowFlag::NULLABLE};
+        }
+        
         ArrowSchema schema = make_non_owning_arrow_schema(
             format,
             name.data(),
             metadata,
-            std::nullopt,
+            flags,
             0,
             nullptr,
             nullptr

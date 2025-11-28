@@ -1,5 +1,7 @@
 #include "sparrow_ipc/deserialize_fixedsizebinary_array.hpp"
 
+#include <unordered_set>
+
 namespace sparrow_ipc
 {
     sparrow::fixed_width_binary_array deserialize_non_owning_fixedwidthbinary(
@@ -7,16 +9,25 @@ namespace sparrow_ipc
         std::span<const uint8_t> body,
         std::string_view name,
         const std::optional<std::vector<sparrow::metadata_pair>>& metadata,
+        bool nullable,
         size_t& buffer_index,
         int32_t byte_width
     )
     {
         const std::string format = "w:" + std::to_string(byte_width);
+        
+        // Set up flags based on nullable
+        std::optional<std::unordered_set<sparrow::ArrowFlag>> flags;
+        if (nullable)
+        {
+            flags = std::unordered_set<sparrow::ArrowFlag>{sparrow::ArrowFlag::NULLABLE};
+        }
+        
         ArrowSchema schema = make_non_owning_arrow_schema(
             format,
             name.data(),
             metadata,
-            std::nullopt,
+            flags,
             0,
             nullptr,
             nullptr

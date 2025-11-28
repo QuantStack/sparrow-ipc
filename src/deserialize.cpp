@@ -62,6 +62,7 @@ namespace sparrow_ipc
                 fb_custom_metadata = field->custom_metadata();
             const std::optional<std::vector<sparrow::metadata_pair>>& metadata = field_metadata[field_idx++];
             const std::string name = field->name() == nullptr ? "" : field->name()->str();
+            const bool nullable = field->nullable();
             const auto field_type = field->type_type();
             // TODO rename all the deserialize_non_owning... fcts since this is not correct anymore
             const auto deserialize_non_owning_primitive_array_lambda = [&]<typename T>()
@@ -71,6 +72,7 @@ namespace sparrow_ipc
                     encapsulated_message.body(),
                     name,
                     metadata,
+                    nullable,
                     buffer_index
                 );
             };
@@ -144,6 +146,7 @@ namespace sparrow_ipc
                         encapsulated_message.body(),
                         name,
                         metadata,
+                        nullable,
                         buffer_index,
                         fixed_size_binary_field->byteWidth()
                     ));
@@ -156,6 +159,7 @@ namespace sparrow_ipc
                             encapsulated_message.body(),
                             name,
                             metadata,
+                            nullable,
                             buffer_index
                         )
                     );
@@ -167,6 +171,7 @@ namespace sparrow_ipc
                             encapsulated_message.body(),
                             name,
                             metadata,
+                            nullable,
                             buffer_index
                         )
                     );
@@ -178,6 +183,7 @@ namespace sparrow_ipc
                             encapsulated_message.body(),
                             name,
                             metadata,
+                            nullable,
                             buffer_index
                         )
                     );
@@ -189,6 +195,7 @@ namespace sparrow_ipc
                             encapsulated_message.body(),
                             name,
                             metadata,
+                            nullable,
                             buffer_index
                         )
                     );
