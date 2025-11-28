@@ -2,6 +2,7 @@
 #include <functional>
 #include <iterator>
 #include <stdexcept>
+#include <tuple>
 #include <unordered_map>
 
 #include <lz4frame.h>
@@ -11,6 +12,24 @@
 
 namespace sparrow_ipc
 {
+    struct TupleHasher
+    {
+        template <class T>
+        static inline void hash_combine(std::size_t& seed, const T& v)
+        {
+            std::hash<T> hasher;
+            seed ^= hasher(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+        }
+
+        std::size_t operator()(const std::tuple<const void*, size_t>& k) const
+        {
+            std::size_t seed = 0;
+            hash_combine(seed, std::get<0>(k));
+            hash_combine(seed, std::get<1>(k));
+            return seed;
+        }
+    };
+
     class CompressionCacheImpl
     {
         public:
@@ -23,9 +42,9 @@ namespace sparrow_ipc
             CompressionCacheImpl(const CompressionCacheImpl&) = delete;
             CompressionCacheImpl& operator=(const CompressionCacheImpl&) = delete;
 
-            std::optional<std::span<const uint8_t>> find(const void* key)
+            std::optional<std::span<const std::uint8_t>> find(const void* data_ptr, const size_t data_size)
             {
-                auto it = m_cache.find(key);
+                auto it = m_cache.find({data_ptr, data_size});
                 if (it != m_cache.end())
                 {
                     return it->second;
@@ -33,9 +52,9 @@ namespace sparrow_ipc
                 return std::nullopt;
             }
 
-            std::span<const uint8_t> store(const void* key, std::vector<uint8_t>&& data)
+            std::span<const std::uint8_t> store(const void* data_ptr, const size_t data_size, std::vector<std::uint8_t>&& data)
             {
-                auto [it, inserted] = m_cache.emplace(key, std::move(data));
+                auto [it, inserted] = m_cache.emplace(std::piecewise_construct, std::forward_as_tuple(data_ptr, data_size), std::forward_as_tuple(std::move(data)));
                 if (!inserted)
                 {
                     throw std::runtime_error("Key already exists in compression cache");
@@ -48,9 +67,9 @@ namespace sparrow_ipc
                 return m_cache.size();
             }
 
-            size_t count(const void* key) const
+            size_t count(const void* data_ptr, const size_t data_size) const
             {
-                return m_cache.count(key);
+                return m_cache.count({data_ptr, data_size});
             }
 
             bool empty() const
@@ -64,7 +83,8 @@ namespace sparrow_ipc
             }
 
         private:
-            using compression_cache_t = std::unordered_map<const void*, std::vector<std::uint8_t>>;
+            using cache_key_t = std::tuple<const void*, size_t>;
+            using compression_cache_t = std::unordered_map<cache_key_t, std::vector<std::uint8_t>, TupleHasher>;
             compression_cache_t m_cache;
     };
 
@@ -74,14 +94,14 @@ namespace sparrow_ipc
     CompressionCache::CompressionCache(CompressionCache&&) noexcept = default;
     CompressionCache& CompressionCache::operator=(CompressionCache&&) noexcept = default;
 
-    std::optional<std::span<const std::uint8_t>> CompressionCache::find(const void* key)
+    std::optional<std::span<const std::uint8_t>> CompressionCache::find(const void* data_ptr, const size_t data_size)
     {
-        return m_pimpl->find(key);
+        return m_pimpl->find(data_ptr, data_size);
     }
 
-    std::span<const std::uint8_t> CompressionCache::store(const void* key, std::vector<std::uint8_t>&& data)
+    std::span<const std::uint8_t> CompressionCache::store(const void* data_ptr, const size_t data_size, std::vector<std::uint8_t>&& data)
     {
-        return m_pimpl->store(key, std::move(data));
+        return m_pimpl->store(data_ptr, data_size, std::move(data));
     }
 
     size_t CompressionCache::size() const
@@ -89,9 +109,9 @@ namespace sparrow_ipc
         return m_pimpl->size();
     }
 
-    size_t CompressionCache::count(const void* key) const
+    size_t CompressionCache::count(const void* data_ptr, const size_t data_size) const
     {
-        return m_pimpl->count(key);
+        return m_pimpl->count(data_ptr, data_size);
     }
 
     bool CompressionCache::empty() const
@@ -197,6 +217,7 @@ namespace sparrow_ipc
         {
             result.reserve(details::CompressionHeaderSize + compressed_body.size());
             result.insert(result.end(), reinterpret_cast<const uint8_t*>(&original_size), reinterpret_cast<const uint8_t*>(&original_size) + sizeof(original_size));
+            // TODO Think about avoid copying here (on every uint8_t), maybe use a list of vectors (header + body) and serialize separately on top level code instead of including header at this point?
             result.insert(result.end(), std::make_move_iterator(compressed_body.begin()), std::make_move_iterator(compressed_body.end()));
         }
 
@@ -214,9 +235,10 @@ namespace sparrow_ipc
             CompressionCache& cache)
         {
             const void* buffer_ptr = data.data();
+            const size_t buffer_size = data.size();
 
             // Check cache
-            if (auto cached_result = cache.find(buffer_ptr))
+            if (auto cached_result = cache.find(buffer_ptr, buffer_size))
             {
                 return cached_result.value();
             }
@@ -240,7 +262,7 @@ namespace sparrow_ipc
                 insert_uncompressed_data(result_vec, data);
             }
 
-            return cache.store(buffer_ptr, std::move(result_vec));
+            return cache.store(buffer_ptr, buffer_size, std::move(result_vec));
         }
 
         std::variant<std::vector<std::uint8_t>, std::span<const std::uint8_t>> decompress_with_header(std::span<const std::uint8_t> data, decompress_func decomp_func)

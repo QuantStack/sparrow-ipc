@@ -30,11 +30,11 @@ namespace sparrow_ipc
             CompressionCache(const CompressionCache&) = delete;
             CompressionCache& operator=(const CompressionCache&) = delete;
 
-            std::optional<std::span<const std::uint8_t>> find(const void* key);
-            std::span<const std::uint8_t> store(const void* key, std::vector<std::uint8_t>&& data);
+            std::optional<std::span<const std::uint8_t>> find(const void* data_ptr, const size_t data_size);
+            std::span<const std::uint8_t> store(const void* data_ptr, const size_t data_size, std::vector<std::uint8_t>&& data);
 
             size_t size() const;
-            size_t count(const void* key) const;
+            size_t count(const void* data_ptr, const size_t data_size) const;
             bool empty() const;
             void clear();
 

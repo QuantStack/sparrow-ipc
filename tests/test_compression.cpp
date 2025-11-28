@@ -101,7 +101,7 @@ namespace sparrow_ipc
             size_t compressed_size = get_compressed_size(compression_type, original_data, cache);
             auto compressed_data_for_check = compress(compression_type, original_data, cache);
             CHECK_EQ(compressed_size, compressed_data_for_check.size());
-            CHECK(cache.count(original_data.data()) == 1);
+            CHECK(cache.count(original_data.data(), original_data.size()) == 1);
 
             // Test with incompressible data
             std::vector<uint8_t> incompressible_data(incompressible_test_string.begin(), incompressible_test_string.end());
