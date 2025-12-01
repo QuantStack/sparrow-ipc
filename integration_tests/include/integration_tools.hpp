@@ -53,6 +53,15 @@ namespace integration_tools
     std::vector<uint8_t> stream_to_file(std::span<const uint8_t> input_stream_data);
 
     /**
+     * @brief Reads an Arrow IPC file and re-serializes it to stream format.
+     *
+     * @param input_file_data Binary Arrow IPC file data
+     * @return Vector of bytes containing the re-serialized Arrow IPC stream format
+     * @throws std::runtime_error if the file cannot be deserialized
+     */
+    std::vector<uint8_t> file_to_stream(std::span<const uint8_t> input_file_data);
+
+    /**
      * @brief Validates that a JSON file and an Arrow file contain identical data.
      *
      * @param json_path Path to the JSON file

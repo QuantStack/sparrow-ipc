@@ -2,7 +2,6 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
-#include <iterator>
 #include <vector>
 
 #include "integration_tools.hpp"
@@ -22,7 +21,6 @@
  */
 int main(int argc, char* argv[])
 {
-    // Check command-line arguments
     if (argc != 3)
     {
         std::cerr << "Usage: " << argv[0] << " <input_file_path> <output_file_path>\n";
@@ -60,9 +58,7 @@ int main(int argc, char* argv[])
             return EXIT_FAILURE;
         }
 
-        const std::vector<uint8_t> output_file_data = integration_tools::stream_to_file(
-            std::span<const uint8_t>(input_stream_data)
-        );
+        const std::vector<uint8_t> output_file_data = integration_tools::stream_to_file(input_stream_data);
 
         std::ofstream output_file(output_path, std::ios::out | std::ios::binary);
         if (!output_file.is_open())
@@ -71,7 +67,10 @@ int main(int argc, char* argv[])
             return EXIT_FAILURE;
         }
 
-        output_file.write(reinterpret_cast<const char*>(output_file_data.data()), output_file_data.size());
+        output_file.write(
+            reinterpret_cast<const char*>(output_file_data.data()),
+            static_cast<std::streamsize>(output_file_data.size())
+        );
         output_file.close();
 
         if (!output_file.good())

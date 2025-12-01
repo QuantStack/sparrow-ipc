@@ -112,6 +112,31 @@ namespace integration_tools
         return output_stream_data;
     }
 
+    std::vector<uint8_t> file_to_stream(std::span<const uint8_t> input_file_data)
+    {
+        if (input_file_data.empty())
+        {
+            throw std::runtime_error("Input file data is empty");
+        }
+
+        std::vector<sparrow::record_batch> record_batches;
+        try
+        {
+            record_batches = sparrow_ipc::deserialize_file(input_file_data);
+        }
+        catch (const std::exception& e)
+        {
+            throw std::runtime_error("Failed to deserialize file: " + std::string(e.what()));
+        }
+
+        std::vector<uint8_t> output_stream_data;
+        sparrow_ipc::memory_output_stream stream(output_stream_data);
+        sparrow_ipc::serializer serializer(stream);
+        serializer << record_batches << sparrow_ipc::end_stream;
+
+        return output_stream_data;
+    }
+
     bool compare_record_batch(
         const sparrow::record_batch& rb1,
         const sparrow::record_batch& rb2,

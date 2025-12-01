@@ -184,7 +184,7 @@ TEST_SUITE("Integration Tools Tests")
 
         REQUIRE(json_data.contains("batches"));
         const size_t expected_batch_count = json_data["batches"].size();
-        REQUIRE_GT(expected_batch_count, 0);
+        REQUIRE_EQ(expected_batch_count, 2);
 
         // Step 1: JSON -> Arrow file
         const std::vector<uint8_t> arrow_file_data = integration_tools::json_file_to_arrow_file(json_file);

@@ -4,10 +4,7 @@
 #include <iostream>
 #include <vector>
 
-#include <sparrow_ipc/deserialize.hpp>
-#include <sparrow_ipc/memory_output_stream.hpp>
-#include <sparrow_ipc/serializer.hpp>
-#include <sparrow_ipc/stream_file_serializer.hpp>
+#include "integration_tools.hpp"
 
 /**
  * @brief Reads an Arrow IPC file and outputs the serialized Arrow IPC stream to a file.
@@ -36,36 +33,51 @@ int main(int argc, char* argv[])
 
     try
     {
-        // Read the Arrow file
+        if (!std::filesystem::exists(input_path))
+        {
+            std::cerr << "Error: Input file not found: " << input_path << "\n";
+            return EXIT_FAILURE;
+        }
+
         std::ifstream input_file(input_path, std::ios::binary);
-        if (!input_file)
+        if (!input_file.is_open())
         {
             std::cerr << "Error: Could not open input file: " << input_path << "\n";
             return EXIT_FAILURE;
         }
-        
+
         const std::vector<uint8_t> file_data(
             (std::istreambuf_iterator<char>(input_file)),
-            (std::istreambuf_iterator<char>())
+            std::istreambuf_iterator<char>()
         );
         input_file.close();
 
-        const auto batches = sparrow_ipc::deserialize_file(file_data);
-        
-        std::vector<uint8_t> stream_data;
-        sparrow_ipc::memory_output_stream mem_stream(stream_data);
-        sparrow_ipc::serializer serializer(mem_stream);
-        serializer << batches << sparrow_ipc::end_stream;
-        
+        if (file_data.empty())
+        {
+            std::cerr << "Error: Input file is empty.\n";
+            return EXIT_FAILURE;
+        }
+
+        const std::vector<uint8_t> stream_data = integration_tools::file_to_stream(file_data);
+
         std::ofstream output_file(output_path, std::ios::binary);
-        if (!output_file)
+        if (!output_file.is_open())
         {
             std::cerr << "Error: Could not open output file: " << output_path << "\n";
             return EXIT_FAILURE;
         }
-        
-        output_file.write(reinterpret_cast<const char*>(stream_data.data()), static_cast<std::streamsize>(stream_data.size()));
+
+        output_file.write(
+            reinterpret_cast<const char*>(stream_data.data()),
+            static_cast<std::streamsize>(stream_data.size())
+        );
         output_file.close();
+
+        if (!output_file.good())
+        {
+            std::cerr << "Error: Failed to write to output file: " << output_path << "\n";
+            return EXIT_FAILURE;
+        }
 
         return EXIT_SUCCESS;
     }

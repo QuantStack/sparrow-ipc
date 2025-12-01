@@ -75,11 +75,11 @@ namespace sparrow_ipc
         const auto fields_vec = create_children(footer_builder, record_batch);
         const auto schema_offset = org::apache::arrow::flatbuf::CreateSchema(
             footer_builder,
-            org::apache::arrow::flatbuf::Endianness::Little,
+            org::apache::arrow::flatbuf::Endianness::Little, // TODO: make configurable
             fields_vec
         );
 
-        // Create empty dictionaries vector
+        // Create empty dictionaries vector // TODO: Support dictionaries if needed
         auto dictionaries_fb = footer_builder.CreateVectorOfStructs(
             std::vector<org::apache::arrow::flatbuf::Block>{}
         );

@@ -34,6 +34,7 @@ int main(int argc, char* argv[])
     try
     {
         const std::vector<uint8_t> file_data = integration_tools::json_file_to_arrow_file(json_path);
+
         std::ofstream output_file(output_path, std::ios::out | std::ios::binary);
         if (!output_file.is_open())
         {
@@ -41,7 +42,7 @@ int main(int argc, char* argv[])
             return EXIT_FAILURE;
         }
 
-        output_file.write(reinterpret_cast<const char*>(file_data.data()), file_data.size());
+        output_file.write(reinterpret_cast<const char*>(file_data.data()), static_cast<std::streamsize>(file_data.size()));
         output_file.close();
 
         if (!output_file.good())
