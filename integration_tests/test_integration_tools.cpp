@@ -16,6 +16,8 @@
 #include "doctest/doctest.h"
 #include "integration_tools.hpp"
 #include "sparrow_ipc/deserialize.hpp"
+#include "sparrow_ipc/memory_output_stream.hpp"
+#include "sparrow_ipc/serializer.hpp"
 #include "sparrow_ipc/stream_file_serializer.hpp"
 
 // Helper function to extract and parse the footer from Arrow IPC file data
@@ -162,6 +164,66 @@ TEST_SUITE("Integration Tools Tests")
         {
             CHECK(integration_tools::compare_record_batch(stream_batches[i], file_batches[i], i, false));
         }
+    }
+
+    TEST_CASE("Round-trip: JSON -> Arrow file -> Arrow stream with record batch count verification")
+    {
+        const std::filesystem::path json_file = tests_resources_files_path / "generated_primitive.json";
+
+        if (!std::filesystem::exists(json_file))
+        {
+            MESSAGE("Skipping test: test file not found at " << json_file);
+            return;
+        }
+
+        // Load and parse the JSON file to get expected batch count
+        std::ifstream json_input(json_file);
+        REQUIRE(json_input.is_open());
+        const nlohmann::json json_data = nlohmann::json::parse(json_input);
+        json_input.close();
+
+        REQUIRE(json_data.contains("batches"));
+        const size_t expected_batch_count = json_data["batches"].size();
+        REQUIRE_GT(expected_batch_count, 0);
+
+        // Step 1: JSON -> Arrow file
+        const std::vector<uint8_t> arrow_file_data = integration_tools::json_file_to_arrow_file(json_file);
+        REQUIRE_GT(arrow_file_data.size(), 0);
+
+        // Verify record batch count in Arrow file footer
+        const auto* footer = get_footer_from_file_data(arrow_file_data);
+        REQUIRE(footer != nullptr);
+        REQUIRE(footer->recordBatches() != nullptr);
+        CHECK_EQ(footer->recordBatches()->size(), expected_batch_count);
+
+        // Step 2: Deserialize Arrow file
+        const auto file_batches = sparrow_ipc::deserialize_file(std::span<const uint8_t>(arrow_file_data));
+        CHECK_EQ(file_batches.size(), expected_batch_count);
+
+        // Step 3: Arrow file -> Arrow stream (re-serialize deserialized batches)
+        std::vector<uint8_t> stream_data;
+        sparrow_ipc::memory_output_stream mem_stream(stream_data);
+        sparrow_ipc::serializer serializer(mem_stream);
+        serializer << file_batches << sparrow_ipc::end_stream;
+        REQUIRE_GT(stream_data.size(), 0);
+
+        // Step 4: Deserialize Arrow stream and verify record batch count
+        const auto stream_batches = sparrow_ipc::deserialize_stream(std::span<const uint8_t>(stream_data));
+        CHECK_EQ(stream_batches.size(), expected_batch_count);
+
+        // Step 5: Compare the results - all batches should match
+        REQUIRE_EQ(file_batches.size(), stream_batches.size());
+        for (size_t i = 0; i < file_batches.size(); ++i)
+        {
+            CHECK(integration_tools::compare_record_batch(file_batches[i], stream_batches[i], i, false));
+        }
+
+        // Output summary
+        MESSAGE("JSON -> Arrow file -> Arrow stream round-trip successful:");
+        MESSAGE("  Expected batch count: " << expected_batch_count);
+        MESSAGE("  Arrow file footer batch count: " << footer->recordBatches()->size());
+        MESSAGE("  Deserialized file batches: " << file_batches.size());
+        MESSAGE("  Deserialized stream batches: " << stream_batches.size());
     }
 
     TEST_CASE("validate_json_against_arrow_file - Successful validation")
