@@ -50,7 +50,7 @@ int main(int argc, char* argv[])
             return EXIT_FAILURE;
         }
 
-        std::vector<uint8_t> arrow_file_data(
+        const std::vector<uint8_t> arrow_file_data(
             (std::istreambuf_iterator<char>(arrow_file)),
             std::istreambuf_iterator<char>()
         );
@@ -62,8 +62,7 @@ int main(int argc, char* argv[])
             return EXIT_FAILURE;
         }
 
-        // Validate using the library
-        bool matches = integration_tools::validate_json_against_arrow_file(
+        const bool matches = integration_tools::validate_json_against_arrow_file(
             json_path,
             std::span<const uint8_t>(arrow_file_data)
         );

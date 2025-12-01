@@ -49,17 +49,14 @@ int main(int argc, char* argv[])
             (std::istreambuf_iterator<char>())
         );
         input_file.close();
+
+        const auto batches = sparrow_ipc::deserialize_file(file_data);
         
-        // Deserialize record batches from Arrow file format
-        auto batches = sparrow_ipc::deserialize_file(file_data);
-        
-        // Serialize to Arrow stream format
         std::vector<uint8_t> stream_data;
         sparrow_ipc::memory_output_stream mem_stream(stream_data);
         sparrow_ipc::serializer serializer(mem_stream);
         serializer << batches << sparrow_ipc::end_stream;
         
-        // Write to output file
         std::ofstream output_file(output_path, std::ios::binary);
         if (!output_file)
         {

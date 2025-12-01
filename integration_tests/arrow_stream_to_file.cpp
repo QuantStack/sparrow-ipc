@@ -35,14 +35,12 @@ int main(int argc, char* argv[])
 
     try
     {
-        // Check if the input file exists
         if (!std::filesystem::exists(input_path))
         {
             std::cerr << "Error: Input file not found: " << input_path << "\n";
             return EXIT_FAILURE;
         }
 
-        // Read the entire stream from the input file
         std::ifstream input_file(input_path, std::ios::in | std::ios::binary);
         if (!input_file.is_open())
         {
@@ -50,7 +48,7 @@ int main(int argc, char* argv[])
             return EXIT_FAILURE;
         }
 
-        std::vector<uint8_t> input_stream_data(
+        const std::vector<uint8_t> input_stream_data(
             (std::istreambuf_iterator<char>(input_file)),
             std::istreambuf_iterator<char>()
         );

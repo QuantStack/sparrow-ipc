@@ -20,22 +20,17 @@ namespace integration_tools
 {
     std::vector<uint8_t> json_file_to_arrow_file(const std::filesystem::path& json_path)
     {
-        // Convert JSON file to stream first
-        std::vector<uint8_t> stream_data = json_file_to_stream(json_path);
-
-        // Then convert stream to file format
+        const std::vector<uint8_t> stream_data = json_file_to_stream(json_path);
         return stream_to_file(std::span<const uint8_t>(stream_data));
     }
 
     std::vector<uint8_t> json_file_to_stream(const std::filesystem::path& json_path)
     {
-        // Check if the JSON file exists
         if (!std::filesystem::exists(json_path))
         {
             throw std::runtime_error("JSON file not found: " + json_path.string());
         }
 
-        // Open and parse the JSON file
         std::ifstream json_file(json_path);
         if (!json_file.is_open())
         {
@@ -58,7 +53,6 @@ namespace integration_tools
 
     std::vector<uint8_t> json_to_stream(const nlohmann::json& json_data)
     {
-        // Get the number of batches
         if (!json_data.contains("batches") || !json_data["batches"].is_array())
         {
             throw std::runtime_error("JSON file does not contain a 'batches' array");
@@ -66,7 +60,6 @@ namespace integration_tools
 
         const size_t num_batches = json_data["batches"].size();
 
-        // Parse all record batches from JSON
         std::vector<sparrow::record_batch> record_batches;
         record_batches.reserve(num_batches);
 
@@ -86,7 +79,6 @@ namespace integration_tools
             }
         }
 
-        // Serialize record batches to Arrow IPC stream format
         std::vector<uint8_t> stream_data;
         sparrow_ipc::memory_output_stream stream(stream_data);
         sparrow_ipc::serializer serializer(stream);
@@ -102,7 +94,6 @@ namespace integration_tools
             throw std::runtime_error("Input stream data is empty");
         }
 
-        // Deserialize the stream to validate it and extract record batches
         std::vector<sparrow::record_batch> record_batches;
         try
         {
@@ -113,7 +104,6 @@ namespace integration_tools
             throw std::runtime_error("Failed to deserialize stream: " + std::string(e.what()));
         }
 
-        // Re-serialize the record batches to ensure a valid output stream
         std::vector<uint8_t> output_stream_data;
         sparrow_ipc::memory_output_stream stream(output_stream_data);
         sparrow_ipc::stream_file_serializer serializer(stream);
@@ -131,7 +121,6 @@ namespace integration_tools
     {
         bool all_match = true;
 
-        // Check number of columns
         if (rb1.nb_columns() != rb2.nb_columns())
         {
             if (verbose)
@@ -142,7 +131,6 @@ namespace integration_tools
             return false;
         }
 
-        // Check number of rows
         if (rb1.nb_rows() != rb2.nb_rows())
         {
             if (verbose)
@@ -153,7 +141,6 @@ namespace integration_tools
             return false;
         }
 
-        // Check column names
         const auto& names1 = rb1.names();
         const auto& names2 = rb2.names();
         if (names1.size() != names2.size())
@@ -180,13 +167,11 @@ namespace integration_tools
             }
         }
 
-        // Check each column
         for (size_t col_idx = 0; col_idx < rb1.nb_columns(); ++col_idx)
         {
             const auto& col1 = rb1.get_column(col_idx);
             const auto& col2 = rb2.get_column(col_idx);
 
-            // Check column size
             if (col1.size() != col2.size())
             {
                 if (verbose)
@@ -198,7 +183,6 @@ namespace integration_tools
                 continue;
             }
 
-            // Check column data type
             if (col1.data_type() != col2.data_type())
             {
                 if (verbose)
@@ -210,7 +194,6 @@ namespace integration_tools
                 continue;
             }
 
-            // Check column name
             const auto col_name1 = col1.name();
             const auto col_name2 = col2.name();
             if (col_name1 != col_name2)
@@ -222,7 +205,6 @@ namespace integration_tools
                 }
             }
 
-            // Check each value in the column
             for (size_t row_idx = 0; row_idx < col1.size(); ++row_idx)
             {
                 if (col1[row_idx] != col2[row_idx])
@@ -250,13 +232,12 @@ namespace integration_tools
         std::span<const uint8_t> arrow_file_data
     )
     {
-        // Check if the JSON file exists
+
         if (!std::filesystem::exists(json_path))
         {
             throw std::runtime_error("JSON file not found: " + json_path.string());
         }
 
-        // Load and parse the JSON file
         std::ifstream json_file(json_path);
         if (!json_file.is_open())
         {
@@ -274,7 +255,6 @@ namespace integration_tools
         }
         json_file.close();
 
-        // Check for batches in JSON
         if (!json_data.contains("batches") || !json_data["batches"].is_array())
         {
             throw std::runtime_error("JSON file does not contain a 'batches' array");
@@ -282,7 +262,6 @@ namespace integration_tools
 
         const size_t num_batches = json_data["batches"].size();
 
-        // Parse all record batches from JSON
         std::vector<sparrow::record_batch> json_batches;
         json_batches.reserve(num_batches);
 
@@ -302,7 +281,6 @@ namespace integration_tools
             }
         }
 
-        // Deserialize the stream
         if (arrow_file_data.empty())
         {
             throw std::runtime_error("Stream data is empty");
@@ -318,13 +296,11 @@ namespace integration_tools
             throw std::runtime_error("Failed to deserialize stream: " + std::string(e.what()));
         }
 
-        // Compare the number of batches
         if (json_batches.size() != stream_batches.size())
         {
             return false;
         }
 
-        // Compare each batch
         for (size_t batch_idx = 0; batch_idx < json_batches.size(); ++batch_idx)
         {
             if (!compare_record_batch(json_batches[batch_idx], stream_batches[batch_idx], batch_idx, false))
