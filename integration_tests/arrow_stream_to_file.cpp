@@ -56,7 +56,7 @@ int main(int argc, char* argv[])
 
         if (input_stream_data.empty())
         {
-            std::cerr << "Error: No data received from stdin.\n";
+            std::cerr << "Error: Input file is empty.\n";
             return EXIT_FAILURE;
         }
 

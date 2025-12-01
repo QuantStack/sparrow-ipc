@@ -24,7 +24,7 @@ int main(int argc, char* argv[])
 {
     if (argc != 3)
     {
-        std::cerr << "Usage: " << argv[0] << " <json_file_path> <stream_file_path>\n";
+        std::cerr << "Usage: " << argv[0] << " <json_file_path> <arrow_file_path>\n";
         std::cerr << "Validates that a JSON file and an Arrow file contain identical data.\n";
         return EXIT_FAILURE;
     }

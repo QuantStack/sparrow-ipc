@@ -7,7 +7,7 @@
 #include <sparrow_ipc/deserialize.hpp>
 #include <sparrow_ipc/memory_output_stream.hpp>
 #include <sparrow_ipc/serializer.hpp>
-#include "sparrow_ipc/stream_file_serializer.hpp"
+#include <sparrow_ipc/stream_file_serializer.hpp>
 
 /**
  * @brief Reads an Arrow IPC file and outputs the serialized Arrow IPC stream to a file.

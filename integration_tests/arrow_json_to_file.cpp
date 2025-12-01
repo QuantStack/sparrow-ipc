@@ -7,13 +7,13 @@
 #include "integration_tools.hpp"
 
 /**
- * @brief Reads a JSON file containing record batches and writes the serialized Arrow IPC stream to a file.
+ * @brief Reads a JSON file containing record batches and writes the serialized Arrow IPC file to a file.
  *
  * This program takes a JSON file path and an output file path as command-line arguments,
- * parses the record batches from the JSON data, serializes them into Arrow IPC stream format,
- * and writes the binary stream to the specified output file.
+ * parses the record batches from the JSON data, serializes them into Arrow IPC file format,
+ * and writes the binary data to the specified output file.
  *
- * Usage: json_to_file <json_file_path> <output_file_path>
+ * Usage: arrow_json_to_file <json_file_path> <output_file_path>
  *
  * @param argc Number of command-line arguments
  * @param argv Array of command-line arguments
@@ -24,7 +24,7 @@ int main(int argc, char* argv[])
     if (argc != 3)
     {
         std::cerr << "Usage: " << argv[0] << " <json_file_path> <output_file_path>\n";
-        std::cerr << "Reads a JSON file and writes the serialized Arrow IPC stream to a file.\n";
+        std::cerr << "Reads a JSON file and writes the serialized Arrow IPC file to a file.\n";
         return EXIT_FAILURE;
     }
 
