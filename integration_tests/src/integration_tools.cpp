@@ -283,7 +283,7 @@ namespace integration_tools
 
         if (arrow_file_data.empty())
         {
-            throw std::runtime_error("Stream data is empty");
+            throw std::runtime_error("Arrow file data is empty");
         }
 
         std::vector<sparrow::record_batch> stream_batches;
@@ -293,7 +293,7 @@ namespace integration_tools
         }
         catch (const std::exception& e)
         {
-            throw std::runtime_error("Failed to deserialize stream: " + std::string(e.what()));
+            throw std::runtime_error("Failed to deserialize Arrow file: " + std::string(e.what()));
         }
 
         if (json_batches.size() != stream_batches.size())

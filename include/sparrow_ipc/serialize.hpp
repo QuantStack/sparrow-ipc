@@ -23,10 +23,6 @@ namespace sparrow_ipc
         int32_t metadata_length; ///< Length of the metadata (FlatBuffer message + padding)
         int64_t body_length;     ///< Length of the record batch body (data buffers)
     };
-}
-
-namespace sparrow_ipc
-{
     /**
      * @brief Serializes a collection of record batches into a binary format.
      *

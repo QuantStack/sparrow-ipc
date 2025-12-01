@@ -132,7 +132,7 @@ set_target_properties(arrow_validate
         CXX_EXTENSIONS OFF
         VERSION ${SPARROW_IPC_BINARY_VERSION}
         SOVERSION ${SPARROW_IPC_BINARY_CURRENT}
-        FOLDER integration_tests
+        FOLDER "Integration Tests"
         BUILD_RPATH_USE_ORIGIN ON
         BUILD_RPATH "$ORIGIN"
         INSTALL_RPATH "$ORIGIN"
