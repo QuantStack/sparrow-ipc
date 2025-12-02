@@ -65,7 +65,8 @@ namespace sparrow_ipc
 
         const auto body_length = static_cast<int64_t>(stream.size() - body_start);
         const flatbuffers::uoffset_t flatbuffer_size = builder.GetSize();
-        const auto metadata_length = static_cast<int32_t>(utils::align_to_8(flatbuffer_size));
+        const size_t prefix_size = continuation.size() + sizeof(uint32_t);  // 8 bytes
+        const auto metadata_length = static_cast<int32_t>(utils::align_to_8(prefix_size + flatbuffer_size));
         return {.metadata_length = metadata_length, .body_length = body_length};
     }
 }
