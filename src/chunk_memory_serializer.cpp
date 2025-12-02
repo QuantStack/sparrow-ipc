@@ -1,9 +1,5 @@
 #include "sparrow_ipc/chunk_memory_serializer.hpp"
 
-#include "sparrow_ipc/any_output_stream.hpp"
-#include "sparrow_ipc/serialize.hpp"
-#include "sparrow_ipc/serialize_utils.hpp"
-
 namespace sparrow_ipc
 {
     chunk_serializer::chunk_serializer(chunked_memory_output_stream<std::vector<std::vector<uint8_t>>>& stream, std::optional<CompressionType> compression)
