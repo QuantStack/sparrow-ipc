@@ -1,19 +1,22 @@
+#include "sparrow_ipc/serialize.hpp"
+
+#include <cstdint>
 #include <optional>
 
-#include "sparrow_ipc/serialize.hpp"
 #include "sparrow_ipc/flatbuffer_utils.hpp"
 #include "sparrow_ipc/utils.hpp"
 
 namespace sparrow_ipc
 {
-    void common_serialize(
-        const flatbuffers::FlatBufferBuilder& builder,
-        any_output_stream& stream
-    )
+    void common_serialize(const flatbuffers::FlatBufferBuilder& builder, any_output_stream& stream)
     {
         stream.write(continuation);
         const flatbuffers::uoffset_t size = builder.GetSize();
-        const std::span<const uint8_t> size_span(reinterpret_cast<const uint8_t*>(&size), sizeof(uint32_t));
+        const int32_t size_with_padding = utils::align_to_8(static_cast<int32_t>(size));
+        const std::span<const uint8_t> size_span(
+            reinterpret_cast<const uint8_t*>(&size_with_padding),
+            sizeof(int32_t)
+        );
         stream.write(size_span);
         stream.write(std::span(builder.GetBufferPointer(), size));
         stream.add_padding();
@@ -24,8 +27,12 @@ namespace sparrow_ipc
         common_serialize(get_schema_message_builder(record_batch), stream);
     }
 
-    serialized_record_batch_info serialize_record_batch(const sparrow::record_batch& record_batch, any_output_stream& stream,
-                                std::optional<CompressionType> compression,
+    serialized_record_batch_info serialize_record_batch(
+        const sparrow::record_batch& record_batch,
+        any_output_stream& stream,
+       
+                                std::optional<CompressionType> compression
+    ,
                                 std::optional<std::reference_wrapper<CompressionCache>> cache)
     {
         // Build and serialize metadata
@@ -49,16 +56,16 @@ namespace sparrow_ipc
         
         // Write metadata
         common_serialize(builder, stream);
-        
+
         // Track position before body to calculate body length
         const size_t body_start = stream.size();
-        
+
         // Write body
         generate_body(record_batch, stream, compression, cache);
-        
-        // Calculate body length (should already be 8-aligned since generate_body pads each buffer)
-        const int64_t body_length = static_cast<int64_t>(stream.size() - body_start);
-        
-        return {metadata_length, body_length};
+
+        const auto body_length = static_cast<int64_t>(stream.size() - body_start);
+        const flatbuffers::uoffset_t flatbuffer_size = builder.GetSize();
+        const auto metadata_length = static_cast<int32_t>(utils::align_to_8(flatbuffer_size));
+        return {.metadata_length = metadata_length, .body_length = body_length};
     }
 }

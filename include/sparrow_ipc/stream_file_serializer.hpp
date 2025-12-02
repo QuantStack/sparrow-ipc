@@ -205,7 +205,7 @@ namespace sparrow_ipc
                 // Serialize and get block info
                 const auto info = serialize_record_batch(rb, m_stream, m_compression, compressed_buffers_cache);
                 
-                m_record_batch_blocks.push_back({offset, info.metadata_length, info.body_length});
+                m_record_batch_blocks.emplace_back(offset, info.metadata_length, info.body_length);
             }
         }
 
