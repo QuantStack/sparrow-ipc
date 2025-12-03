@@ -40,6 +40,7 @@ namespace sparrow_ipc
          * @tparam TStream The type of the stream to be used for serialization.
          * @param stream Reference to the stream object that will be used for serialization operations.
          *               The serializer stores a pointer to this stream for later use.
+         * @param compression Optional: The compression type to use for record batch bodies.
          */
         template <writable_stream TStream>
         serializer(TStream& stream, std::optional<CompressionType> compression = std::nullopt)
@@ -82,6 +83,7 @@ namespace sparrow_ipc
             requires std::same_as<std::ranges::range_value_t<R>, sparrow::record_batch>
         void write(const R& record_batches)
         {
+            CompressionCache compressed_buffers_cache;
             if (std::ranges::empty(record_batches))
             {
                 return;
@@ -92,15 +94,17 @@ namespace sparrow_ipc
                 throw std::runtime_error("Cannot append to a serializer that has been ended");
             }
 
-            const auto reserve_function = [&record_batches, this]()
+            // NOTE `reserve_function` is making us store a cache for the compressed buffers at this level.
+            // The benefit of capacity allocation should be evaluated vs storing a cache of compressed buffers of record batches.
+            const auto reserve_function = [&record_batches, &compressed_buffers_cache, this]()
             {
                 return std::accumulate(
                            record_batches.begin(),
                            record_batches.end(),
                            m_stream.size(),
-                           [this](size_t acc, const sparrow::record_batch& rb)
+                           [&compressed_buffers_cache, this](size_t acc, const sparrow::record_batch& rb)
                            {
-                               return acc + calculate_record_batch_message_size(rb, m_compression);
+                               return acc + calculate_record_batch_message_size(rb, m_compression, compressed_buffers_cache);
                            }
                        )
                        + (m_schema_received ? 0 : calculate_schema_message_size(*record_batches.begin()));
@@ -121,7 +125,7 @@ namespace sparrow_ipc
                 {
                     throw std::invalid_argument("Record batch schema does not match serializer schema");
                 }
-                serialize_record_batch(rb, m_stream, m_compression);
+                serialize_record_batch(rb, m_stream, m_compression, compressed_buffers_cache);
             }
         }
 

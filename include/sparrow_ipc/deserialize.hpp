@@ -1,7 +1,7 @@
 #pragma once
 
 #include <optional>
-#include <string>
+#include <span>
 #include <vector>
 
 #include <sparrow/record_batch.hpp>

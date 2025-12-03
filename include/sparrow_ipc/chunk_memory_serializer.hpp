@@ -165,7 +165,8 @@ namespace sparrow_ipc
             std::vector<uint8_t> buffer;
             memory_output_stream stream(buffer);
             any_output_stream astream(stream);
-            serialize_record_batch(rb, astream, m_compression);
+            CompressionCache compressed_buffers_cache;
+            serialize_record_batch(rb, astream, m_compression, compressed_buffers_cache);
             m_pstream->write(std::move(buffer));
         }
     }
