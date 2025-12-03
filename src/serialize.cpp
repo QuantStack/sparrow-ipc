@@ -47,7 +47,7 @@ namespace sparrow_ipc
         //
         // Arrow's WriteMessage returns metadata_length = align_to_8(8 + flatbuffer_size)
         // which INCLUDES the continuation bytes.
-        
+
         // Write metadata
         common_serialize(builder, stream);
 

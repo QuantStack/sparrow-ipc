@@ -157,6 +157,16 @@ target_include_directories(test_integration_tools
         ${CMAKE_BINARY_DIR}/generated
 )
 
+add_custom_target(run_test_integration_tools
+    COMMAND test_integration_tools
+    DEPENDS 
+        test_integration_tools
+    COMMENT "Running tests"
+    USES_TERMINAL
+)
+
+set_target_properties(run_test_integration_tools PROPERTIES FOLDER "Tests utilities")
+
 # Register with CTest
 enable_testing()
 add_test(NAME integration_tools_test COMMAND test_integration_tools)
