@@ -89,7 +89,7 @@ namespace sparrow_ipc
      *       includes both metadata and data portions of the record batch
      */
 
-    SPARROW_IPC_API void
+    SPARROW_IPC_API serialized_record_batch_info
     serialize_record_batch(const sparrow::record_batch& record_batch,
                            any_output_stream& stream,
                            std::optional<CompressionType> compression,

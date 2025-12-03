@@ -30,15 +30,13 @@ namespace sparrow_ipc
     serialized_record_batch_info serialize_record_batch(
         const sparrow::record_batch& record_batch,
         any_output_stream& stream,
-       
-                                std::optional<CompressionType> compression
-    ,
-                                std::optional<std::reference_wrapper<CompressionCache>> cache)
+        std::optional<CompressionType> compression,
+        std::optional<std::reference_wrapper<CompressionCache>> cache
+    )
     {
         // Build and serialize metadata
         flatbuffers::FlatBufferBuilder builder = get_record_batch_message_builder(record_batch, compression, cache);
-        const flatbuffers::uoffset_t flatbuffer_size = builder.GetSize();
-        
+
         // Calculate metadata length for the Block in the footer
         // According to Arrow spec, metadata_length must be a multiple of 8.
         // The encapsulated message format is:
@@ -46,13 +44,9 @@ namespace sparrow_ipc
         //   - size prefix (4 bytes)
         //   - flatbuffer metadata (flatbuffer_size bytes)
         //   - padding to 8-byte boundary
-        // 
+        //
         // Arrow's WriteMessage returns metadata_length = align_to_8(8 + flatbuffer_size)
         // which INCLUDES the continuation bytes.
-        const size_t prefix_size = continuation.size() + sizeof(uint32_t);  // 8 bytes
-        const int32_t metadata_length = static_cast<int32_t>(
-            utils::align_to_8(prefix_size + flatbuffer_size)
-        );
         
         // Write metadata
         common_serialize(builder, stream);
