@@ -8,6 +8,7 @@
 
 namespace sparrow_ipc
 {
+    // TODO Find a way to use sparrow internals directly and avoid duplicated code
     /**
      * Release the children and dictionnary of an `ArrowArray` or `ArrowSchema`.
      *
@@ -20,7 +21,7 @@ namespace sparrow_ipc
     {
         using private_data_type = std::conditional_t<
             std::same_as<T, ArrowArray>,
-            non_owning_arrow_array_private_data,
+            arrow_array_private_data,
             non_owning_arrow_schema_private_data>;
         if (t.release == nullptr)
         {

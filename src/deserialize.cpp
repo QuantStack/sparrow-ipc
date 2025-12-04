@@ -22,26 +22,6 @@ namespace sparrow_ipc
         return static_cast<const org::apache::arrow::flatbuf::RecordBatch*>(batch_message->header());
     }
 
-    /**
-     * @brief Deserializes arrays from an Apache Arrow RecordBatch using the provided schema.
-     *
-     * This function processes each field in the schema and deserializes the corresponding
-     * data from the RecordBatch into sparrow::array objects. It handles various Arrow data
-     * types including primitive types (bool, integers, floating point), binary data, and
-     * string data with their respective size variants.
-     *
-     * @param record_batch The Apache Arrow FlatBuffer RecordBatch containing the serialized data
-     * @param schema The Apache Arrow FlatBuffer Schema defining the structure and types of the data
-     * @param encapsulated_message The message containing the binary data buffers
-     *
-     * @return std::vector<sparrow::array> A vector of deserialized arrays, one for each field in the schema
-     *
-     * @throws std::runtime_error If an unsupported data type, integer bit width, or floating point precision
-     * is encountered
-     *
-     * The function maintains a buffer index that is incremented as it processes each field
-     * to correctly map data buffers to their corresponding arrays.
-     */
     std::vector<sparrow::array> get_arrays_from_record_batch(
         const org::apache::arrow::flatbuf::RecordBatch& record_batch,
         const org::apache::arrow::flatbuf::Schema& schema,
@@ -49,7 +29,6 @@ namespace sparrow_ipc
         const std::vector<std::optional<std::vector<sparrow::metadata_pair>>>& field_metadata
     )
     {
-        const size_t length = static_cast<size_t>(record_batch.length());
         size_t buffer_index = 0;
 
         const size_t num_fields = schema.fields() == nullptr ? 0 : static_cast<size_t>(schema.fields()->size());
@@ -67,6 +46,7 @@ namespace sparrow_ipc
             const std::optional<std::vector<sparrow::metadata_pair>>& metadata = field_metadata[field_idx++];
             const std::string name = field->name() == nullptr ? "" : field->name()->str();
             const auto field_type = field->type_type();
+            // TODO rename all the deserialize_non_owning... fcts since this is not correct anymore
             const auto deserialize_non_owning_primitive_array_lambda = [&]<typename T>()
             {
                 return deserialize_non_owning_primitive_array<T>(
@@ -213,8 +193,20 @@ namespace sparrow_ipc
         std::vector<std::optional<std::vector<sparrow::metadata_pair>>> fields_metadata;
         do
         {
+            // Check for end-of-stream marker here as data could contain only that (if no record batches present/written)
+            if (data.size() >= 8 && is_end_of_stream(data.subspan(0, 8)))
+            {
+                break;
+            }
+
             const auto [encapsulated_message, rest] = extract_encapsulated_message(data);
             const org::apache::arrow::flatbuf::Message* message = encapsulated_message.flat_buffer_message();
+
+            if (message == nullptr)
+            {
+                throw std::invalid_argument("Extracted flatbuffers message is null.");
+            }
+
             switch (message->header_type())
             {
                 case org::apache::arrow::flatbuf::MessageHeader::Schema:
@@ -282,10 +274,6 @@ namespace sparrow_ipc
                     throw std::runtime_error("Unknown message header type.");
             }
             data = rest;
-            if (is_end_of_stream(data.subspan(0, 8)))
-            {
-                break;
-            }
         } while (!data.empty());
         return record_batches;
     }

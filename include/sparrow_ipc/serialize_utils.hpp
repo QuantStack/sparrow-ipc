@@ -7,6 +7,7 @@
 
 #include "Message_generated.h"
 #include "sparrow_ipc/any_output_stream.hpp"
+#include "sparrow_ipc/compression.hpp"
 #include "sparrow_ipc/config/config.hpp"
 #include "sparrow_ipc/utils.hpp"
 
@@ -38,11 +39,16 @@ namespace sparrow_ipc
      * The serialization follows the Arrow IPC stream format where each record batch message
      * consists of a metadata section followed by a body section containing the actual data.
      *
-     * @param record_batch The sparrow record batch to be serialized
-     * @param stream The output stream where the serialized record batch will be written
+     * @param record_batch The sparrow record batch to be serialized.
+     * @param stream The output stream where the serialized record batch will be written.
+     * @param compression Optional: The compression type to use when serializing.
+     * @param cache Optional: A cache for compressed buffers to avoid recompression if compression is enabled.
+     * If compression is given, cache should be set as well.
      */
     SPARROW_IPC_API void
-    serialize_record_batch(const sparrow::record_batch& record_batch, any_output_stream& stream);
+    serialize_record_batch(const sparrow::record_batch& record_batch, any_output_stream& stream,
+                           std::optional<CompressionType> compression,
+                           std::optional<std::reference_wrapper<CompressionCache>> cache);
 
     /**
      * @brief Calculates the total serialized size of a schema message.
@@ -71,11 +77,16 @@ namespace sparrow_ipc
      * - Padding to 8-byte alignment after metadata
      * - Body data with 8-byte alignment between buffers
      *
-     * @param record_batch The record batch to be measured
-     * @return The total size in bytes that the serialized record batch would occupy
+     * @param record_batch The record batch to be measured.
+     * @param compression Optional: The compression type to use when serializing.
+     * @param cache Optional: A cache to store and retrieve compressed buffer sizes, avoiding recompression.
+     * If compression is given, cache should be set as well.
+     * @return The total size in bytes that the serialized record batch would occupy.
      */
     [[nodiscard]] SPARROW_IPC_API std::size_t
-    calculate_record_batch_message_size(const sparrow::record_batch& record_batch);
+    calculate_record_batch_message_size(const sparrow::record_batch& record_batch,
+                                        std::optional<CompressionType> compression = std::nullopt,
+                                        std::optional<std::reference_wrapper<CompressionCache>> cache = std::nullopt);
 
     /**
      * @brief Calculates the total serialized size for a collection of record batches.
@@ -83,14 +94,19 @@ namespace sparrow_ipc
      * This function computes the complete size that would be produced by serializing
      * a schema message followed by all record batch messages in the collection.
      *
-     * @tparam R Range type containing sparrow::record_batch objects
-     * @param record_batches Collection of record batches to be measured
-     * @return The total size in bytes for the complete serialized output
-     * @throws std::invalid_argument if record batches have inconsistent schemas
+     * @tparam R Range type containing sparrow::record_batch objects.
+     * @param record_batches Collection of record batches to be measured.
+     * @param compression Optional: The compression type to use when serializing.
+     * @param cache Optional: A cache to store and retrieve compressed buffer sizes, avoiding recompression.
+     * If compression is given, cache should be set as well.
+     * @return The total size in bytes for the complete serialized output.
+     * @throws std::invalid_argument if record batches have inconsistent schemas.
      */
     template <std::ranges::input_range R>
         requires std::same_as<std::ranges::range_value_t<R>, sparrow::record_batch>
-    [[nodiscard]] std::size_t calculate_total_serialized_size(const R& record_batches)
+    [[nodiscard]] std::size_t calculate_total_serialized_size(const R& record_batches,
+                                                              std::optional<CompressionType> compression = std::nullopt,
+                                                              std::optional<std::reference_wrapper<CompressionCache>> cache = std::nullopt)
     {
         if (record_batches.empty())
         {
@@ -109,7 +125,7 @@ namespace sparrow_ipc
         // Calculate record batch message sizes
         for (const auto& record_batch : record_batches)
         {
-            total_size += calculate_record_batch_message_size(record_batch);
+            total_size += calculate_record_batch_message_size(record_batch, compression, cache);
         }
 
         return total_size;
@@ -127,10 +143,16 @@ namespace sparrow_ipc
      * 8-byte boundary, which is typically required for efficient memory access and Arrow
      * format compliance.
      *
-     * @param arrow_proxy The arrow proxy containing buffers and potential child proxies to serialize
-     * @param stream The output stream where the serialized body data will be written
+     * @param arrow_proxy The arrow proxy containing buffers and potential child proxies to serialize.
+     * @param stream The output stream where the serialized body data will be written.
+     * @param compression Optional: The compression type to use when serializing.
+     * @param cache Optional: A cache for compressed buffers to avoid recompression if compression is enabled.
+     * If compression is given, cache should be set as well.
+     * @throws std::invalid_argument if compression is given but not cache.
      */
-    SPARROW_IPC_API void fill_body(const sparrow::arrow_proxy& arrow_proxy, any_output_stream& stream);
+    SPARROW_IPC_API void fill_body(const sparrow::arrow_proxy& arrow_proxy, any_output_stream& stream,
+                                   std::optional<CompressionType> compression = std::nullopt,
+                                   std::optional<std::reference_wrapper<CompressionCache>> cache = std::nullopt);
 
     /**
      * @brief Generates a serialized body from a record batch.
@@ -139,34 +161,15 @@ namespace sparrow_ipc
      * extracts their Arrow proxy representations, and serializes them into a
      * single byte vector that forms the body of the serialized data.
      *
-     * @param record_batch The record batch containing columns to be serialized
-     * @param stream The output stream where the serialized body will be written
+     * @param record_batch The record batch containing columns to be serialized.
+     * @param stream The output stream where the serialized body will be written.
+     * @param compression Optional: The compression type to use when serializing.
+     * @param cache Optional: A cache for compressed buffers to avoid recompression if compression is enabled.
+     * If compression is given, cache should be set as well.
      */
-    SPARROW_IPC_API void generate_body(const sparrow::record_batch& record_batch, any_output_stream& stream);
-
-    /**
-     * @brief Calculates the total size of the body section for an Arrow array.
-     *
-     * This function recursively computes the total size needed for all buffers
-     * in an Arrow array structure, including buffers from child arrays. Each
-     * buffer size is aligned to 8-byte boundaries as required by the Arrow format.
-     *
-     * @param arrow_proxy The Arrow array proxy containing buffers and child arrays
-     * @return int64_t The total aligned size in bytes of all buffers in the array hierarchy
-     */
-    [[nodiscard]] SPARROW_IPC_API int64_t calculate_body_size(const sparrow::arrow_proxy& arrow_proxy);
-
-    /**
-     * @brief Calculates the total body size of a record batch by summing the body sizes of all its columns.
-     *
-     * This function iterates through all columns in the given record batch and accumulates
-     * the body size of each column's underlying Arrow array proxy. The body size represents
-     * the total memory required for the serialized data content of the record batch.
-     *
-     * @param record_batch The sparrow record batch containing columns to calculate size for
-     * @return int64_t The total body size in bytes of all columns in the record batch
-     */
-    [[nodiscard]] SPARROW_IPC_API int64_t calculate_body_size(const sparrow::record_batch& record_batch);
+    SPARROW_IPC_API void generate_body(const sparrow::record_batch& record_batch, any_output_stream& stream,
+                                       std::optional<CompressionType> compression = std::nullopt,
+                                       std::optional<std::reference_wrapper<CompressionCache>> cache = std::nullopt);
 
     SPARROW_IPC_API std::vector<sparrow::data_type> get_column_dtypes(const sparrow::record_batch& rb);
 }

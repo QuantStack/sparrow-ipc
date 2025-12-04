@@ -8,8 +8,12 @@ dependencies:
   - cxx-compiler
   # Libraries dependencies
   - flatbuffers
+  - lz4-c
+  - zstd
   - nlohmann_json
-  - sparrow-devel >=1.1.2
+  - sparrow-devel
+  - sparrow-json-reader
+  # Testing dependencies
   - doctest
   # Documentation dependencies
   - doxygen
