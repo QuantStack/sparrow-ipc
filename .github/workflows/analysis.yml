@@ -64,7 +64,6 @@ jobs:
         step-summary: true
         ignore: 'build'
         extra-args: '-std=c++20'
-        thread-comments: true
     - name: Fail fast
       if: steps.linter.outputs.checks-failed > 0
       run: exit 1
