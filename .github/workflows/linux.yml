@@ -37,6 +37,7 @@ jobs:
           -DCMAKE_PREFIX_PATH=$CONDA_PREFIX \
           -DSPARROW_IPC_BUILD_SHARED=${{ matrix.build_shared }} \
           -DSPARROW_IPC_BUILD_TESTS=ON \
+          -DSPARROW_IPC_BUILD_INTEGRATION_TESTS=ON \
           -DSPARROW_IPC_BUILD_EXAMPLES=ON
 
       - name: Build sparrow-ipc
