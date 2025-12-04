@@ -182,6 +182,7 @@ std::vector<sp::record_batch> create_record_batches(size_t num_batches, size_t r
     return batches;
 }
 
+// [example_serialize_to_stream]
 /**
  * Serialize record batches to a stream
  */
@@ -200,7 +201,9 @@ std::vector<uint8_t> serialize_batches_to_stream(const std::vector<sp::record_ba
 
     return stream_data;
 }
+// [example_serialize_to_stream]
 
+// [example_deserialize_from_stream]
 /**
  * Deserialize stream back to record batches
  */
@@ -214,7 +217,9 @@ std::vector<sp::record_batch> deserialize_stream_to_batches(const std::vector<ui
 
     return batches;
 }
+// [example_deserialize_from_stream]
 
+// [example_serialize_individual]
 /**
  * Demonstrate individual vs batch serialization
  */
@@ -251,6 +256,7 @@ void demonstrate_serialization_methods(
         std::cerr << "   ✗ Individual and batch serialization mismatch!\n";
     }
 }
+// [example_serialize_individual]
 
 /**
  * Verify schema consistency across all batches
