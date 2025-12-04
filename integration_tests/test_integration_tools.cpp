@@ -6,8 +6,8 @@
 
 #include <File_generated.h>
 #include <Message_generated.h>
-#include <Schema_generated.h>
 #include <nlohmann/json.hpp>
+#include <Schema_generated.h>
 
 #include <sparrow/c_interface.hpp>
 #include <sparrow/json_reader/json_parser.hpp>
@@ -16,23 +16,10 @@
 #include "doctest/doctest.h"
 #include "integration_tools.hpp"
 #include "sparrow_ipc/deserialize.hpp"
+#include "sparrow_ipc/flatbuffer_utils.hpp"
 #include "sparrow_ipc/memory_output_stream.hpp"
 #include "sparrow_ipc/serializer.hpp"
 #include "sparrow_ipc/stream_file_serializer.hpp"
-
-// Helper function to extract and parse the footer from Arrow IPC file data
-const org::apache::arrow::flatbuf::Footer* get_footer_from_file_data(const std::vector<uint8_t>& file_data)
-{
-    // Footer size is stored 4 bytes before the trailing magic
-    const size_t footer_size_offset = file_data.size() - sparrow_ipc::arrow_file_magic_size - sizeof(int32_t);
-    int32_t footer_size = 0;
-    std::memcpy(&footer_size, file_data.data() + footer_size_offset, sizeof(int32_t));
-
-    // Footer data starts at footer_size_offset - footer_size
-    const size_t footer_offset = footer_size_offset - footer_size;
-
-    return org::apache::arrow::flatbuf::GetFooter(file_data.data() + footer_offset);
-}
 
 TEST_SUITE("Integration Tools Tests")
 {
@@ -120,7 +107,7 @@ TEST_SUITE("Integration Tools Tests")
         CHECK_GT(batches.size(), 0);
 
         // Check footer
-        const auto* footer = get_footer_from_file_data(output_data);
+        const auto* footer = sparrow_ipc::get_footer_from_file_data(output_data);
         REQUIRE(footer != nullptr);
         REQUIRE(footer->recordBatches() != nullptr);
         CHECK_EQ(footer->recordBatches()->size(), batches.size());
@@ -191,7 +178,7 @@ TEST_SUITE("Integration Tools Tests")
         REQUIRE_GT(arrow_file_data.size(), 0);
 
         // Verify record batch count in Arrow file footer
-        const auto* footer = get_footer_from_file_data(arrow_file_data);
+        const auto* footer = sparrow_ipc::get_footer_from_file_data(arrow_file_data);
         REQUIRE(footer != nullptr);
         REQUIRE(footer->recordBatches() != nullptr);
         CHECK_EQ(footer->recordBatches()->size(), expected_batch_count);
@@ -426,10 +413,30 @@ TEST_SUITE("Integration Tools Tests")
             {"uint32_nonnullable", false, org::apache::arrow::flatbuf::Type::Int, false, 32},
             {"uint64_nullable", true, org::apache::arrow::flatbuf::Type::Int, false, 64},
             {"uint64_nonnullable", false, org::apache::arrow::flatbuf::Type::Int, false, 64},
-            {"float32_nullable", true, org::apache::arrow::flatbuf::Type::FloatingPoint, false, 0, org::apache::arrow::flatbuf::Precision::SINGLE},
-            {"float32_nonnullable", false, org::apache::arrow::flatbuf::Type::FloatingPoint, false, 0, org::apache::arrow::flatbuf::Precision::SINGLE},
-            {"float64_nullable", true, org::apache::arrow::flatbuf::Type::FloatingPoint, false, 0, org::apache::arrow::flatbuf::Precision::DOUBLE},
-            {"float64_nonnullable", false, org::apache::arrow::flatbuf::Type::FloatingPoint, false, 0, org::apache::arrow::flatbuf::Precision::DOUBLE},
+            {"float32_nullable",
+             true,
+             org::apache::arrow::flatbuf::Type::FloatingPoint,
+             false,
+             0,
+             org::apache::arrow::flatbuf::Precision::SINGLE},
+            {"float32_nonnullable",
+             false,
+             org::apache::arrow::flatbuf::Type::FloatingPoint,
+             false,
+             0,
+             org::apache::arrow::flatbuf::Precision::SINGLE},
+            {"float64_nullable",
+             true,
+             org::apache::arrow::flatbuf::Type::FloatingPoint,
+             false,
+             0,
+             org::apache::arrow::flatbuf::Precision::DOUBLE},
+            {"float64_nonnullable",
+             false,
+             org::apache::arrow::flatbuf::Type::FloatingPoint,
+             false,
+             0,
+             org::apache::arrow::flatbuf::Precision::DOUBLE},
         };
 
         SUBCASE("Step 1: Verify JSON schema structure")
@@ -504,7 +511,8 @@ TEST_SUITE("Integration Tools Tests")
                 const bool is_nullable = flags.contains(sparrow::ArrowFlag::NULLABLE);
                 CHECK_EQ(is_nullable, expected.nullable);
 
-                // Check metadata (generated_primitive.json doesn't have custom metadata, so it should be empty)
+                // Check metadata (generated_primitive.json doesn't have custom metadata, so it should be
+                // empty)
                 const auto metadata = column.metadata();
                 // For primitive types without custom metadata, metadata should be nullopt or empty
                 if (metadata.has_value())
@@ -525,22 +533,40 @@ TEST_SUITE("Integration Tools Tests")
                     {
                         switch (expected.bit_width)
                         {
-                            case 8: expected_data_type = sparrow::data_type::INT8; break;
-                            case 16: expected_data_type = sparrow::data_type::INT16; break;
-                            case 32: expected_data_type = sparrow::data_type::INT32; break;
-                            case 64: expected_data_type = sparrow::data_type::INT64; break;
-                            default: FAIL("Unknown bit width");
+                            case 8:
+                                expected_data_type = sparrow::data_type::INT8;
+                                break;
+                            case 16:
+                                expected_data_type = sparrow::data_type::INT16;
+                                break;
+                            case 32:
+                                expected_data_type = sparrow::data_type::INT32;
+                                break;
+                            case 64:
+                                expected_data_type = sparrow::data_type::INT64;
+                                break;
+                            default:
+                                FAIL("Unknown bit width");
                         }
                     }
                     else
                     {
                         switch (expected.bit_width)
                         {
-                            case 8: expected_data_type = sparrow::data_type::UINT8; break;
-                            case 16: expected_data_type = sparrow::data_type::UINT16; break;
-                            case 32: expected_data_type = sparrow::data_type::UINT32; break;
-                            case 64: expected_data_type = sparrow::data_type::UINT64; break;
-                            default: FAIL("Unknown bit width");
+                            case 8:
+                                expected_data_type = sparrow::data_type::UINT8;
+                                break;
+                            case 16:
+                                expected_data_type = sparrow::data_type::UINT16;
+                                break;
+                            case 32:
+                                expected_data_type = sparrow::data_type::UINT32;
+                                break;
+                            case 64:
+                                expected_data_type = sparrow::data_type::UINT64;
+                                break;
+                            default:
+                                FAIL("Unknown bit width");
                         }
                     }
                 }
@@ -628,7 +654,7 @@ TEST_SUITE("Integration Tools Tests")
             REQUIRE_GT(file_data.size(), 0);
 
             // Parse the footer
-            const auto* footer = get_footer_from_file_data(file_data);
+            const auto* footer = sparrow_ipc::get_footer_from_file_data(file_data);
             REQUIRE(footer != nullptr);
             REQUIRE(footer->schema() != nullptr);
             REQUIRE(footer->schema()->fields() != nullptr);
@@ -714,22 +740,40 @@ TEST_SUITE("Integration Tools Tests")
                         {
                             switch (expected.bit_width)
                             {
-                                case 8: expected_data_type = sparrow::data_type::INT8; break;
-                                case 16: expected_data_type = sparrow::data_type::INT16; break;
-                                case 32: expected_data_type = sparrow::data_type::INT32; break;
-                                case 64: expected_data_type = sparrow::data_type::INT64; break;
-                                default: FAIL("Unknown bit width");
+                                case 8:
+                                    expected_data_type = sparrow::data_type::INT8;
+                                    break;
+                                case 16:
+                                    expected_data_type = sparrow::data_type::INT16;
+                                    break;
+                                case 32:
+                                    expected_data_type = sparrow::data_type::INT32;
+                                    break;
+                                case 64:
+                                    expected_data_type = sparrow::data_type::INT64;
+                                    break;
+                                default:
+                                    FAIL("Unknown bit width");
                             }
                         }
                         else
                         {
                             switch (expected.bit_width)
                             {
-                                case 8: expected_data_type = sparrow::data_type::UINT8; break;
-                                case 16: expected_data_type = sparrow::data_type::UINT16; break;
-                                case 32: expected_data_type = sparrow::data_type::UINT32; break;
-                                case 64: expected_data_type = sparrow::data_type::UINT64; break;
-                                default: FAIL("Unknown bit width");
+                                case 8:
+                                    expected_data_type = sparrow::data_type::UINT8;
+                                    break;
+                                case 16:
+                                    expected_data_type = sparrow::data_type::UINT16;
+                                    break;
+                                case 32:
+                                    expected_data_type = sparrow::data_type::UINT32;
+                                    break;
+                                case 64:
+                                    expected_data_type = sparrow::data_type::UINT64;
+                                    break;
+                                default:
+                                    FAIL("Unknown bit width");
                             }
                         }
                     }

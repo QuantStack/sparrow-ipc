@@ -1,6 +1,7 @@
 #include <string>
 
 #include "compression_impl.hpp"
+#include "sparrow_ipc/magic_values.hpp"
 #include "sparrow_ipc/flatbuffer_utils.hpp"
 
 namespace sparrow_ipc
@@ -659,5 +660,19 @@ namespace sparrow_ipc
         );
         record_batch_builder.Finish(record_batch_message_offset);
         return record_batch_builder;
+    }
+
+    const org::apache::arrow::flatbuf::Footer* get_footer_from_file_data(std::span<const uint8_t> file_data)
+    {
+        // Footer size is stored 4 bytes before the trailing magic
+        const size_t footer_size_offset = file_data.size() - sparrow_ipc::arrow_file_magic_size
+                                          - sizeof(int32_t);
+        int32_t footer_size = 0;
+        std::memcpy(&footer_size, file_data.data() + footer_size_offset, sizeof(int32_t));
+
+        // Footer data starts at footer_size_offset - footer_size
+        const size_t footer_offset = footer_size_offset - footer_size;
+
+        return org::apache::arrow::flatbuf::GetFooter(file_data.data() + footer_offset);
     }
 }

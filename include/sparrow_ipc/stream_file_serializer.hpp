@@ -41,7 +41,7 @@ namespace sparrow_ipc
         const std::vector<record_batch_block>& record_batch_blocks,
         any_output_stream& stream
     );
-
+    
     /**
      * @brief Deserializes Arrow IPC file format into a vector of record batches.
      *

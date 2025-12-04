@@ -10,6 +10,7 @@
 #include "sparrow_ipc/memory_output_stream.hpp"
 #include "sparrow_ipc/stream_file_serializer.hpp"
 #include "sparrow_ipc/magic_values.hpp"
+#include "sparrow_ipc/flatbuffer_utils.hpp"
 
 #include "sparrow_ipc_tests_helpers.hpp"
 
@@ -274,20 +275,6 @@ TEST_SUITE("Stream file serializer tests")
         CHECK_THROWS_AS(serializer.write(batch), std::runtime_error);
     }
 
-    // Helper function to extract and parse the footer from Arrow IPC file data
-    const org::apache::arrow::flatbuf::Footer* get_footer_from_file_data(const std::vector<uint8_t>& file_data)
-    {
-        // Footer size is stored 4 bytes before the trailing magic
-        const size_t footer_size_offset = file_data.size() - sparrow_ipc::arrow_file_magic_size - sizeof(int32_t);
-        int32_t footer_size = 0;
-        std::memcpy(&footer_size, file_data.data() + footer_size_offset, sizeof(int32_t));
-        
-        // Footer data starts at footer_size_offset - footer_size
-        const size_t footer_offset = footer_size_offset - footer_size;
-        
-        return org::apache::arrow::flatbuf::GetFooter(file_data.data() + footer_offset);
-    }
-
     TEST_CASE("Footer contains correct number of record batch blocks")
     {
         SUBCASE("Single record batch")
@@ -307,7 +294,7 @@ TEST_SUITE("Stream file serializer tests")
                 serializer << batch << sparrow_ipc::end_file;
             }
 
-            const auto* footer = get_footer_from_file_data(file_data);
+            const auto* footer = sparrow_ipc::get_footer_from_file_data(file_data);
             REQUIRE(footer != nullptr);
             REQUIRE(footer->recordBatches() != nullptr);
             CHECK_EQ(footer->recordBatches()->size(), 1);
@@ -341,7 +328,7 @@ TEST_SUITE("Stream file serializer tests")
                 serializer.end();
             }
 
-            const auto* footer = get_footer_from_file_data(file_data);
+            const auto* footer = sparrow_ipc::get_footer_from_file_data(file_data);
             REQUIRE(footer != nullptr);
             REQUIRE(footer->recordBatches() != nullptr);
             CHECK_EQ(footer->recordBatches()->size(), 5);
@@ -373,7 +360,7 @@ TEST_SUITE("Stream file serializer tests")
             serializer << batch1 << batch2 << sparrow_ipc::end_file;
         }
 
-        const auto* footer = get_footer_from_file_data(file_data);
+        const auto* footer = sparrow_ipc::get_footer_from_file_data(file_data);
         REQUIRE(footer != nullptr);
         REQUIRE(footer->recordBatches() != nullptr);
         REQUIRE_EQ(footer->recordBatches()->size(), 2);
@@ -421,7 +408,7 @@ TEST_SUITE("Stream file serializer tests")
             serializer << batch << sparrow_ipc::end_file;
         }
 
-        const auto* footer = get_footer_from_file_data(file_data);
+        const auto* footer = sparrow_ipc::get_footer_from_file_data(file_data);
         REQUIRE(footer != nullptr);
         REQUIRE(footer->recordBatches() != nullptr);
         REQUIRE_EQ(footer->recordBatches()->size(), 1);
@@ -472,7 +459,7 @@ TEST_SUITE("Stream file serializer tests")
         }
 
         // Parse footer and verify we can locate each record batch
-        const auto* footer = get_footer_from_file_data(file_data);
+        const auto* footer = sparrow_ipc::get_footer_from_file_data(file_data);
         REQUIRE(footer != nullptr);
         REQUIRE(footer->recordBatches() != nullptr);
         REQUIRE_EQ(footer->recordBatches()->size(), 3);
@@ -527,7 +514,7 @@ TEST_SUITE("Stream file serializer tests")
             serializer << batch << sparrow_ipc::end_file;
         }
 
-        const auto* footer = get_footer_from_file_data(file_data);
+        const auto* footer = sparrow_ipc::get_footer_from_file_data(file_data);
         REQUIRE(footer != nullptr);
         REQUIRE(footer->schema() != nullptr);
         REQUIRE(footer->schema()->fields() != nullptr);
@@ -581,7 +568,7 @@ TEST_SUITE("Stream file serializer tests")
             serializer << batch << sparrow_ipc::end_file;
         }
 
-        const auto* footer = get_footer_from_file_data(file_data);
+        const auto* footer = sparrow_ipc::get_footer_from_file_data(file_data);
         REQUIRE(footer != nullptr);
         REQUIRE(footer->recordBatches() != nullptr);
         REQUIRE_EQ(footer->recordBatches()->size(), 1);
@@ -638,7 +625,7 @@ TEST_SUITE("Stream file serializer tests")
             serializer << sparrow_ipc::end_file;
         }
 
-        const auto* footer = get_footer_from_file_data(file_data);
+        const auto* footer = sparrow_ipc::get_footer_from_file_data(file_data);
         REQUIRE(footer != nullptr);
         REQUIRE(footer->recordBatches() != nullptr);
         REQUIRE_EQ(footer->recordBatches()->size(), 5);
