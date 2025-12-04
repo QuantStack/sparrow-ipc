@@ -47,7 +47,11 @@ jobs:
         -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX \
         -DBUILD_TESTS=ON \
         -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
-        #-DFETCH_DEPENDENCIES_WITH_CMAKE=MISSING
+
+    # Build sparrow-ipc to have the generated flatbuffers files available
+    - name: Build sparrow-ipc
+      working-directory: build
+      run: cmake --build . --target sparrow-ipc
 
     # Run Clang-Tidy and Clang-Format Analysis
     - name: Run C++ analysis
