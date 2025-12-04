@@ -108,10 +108,6 @@ jobs:
         working-directory: build
         run: cmake --build . --target test_integration_tools
 
-      - name: Build test_integration_tools
-        working-directory: build
-        run: cmake --build . --config ${{ matrix.build_type }} --target test_integration_tools
-
       - name: Run test_integration_tools
         working-directory: build
         run: cmake --build . --target run_test_integration_tools
