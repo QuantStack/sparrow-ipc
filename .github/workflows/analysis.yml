@@ -67,9 +67,8 @@ jobs:
         style: 'file'  # Use .clang-format config file
         tidy-checks: '' # Use .clang-tidy config file
         step-summary: true
-        ignore: 'build'
+        ignore: build|tests
         extra-args: '-std=c++20'
-        ignore: tests
     - name: Fail fast
       if: steps.linter.outputs.checks-failed > 0
       run: exit 1
