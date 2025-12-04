@@ -45,7 +45,8 @@ jobs:
         -Bbuild \
         -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX \
-        -DBUILD_TESTS=ON \
+        -DSPARROW_IPC_BUILD_TESTS=ON \
+        -DSPARROW_IPC_BUILD_EXAMPLES=ON \
         -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 
     # Build sparrow-ipc to have the generated flatbuffers files available
