@@ -14,9 +14,6 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y mold libpthread-stubs0-dev libboost-thread-dev doctest-dev
-
-      - name: Install specific version of tzdata
-        run: sudo apt-get install tzdata
         
       - name: Checkout code
         uses: actions/checkout@v5
