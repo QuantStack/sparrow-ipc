@@ -117,8 +117,9 @@ void stream_record_batches(std::ostream& os, record_batch_source& source)
 namespace sp = sparrow;
 namespace sp_ipc = sparrow_ipc;
 
-std::vector<sp::record_batch> deserialize_stream_to_batches(const std::vector<uint8_t>& stream_data)
+std::vector<sp::record_batch> deserialize_stream_example(const std::vector<uint8_t>& stream_data)
 {
+    // Deserialize the entire stream at once
     auto batches = sp_ipc::deserialize_stream(stream_data);
     return batches;
 }
@@ -126,7 +127,10 @@ std::vector<sp::record_batch> deserialize_stream_to_batches(const std::vector<ui
 
 #### Using the deserializer class
 
+The deserializer class allows you to accumulate record batches into an existing container as you deserialize data:
+
 ```cpp
+#include <iostream>
 #include <span>
 #include <vector>
 #include <sparrow_ipc/deserializer.hpp>
@@ -135,22 +139,56 @@ std::vector<sp::record_batch> deserialize_stream_to_batches(const std::vector<ui
 namespace sp = sparrow;
 namespace sp_ipc = sparrow_ipc;
 
-void deserialize_incremental_stream(const std::vector<std::vector<uint8_t>>& stream_chunks)
+void deserializer_basic_example(const std::vector<uint8_t>& stream_data)
 {
+    // Create a container to hold the deserialized batches
     std::vector<sp::record_batch> batches;
+
+    // Create a deserializer that will append to our container
     sp_ipc::deserializer deser(batches);
 
-    // Deserialize chunks incrementally as they arrive
+    // Deserialize the stream data
+    deser.deserialize(std::span<const uint8_t>(stream_data));
+
+    // Process the accumulated batches
+    for (const auto& batch : batches)
+    {
+        std::cout << "Batch with " << batch.nb_rows() << " rows and " << batch.nb_columns() << " columns\n";
+    }
+}
+```
+
+#### Incremental deserialization
+
+The deserializer class is particularly useful for streaming scenarios where data arrives in chunks:
+
+```cpp
+#include <iostream>
+#include <span>
+#include <vector>
+#include <sparrow_ipc/deserializer.hpp>
+#include <sparrow/record_batch.hpp>
+
+namespace sp = sparrow;
+namespace sp_ipc = sparrow_ipc;
+
+void deserializer_incremental_example(const std::vector<std::vector<uint8_t>>& stream_chunks)
+{
+    // Container to accumulate all deserialized batches
+    std::vector<sp::record_batch> batches;
+
+    // Create a deserializer
+    sp_ipc::deserializer deser(batches);
+
+    // Deserialize chunks as they arrive using the streaming operator
     for (const auto& chunk : stream_chunks)
     {
         deser << std::span<const uint8_t>(chunk);
+        std::cout << "After chunk: " << batches.size() << " batches accumulated\n";
     }
 
-    // Process accumulated batches
-    for (const auto& batch : batches)
-    {
-        // Process each batch...
-    }
+    // All batches are now available in the container
+    std::cout << "Total batches deserialized: " << batches.size() << "\n";
 }
 ```
 

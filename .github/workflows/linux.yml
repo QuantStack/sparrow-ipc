@@ -59,6 +59,14 @@ jobs:
         working-directory: build
         run: cmake --build . --target run_example
 
+      - name: Build deserializer example
+        working-directory: build
+        run: cmake --build . --target deserializer_example
+
+      - name: Run deserializer example
+        working-directory: build
+        run: cmake --build . --target run_deserializer_example
+
       - name: Install
         working-directory: build
         run: cmake --install .
@@ -102,6 +110,14 @@ jobs:
       - name: Run example
         working-directory: build
         run: cmake --build . --target run_example
+
+      - name: Build deserializer example
+        working-directory: build
+        run: cmake --build . --target deserializer_example
+
+      - name: Run deserializer example
+        working-directory: build
+        run: cmake --build . --target run_deserializer_example
 
       - name: Install
         working-directory: build
