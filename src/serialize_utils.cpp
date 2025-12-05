@@ -93,6 +93,10 @@ namespace sparrow_ipc
                 return col.data_type();
             }
         );
+//         for (const auto& col : rb.columns())
+//         {
+//             dtypes.push_back(col.data_type());
+//         }
         return dtypes;
     }
 }
