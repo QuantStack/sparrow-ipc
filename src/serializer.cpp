@@ -23,9 +23,9 @@ namespace sparrow_ipc
     {
         std::vector<sparrow::data_type> dtypes;
         dtypes.reserve(rb.nb_columns());
-        for (const auto& col : rb.columns())
+        for (size_t i = 0; i < rb.nb_columns(); ++i)
         {
-            dtypes.push_back(col.data_type());
+            dtypes.push_back(rb.get_column(i).data_type());
         }
         return dtypes;
     }

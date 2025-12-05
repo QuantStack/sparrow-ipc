@@ -200,8 +200,9 @@ namespace sparrow_ipc
         {
             std::vector<org::apache::arrow::flatbuf::Buffer> buffers;
             int64_t offset = 0;
-            for (const auto& column : record_batch.columns())
+            for (size_t i = 0; i < record_batch.nb_columns(); ++i)
             {
+                const auto& column = record_batch.get_column(i);
                 const auto& arrow_proxy = sparrow::detail::array_access::get_arrow_proxy(column);
                 fill_buffers_func(arrow_proxy, buffers, offset);
             }

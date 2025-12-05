@@ -468,13 +468,13 @@ namespace sparrow_ipc
     ::flatbuffers::Offset<::flatbuffers::Vector<::flatbuffers::Offset<org::apache::arrow::flatbuf::Field>>>
     create_children(flatbuffers::FlatBufferBuilder& builder, const sparrow::record_batch& record_batch)
     {
-        const auto& columns = record_batch.columns();
         std::vector<flatbuffers::Offset<org::apache::arrow::flatbuf::Field>> children_vec;
-        children_vec.reserve(columns.size());
+        children_vec.reserve(record_batch.nb_columns());
         const auto names = record_batch.names();
-        for (size_t i = 0; i < columns.size(); ++i)
+        for (size_t i = 0; i < record_batch.nb_columns(); ++i)
         {
-            const auto& arrow_schema = sparrow::detail::array_access::get_arrow_proxy(columns[i]).schema();
+            const auto& column = record_batch.get_column(i);
+            const auto& arrow_schema = sparrow::detail::array_access::get_arrow_proxy(column).schema();
             flatbuffers::Offset<org::apache::arrow::flatbuf::Field> field = create_field(
                 builder,
                 arrow_schema,
@@ -523,9 +523,10 @@ namespace sparrow_ipc
     create_fieldnodes(const sparrow::record_batch& record_batch)
     {
         std::vector<org::apache::arrow::flatbuf::FieldNode> nodes;
-        nodes.reserve(record_batch.columns().size());
-        for (const auto& column : record_batch.columns())
+        nodes.reserve(record_batch.nb_columns());
+        for (size_t i = 0; i < record_batch.nb_columns(); ++i)
         {
+            const auto& column = record_batch.get_column(i);
             fill_fieldnodes(sparrow::detail::array_access::get_arrow_proxy(column), nodes);
         }
         return nodes;
@@ -608,16 +609,14 @@ namespace sparrow_ipc
                                 std::optional<CompressionType> compression,
                                 std::optional<std::reference_wrapper<CompressionCache>> cache)
     {
-        return std::accumulate(
-            record_batch.columns().begin(),
-            record_batch.columns().end(),
-            int64_t{0},
-            [&](int64_t acc, const sparrow::array& arr)
-            {
-                const auto& arrow_proxy = sparrow::detail::array_access::get_arrow_proxy(arr);
-                return acc + calculate_body_size(arrow_proxy, compression, cache);
-            }
-        );
+        int64_t acc = 0;
+        for (size_t i = 0; i < record_batch.nb_columns(); ++i)
+        {
+            const auto& arr = record_batch.get_column(i);
+            const auto& arrow_proxy = sparrow::detail::array_access::get_arrow_proxy(arr);
+            acc += calculate_body_size(arrow_proxy, compression, cache);
+        }
+        return acc;
     }
 
     flatbuffers::FlatBufferBuilder get_record_batch_message_builder(const sparrow::record_batch& record_batch,
