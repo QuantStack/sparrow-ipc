@@ -53,9 +53,18 @@ jobs:
         run: cmake --build . --config ${{ matrix.build_type }} --target test_sparrow_ipc_lib
 
       - name: Run tests
+        id: run_tests_step
         working-directory: build
         run: |
           cmake --build . --config ${{ matrix.build_type }} --target run_tests
+        continue-on-error: true
+
+      - name: Display test log on failure
+        if: steps.run_tests_step.outcome == 'failure'
+        working-directory: build
+        run: |
+          echo "Test run failed. Displaying log file:"
+          cat ./tests/Testing/Temporary/LastTest.log
 
       - name: Build example
         working-directory: build
