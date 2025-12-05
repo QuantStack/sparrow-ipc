@@ -10,10 +10,14 @@ namespace sparrow_ipc
     {
         std::vector<sparrow::metadata_pair> sparrow_metadata;
         sparrow_metadata.reserve(metadata.size());
-        for (const auto& kv : metadata)
-        {
-            sparrow_metadata.emplace_back(kv->key()->str(), kv->value()->str());
-        }
+        std::ranges::transform(
+            metadata,
+            std::back_inserter(sparrow_metadata),
+            [](const auto& kv)
+            {
+                return sparrow::metadata_pair{kv->key()->str(), kv->value()->str()};
+            }
+        );
         return sparrow_metadata;
     }
 }

@@ -36,21 +36,13 @@ namespace sparrow_ipc
     template <std::ranges::input_range R>
     [[nodiscard]] bool is_continuation(const R& buf)
     {
-        if (std::ranges::size(buf) != continuation.size())
-        {
-            return false;
-        }
-        return std::equal(std::ranges::begin(buf), std::ranges::end(buf), continuation.begin());
+        return std::ranges::equal(buf, continuation);
     }
 
     template <std::ranges::input_range R>
     [[nodiscard]] bool is_end_of_stream(const R& buf)
     {
-        if (std::ranges::size(buf) != end_of_stream.size())
-        {
-            return false;
-        }
-        return std::equal(std::ranges::begin(buf), std::ranges::end(buf), end_of_stream.begin());
+        return std::ranges::equal(buf, end_of_stream);
     }
 
     template <std::ranges::input_range R>
