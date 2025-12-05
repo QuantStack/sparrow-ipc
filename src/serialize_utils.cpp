@@ -85,18 +85,18 @@ namespace sparrow_ipc
     {
         std::vector<sparrow::data_type> dtypes;
         dtypes.reserve(rb.nb_columns());
-        std::ranges::transform(
-            rb.columns(),
-            std::back_inserter(dtypes),
-            [](const auto& col)
-            {
-                return col.data_type();
-            }
-        );
-//         for (const auto& col : rb.columns())
-//         {
-//             dtypes.push_back(col.data_type());
-//         }
+//         std::ranges::transform(
+//             rb.columns(),
+//             std::back_inserter(dtypes),
+//             [](const auto& col)
+//             {
+//                 return col.data_type();
+//             }
+//         );
+        for (const auto& col : rb.columns())
+        {
+            dtypes.push_back(col.data_type());
+        }
         return dtypes;
     }
 }
