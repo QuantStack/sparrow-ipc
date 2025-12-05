@@ -15,6 +15,7 @@ namespace sparrow_ipc
         std::span<const uint8_t> body,
         std::string_view name,
         const std::optional<std::vector<sparrow::metadata_pair>>& metadata,
+        bool nullable,
         size_t& buffer_index,
         int32_t byte_width
     );

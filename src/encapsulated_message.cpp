@@ -22,6 +22,7 @@ namespace sparrow_ipc
     size_t encapsulated_message::metadata_length() const
     {
         return *(reinterpret_cast<const uint32_t*>(m_data.data() + sizeof(uint32_t)));
+        
     }
 
     [[nodiscard]] std::variant<

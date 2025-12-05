@@ -5,6 +5,7 @@
 #include "sparrow_ipc/deserialize_fixedsizebinary_array.hpp"
 #include "sparrow_ipc/deserialize_primitive_array.hpp"
 #include "sparrow_ipc/deserialize_variable_size_binary_array.hpp"
+#include "sparrow_ipc/encapsulated_message.hpp"
 #include "sparrow_ipc/magic_values.hpp"
 #include "sparrow_ipc/metadata.hpp"
 
@@ -22,6 +23,27 @@ namespace sparrow_ipc
         return static_cast<const org::apache::arrow::flatbuf::RecordBatch*>(batch_message->header());
     }
 
+    /**
+     * @brief Deserializes arrays from an Apache Arrow RecordBatch using the provided schema.
+     *
+     * This function processes each field in the schema and deserializes the corresponding
+     * data from the RecordBatch into sparrow::array objects. It handles various Arrow data
+     * types including primitive types (bool, integers, floating point), binary data, and
+     * string data with their respective size variants.
+     *
+     * @param record_batch The Apache Arrow FlatBuffer RecordBatch containing the serialized data
+     * @param schema The Apache Arrow FlatBuffer Schema defining the structure and types of the data
+     * @param encapsulated_message The message containing the binary data buffers
+     * @param field_metadata Metadata for each field
+     *
+     * @return std::vector<sparrow::array> A vector of deserialized arrays, one for each field in the schema
+     *
+     * @throws std::runtime_error If an unsupported data type, integer bit width, or floating point precision
+     * is encountered
+     *
+     * The function maintains a buffer index that is incremented as it processes each field
+     * to correctly map data buffers to their corresponding arrays.
+     */
     std::vector<sparrow::array> get_arrays_from_record_batch(
         const org::apache::arrow::flatbuf::RecordBatch& record_batch,
         const org::apache::arrow::flatbuf::Schema& schema,
@@ -40,6 +62,7 @@ namespace sparrow_ipc
                 fb_custom_metadata = field->custom_metadata();
             const std::optional<std::vector<sparrow::metadata_pair>>& metadata = field_metadata[field_idx++];
             const std::string name = field->name() == nullptr ? "" : field->name()->str();
+            const bool nullable = field->nullable();
             const auto field_type = field->type_type();
             // TODO rename all the deserialize_non_owning... fcts since this is not correct anymore
             const auto deserialize_non_owning_primitive_array_lambda = [&]<typename T>()
@@ -49,6 +72,7 @@ namespace sparrow_ipc
                     encapsulated_message.body(),
                     name,
                     metadata,
+                    nullable,
                     buffer_index
                 );
             };
@@ -122,6 +146,7 @@ namespace sparrow_ipc
                         encapsulated_message.body(),
                         name,
                         metadata,
+                        nullable,
                         buffer_index,
                         fixed_size_binary_field->byteWidth()
                     ));
@@ -134,6 +159,7 @@ namespace sparrow_ipc
                             encapsulated_message.body(),
                             name,
                             metadata,
+                            nullable,
                             buffer_index
                         )
                     );
@@ -145,6 +171,7 @@ namespace sparrow_ipc
                             encapsulated_message.body(),
                             name,
                             metadata,
+                            nullable,
                             buffer_index
                         )
                     );
@@ -156,6 +183,7 @@ namespace sparrow_ipc
                             encapsulated_message.body(),
                             name,
                             metadata,
+                            nullable,
                             buffer_index
                         )
                     );
@@ -167,6 +195,7 @@ namespace sparrow_ipc
                             encapsulated_message.body(),
                             name,
                             metadata,
+                            nullable,
                             buffer_index
                         )
                     );

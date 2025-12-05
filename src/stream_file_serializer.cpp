@@ -47,8 +47,8 @@ namespace sparrow_ipc
         // Write end-of-stream marker
         m_stream.write(end_of_stream);
 
-        // Write footer using the first record batch for schema
-        const size_t footer_size = write_footer(m_first_record_batch.value(), m_stream);
+        // Write footer using the first record batch for schema and the tracked blocks
+        const size_t footer_size = write_footer(m_first_record_batch.value(), m_record_batch_blocks, m_stream);
 
         // Write footer size (int32, little-endian)
         const int32_t footer_size_i32 = static_cast<int32_t>(footer_size);
@@ -64,6 +64,7 @@ namespace sparrow_ipc
 
     size_t write_footer(
         const sparrow::record_batch& record_batch,
+        const std::vector<record_batch_block>& record_batch_blocks,
         any_output_stream& stream
     )
     {
@@ -74,18 +75,23 @@ namespace sparrow_ipc
         const auto fields_vec = create_children(footer_builder, record_batch);
         const auto schema_offset = org::apache::arrow::flatbuf::CreateSchema(
             footer_builder,
-            org::apache::arrow::flatbuf::Endianness::Little,
+            org::apache::arrow::flatbuf::Endianness::Little, // TODO: make configurable
             fields_vec
         );
 
-        // Create empty dictionaries vector
+        // Create empty dictionaries vector // TODO: Support dictionaries if needed
         auto dictionaries_fb = footer_builder.CreateVectorOfStructs(
             std::vector<org::apache::arrow::flatbuf::Block>{}
         );
 
-        // Create record batches vector
-        std::vector<org::apache::arrow::flatbuf::Block> record_batch_blocks;
-        auto record_batches_fb = footer_builder.CreateVectorOfStructs(record_batch_blocks);
+        // Create record batches vector from tracked blocks
+        std::vector<org::apache::arrow::flatbuf::Block> fb_blocks;
+        fb_blocks.reserve(record_batch_blocks.size());
+        for (const auto& block : record_batch_blocks)
+        {
+            fb_blocks.emplace_back(block.offset, block.metadata_length, block.body_length);
+        }
+        auto record_batches_fb = footer_builder.CreateVectorOfStructs(fb_blocks);
 
         // Create footer
         auto footer = org::apache::arrow::flatbuf::CreateFooter(
