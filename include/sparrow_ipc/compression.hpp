@@ -11,7 +11,7 @@
 
 namespace sparrow_ipc
 {
-    enum class CompressionType
+    enum class CompressionType : std::uint8_t
     {
         LZ4_FRAME,
         ZSTD
@@ -34,9 +34,9 @@ namespace sparrow_ipc
             std::optional<std::span<const std::uint8_t>> find(const void* data_ptr, const size_t data_size);
             std::span<const std::uint8_t> store(const void* data_ptr, const size_t data_size, std::vector<std::uint8_t>&& data);
 
-            size_t size() const;
-            size_t count(const void* data_ptr, const size_t data_size) const;
-            bool empty() const;
+            [[nodiscard]] size_t size() const;
+            [[nodiscard]] size_t count(const void* data_ptr, const size_t data_size) const;
+            [[nodiscard]] bool empty() const;
             void clear();
 
         private:
