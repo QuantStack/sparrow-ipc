@@ -1,3 +1,4 @@
+#include <numeric>
 #include <string>
 
 #include "compression_impl.hpp"
@@ -523,7 +524,7 @@ namespace sparrow_ipc
     create_fieldnodes(const sparrow::record_batch& record_batch)
     {
         std::vector<org::apache::arrow::flatbuf::FieldNode> nodes;
-        nodes.reserve(record_batch.columns().size());
+        nodes.reserve(record_batch.nb_columns());
         for (const auto& column : record_batch.columns())
         {
             fill_fieldnodes(sparrow::detail::array_access::get_arrow_proxy(column), nodes);
@@ -608,9 +609,10 @@ namespace sparrow_ipc
                                 std::optional<CompressionType> compression,
                                 std::optional<std::reference_wrapper<CompressionCache>> cache)
     {
+        auto cols = record_batch.columns();
         return std::accumulate(
-            record_batch.columns().begin(),
-            record_batch.columns().end(),
+            cols.begin(),
+            cols.end(),
             int64_t{0},
             [&](int64_t acc, const sparrow::array& arr)
             {

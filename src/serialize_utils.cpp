@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <stdexcept>
 
 #include "sparrow_ipc/flatbuffer_utils.hpp"
@@ -38,7 +39,7 @@ namespace sparrow_ipc
                        std::optional<CompressionType> compression,
                        std::optional<std::reference_wrapper<CompressionCache>> cache)
     {
-        std::for_each(record_batch.columns().begin(), record_batch.columns().end(), [&](const auto& column) {
+        std::ranges::for_each(record_batch.columns(), [&](const auto& column) {
             const auto& arrow_proxy = sparrow::detail::array_access::get_arrow_proxy(column);
             fill_body(arrow_proxy, stream, compression, cache);
         });
