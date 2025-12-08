@@ -19,7 +19,7 @@ jobs:
         build_shared: [ON, OFF]
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Create build environment
         uses: mamba-org/setup-micromamba@v2
@@ -37,6 +37,7 @@ jobs:
           -DCMAKE_PREFIX_PATH=$CONDA_PREFIX \
           -DSPARROW_IPC_BUILD_SHARED=${{ matrix.build_shared }} \
           -DSPARROW_IPC_BUILD_TESTS=ON \
+          -DSPARROW_IPC_BUILD_INTEGRATION_TESTS=ON \
           -DSPARROW_IPC_BUILD_EXAMPLES=ON
 
       - name: Build sparrow-ipc
@@ -67,6 +68,14 @@ jobs:
         working-directory: build
         run: cmake --build . --target run_deserializer_example
 
+      - name: Build test_integration_tools
+        working-directory: build
+        run: cmake --build . --target test_integration_tools
+
+      - name: Run test_integration_tools
+        working-directory: build
+        run: cmake --build . --target run_test_integration_tools
+
       - name: Install
         working-directory: build
         run: cmake --install .
@@ -79,7 +88,7 @@ jobs:
         build_shared: [ON, OFF]
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Configure using cmake
         run: |
@@ -89,6 +98,7 @@ jobs:
           -DSPARROW_IPC_BUILD_SHARED=${{ matrix.build_shared }} \
           -DSPARROW_IPC_BUILD_TESTS=ON \
           -DSPARROW_IPC_BUILD_EXAMPLES=ON \
+          -DSPARROW_IPC_BUILD_INTEGRATION_TESTS=ON \
           -DFETCH_DEPENDENCIES_WITH_CMAKE=MISSING
 
       - name: Build sparrow-ipc
@@ -118,6 +128,14 @@ jobs:
       - name: Run deserializer example
         working-directory: build
         run: cmake --build . --target run_deserializer_example
+
+      - name: Build test_integration_tools
+        working-directory: build
+        run: cmake --build . --target test_integration_tools
+
+      - name: Run test_integration_tools
+        working-directory: build
+        run: cmake --build . --target run_test_integration_tools
 
       - name: Install
         working-directory: build

@@ -11,8 +11,6 @@ include(CMakeDependentOption)
 list(PREPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
 message(DEBUG "CMake module path: ${CMAKE_MODULE_PATH}")
 
-include(external_dependencies)
-
 set(SPARROW_IPC_COMPILE_DEFINITIONS "" CACHE STRING "List of public compile definitions of the sparrow-ipc target")
 
 set(SPARROW_IPC_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
@@ -85,10 +83,26 @@ MESSAGE(STATUS "🔧 Build docs: ${SPARROW_IPC_BUILD_DOCS}")
 OPTION(SPARROW_IPC_BUILD_EXAMPLES "Build sparrow-ipc examples" OFF)
 MESSAGE(STATUS "🔧 Build examples: ${SPARROW_IPC_BUILD_EXAMPLES}")
 
+OPTION(SPARROW_IPC_BUILD_INTEGRATION_TESTS "Build sparrow-ipc integration tests" OFF)
+MESSAGE(STATUS "🔧 Build integration tests: ${SPARROW_IPC_BUILD_INTEGRATION_TESTS}")
+
 # Code coverage
 # =============
 OPTION(SPARROW_IPC_ENABLE_COVERAGE "Enable sparrow-ipc test coverage" OFF)
 MESSAGE(STATUS "🔧 Enable coverage: ${SPARROW_IPC_ENABLE_COVERAGE}")
+
+include(external_dependencies)
+
+# Build
+# =====
+set(BINARY_BUILD_DIR "${CMAKE_BINARY_DIR}/bin/${CMAKE_BUILD_TYPE}")
+
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG "${BINARY_BUILD_DIR}")
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE "${BINARY_BUILD_DIR}")
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG "${BINARY_BUILD_DIR}")
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE "${BINARY_BUILD_DIR}")
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_DEBUG "${BINARY_BUILD_DIR}")
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_RELEASE "${BINARY_BUILD_DIR}")
 
 if(SPARROW_IPC_ENABLE_COVERAGE)
     include(code_coverage)
@@ -286,6 +300,13 @@ endif()
 if(SPARROW_IPC_BUILD_EXAMPLES)
     message(STATUS "🔨 Create examples targets")
     add_subdirectory(examples)
+endif()
+
+# Integration tests
+# =================
+if(SPARROW_IPC_BUILD_INTEGRATION_TESTS)
+    message(STATUS "🔨 Create integration tests targets")
+    add_subdirectory(integration_tests)
 endif()
 
 # Installation

@@ -1,5 +1,7 @@
 #include "sparrow_ipc/utils.hpp"
 
+#include <charconv>
+
 namespace sparrow_ipc::utils
 {
     std::optional<int32_t> parse_format(std::string_view format_str, std::string_view sep)

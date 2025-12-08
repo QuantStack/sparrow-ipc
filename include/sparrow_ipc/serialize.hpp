@@ -3,8 +3,6 @@
 #include <ranges>
 
 #include <sparrow/record_batch.hpp>
-
-#include "Message_generated.h"
 #include "sparrow_ipc/any_output_stream.hpp"
 #include "sparrow_ipc/compression.hpp"
 #include "sparrow_ipc/config/config.hpp"
@@ -14,6 +12,17 @@
 
 namespace sparrow_ipc
 {
+    /**
+     * @brief Information about a serialized record batch block.
+     *
+     * Contains the metadata length and body length of a serialized record batch,
+     * used for populating the Arrow IPC file format footer.
+     */
+    struct serialized_record_batch_info
+    {
+        int32_t metadata_length; ///< Length of the metadata (FlatBuffer message + padding)
+        int64_t body_length;     ///< Length of the record batch body (data buffers)
+    };
     /**
      * @brief Serializes a collection of record batches into a binary format.
      *
@@ -80,7 +89,7 @@ namespace sparrow_ipc
      *       includes both metadata and data portions of the record batch
      */
 
-    SPARROW_IPC_API void
+    SPARROW_IPC_API serialized_record_batch_info
     serialize_record_batch(const sparrow::record_batch& record_batch,
                            any_output_stream& stream,
                            std::optional<CompressionType> compression,

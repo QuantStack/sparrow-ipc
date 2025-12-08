@@ -1,0 +1,61 @@
+#include <cstdlib>
+#include <filesystem>
+#include <fstream>
+#include <iostream>
+#include <vector>
+
+#include "integration_tools.hpp"
+
+/**
+ * @brief Reads a JSON file containing record batches and writes the serialized Arrow IPC file to a file.
+ *
+ * This program takes a JSON file path and an output file path as command-line arguments,
+ * parses the record batches from the JSON data, serializes them into Arrow IPC file format,
+ * and writes the binary data to the specified output file.
+ *
+ * Usage: arrow_json_to_file <json_file_path> <output_file_path>
+ *
+ * @param argc Number of command-line arguments
+ * @param argv Array of command-line arguments
+ * @return EXIT_SUCCESS on success, EXIT_FAILURE on error
+ */
+int main(int argc, char* argv[])
+{
+    if (argc != 3)
+    {
+        std::cerr << "Usage: " << argv[0] << " <json_file_path> <output_file_path>\n";
+        std::cerr << "Reads a JSON file and writes the serialized Arrow IPC file to a file.\n";
+        return EXIT_FAILURE;
+    }
+
+    const std::filesystem::path json_path(argv[1]);
+    const std::filesystem::path output_path(argv[2]);
+
+    try
+    {
+        const std::vector<uint8_t> file_data = integration_tools::json_file_to_arrow_file(json_path);
+
+        std::ofstream output_file(output_path, std::ios::out | std::ios::binary);
+        if (!output_file.is_open())
+        {
+            std::cerr << "Error: Could not open output file: " << output_path << "\n";
+            return EXIT_FAILURE;
+        }
+
+        output_file.write(reinterpret_cast<const char*>(file_data.data()), static_cast<std::streamsize>(file_data.size()));
+        output_file.close();
+
+        if (!output_file.good())
+        {
+            std::cerr << "Error: Failed to write to output file: " << output_path << "\n";
+            return EXIT_FAILURE;
+        }
+
+        return EXIT_SUCCESS;
+    }
+    catch (const std::exception& e)
+    {
+        std::cerr << "Error: " << e.what() << "\n";
+        return EXIT_FAILURE;
+    }
+}

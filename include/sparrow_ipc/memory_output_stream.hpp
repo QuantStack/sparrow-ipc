@@ -2,6 +2,7 @@
 #include <cstdint>
 #include <functional>
 #include <ranges>
+#include <span>
 
 namespace sparrow_ipc
 {
