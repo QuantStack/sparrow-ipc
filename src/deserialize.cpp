@@ -234,6 +234,7 @@ namespace sparrow_ipc
                                     encapsulated_message.body(),
                                     name,
                                     metadata,
+                                    nullable,
                                     buffer_index
                                 )
                             );
@@ -245,6 +246,7 @@ namespace sparrow_ipc
                                     encapsulated_message.body(),
                                     name,
                                     metadata,
+                                    nullable,
                                     buffer_index
                                 )
                             );
@@ -256,6 +258,7 @@ namespace sparrow_ipc
                                     encapsulated_message.body(),
                                     name,
                                     metadata,
+                                    nullable,
                                     buffer_index
                                 )
                             );
