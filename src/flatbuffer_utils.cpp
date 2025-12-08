@@ -608,14 +608,24 @@ namespace sparrow_ipc
                                 std::optional<CompressionType> compression,
                                 std::optional<std::reference_wrapper<CompressionCache>> cache)
     {
-        int64_t acc = 0;
-        for (size_t i = 0; i < record_batch.nb_columns(); ++i)
-        {
-            const auto& arr = record_batch.get_column(i);
-            const auto& arrow_proxy = sparrow::detail::array_access::get_arrow_proxy(arr);
-            acc += calculate_body_size(arrow_proxy, compression, cache);
-        }
-        return acc;
+        return std::accumulate(
+            record_batch.columns().begin(),
+            record_batch.columns().end(),
+            int64_t{0},
+            [&](int64_t acc, const sparrow::array& arr)
+            {
+                const auto& arrow_proxy = sparrow::detail::array_access::get_arrow_proxy(arr);
+                return acc + calculate_body_size(arrow_proxy, compression, cache);
+            }
+        );
+//         int64_t acc = 0;
+//         for (size_t i = 0; i < record_batch.nb_columns(); ++i)
+//         {
+//             const auto& arr = record_batch.get_column(i);
+//             const auto& arrow_proxy = sparrow::detail::array_access::get_arrow_proxy(arr);
+//             acc += calculate_body_size(arrow_proxy, compression, cache);
+//         }
+//         return acc;
     }
 
     flatbuffers::FlatBufferBuilder get_record_batch_message_builder(const sparrow::record_batch& record_batch,
