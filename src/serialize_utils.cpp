@@ -38,14 +38,11 @@ namespace sparrow_ipc
                        std::optional<CompressionType> compression,
                        std::optional<std::reference_wrapper<CompressionCache>> cache)
     {
-        std::for_each(record_batch.columns().begin(), record_batch.columns().end(), [&](const auto& column) {
-//         for (size_t i = 0; i < record_batch.nb_columns(); ++i)
-//         {
-//             const auto& column = record_batch.get_column(i);
+        for (const auto& column : record_batch.columns())
+        {
             const auto& arrow_proxy = sparrow::detail::array_access::get_arrow_proxy(column);
             fill_body(arrow_proxy, stream, compression, cache);
-        });
-//         }
+        }
     }
 
     std::size_t calculate_schema_message_size(const sparrow::record_batch& record_batch)
