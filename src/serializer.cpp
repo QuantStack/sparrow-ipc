@@ -23,7 +23,6 @@ namespace sparrow_ipc
     {
         std::vector<sparrow::data_type> dtypes;
         dtypes.reserve(rb.nb_columns());
-//         auto columns = rb.columns();
         for (const auto& col : rb.columns())
         {
             dtypes.push_back(col.data_type());
