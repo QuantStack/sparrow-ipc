@@ -12,6 +12,7 @@ set(SPARROW_IPC_TESTS_SRC
     test_chunk_memory_serializer.cpp
     test_compression.cpp
     test_de_serialization_with_files.cpp
+    test_deserializer.cpp
     $<$<NOT:$<BOOL:${SPARROW_IPC_BUILD_SHARED}>>:test_flatbuffer_utils.cpp>
     test_memory_output_streams.cpp
     test_serialize_utils.cpp
