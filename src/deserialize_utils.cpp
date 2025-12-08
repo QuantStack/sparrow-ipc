@@ -9,10 +9,6 @@ namespace sparrow_ipc::utils
         const int64_t length
     )
     {
-        if(index >= static_cast<size_t>(record_batch.buffers()->size()))
-        {
-            throw std::runtime_error("Buffer index out of range");
-        }
         if (validity_buffer_span.empty())
         {
             return {nullptr, 0};

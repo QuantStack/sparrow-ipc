@@ -42,8 +42,7 @@ namespace sparrow_ipc
         );
         const auto [bitmap_ptr, null_count] = utils::get_bitmap_pointer_and_null_count(
             record_batch,
-            body,
-            buffer_index++
+            body
         );
 
         const auto buffer_metadata = record_batch.buffers()->Get(buffer_index++);
