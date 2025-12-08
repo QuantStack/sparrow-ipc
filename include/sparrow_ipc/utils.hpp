@@ -9,18 +9,12 @@
 
 #include <sparrow/record_batch.hpp>
 
-#include "Schema_generated.h"
 #include "sparrow_ipc/config/config.hpp"
 
 namespace sparrow_ipc::utils
 {
     // Aligns a value to the next multiple of 8, as required by the Arrow IPC format for message bodies
-    SPARROW_IPC_API int64_t align_to_8(const int64_t n);
-
-    // Creates a Flatbuffers type from a format string
-    // This function maps a sparrow data type to the corresponding Flatbuffers type
-    SPARROW_IPC_API std::pair<org::apache::arrow::flatbuf::Type, flatbuffers::Offset<void>>
-    get_flatbuffer_type(flatbuffers::FlatBufferBuilder& builder, std::string_view format_str);
+    SPARROW_IPC_API size_t align_to_8(const size_t n);
 
     /**
      * @brief Extracts words after ':' separated by ',' from a string.
@@ -74,7 +68,7 @@ namespace sparrow_ipc::utils
         requires std::same_as<std::ranges::range_value_t<R>, sparrow::record_batch>
     bool check_record_batches_consistency(const R& record_batches)
     {
-        if (record_batches.empty())
+        if (record_batches.empty() || record_batches.size() == 1)
         {
             return true;
         }
@@ -102,5 +96,8 @@ namespace sparrow_ipc::utils
         return true;
     }
 
+    // Parse the format string
+    // The format string is expected to be "w:size", "+w:size", "d:precision,scale", etc
+    std::optional<int32_t> parse_format(std::string_view format_str, std::string_view sep);
     // size_t calculate_output_serialized_size(const sparrow::record_batch& record_batch);
 }

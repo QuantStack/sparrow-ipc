@@ -11,8 +11,6 @@ include(CMakeDependentOption)
 list(PREPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
 message(DEBUG "CMake module path: ${CMAKE_MODULE_PATH}")
 
-include(external_dependencies)
-
 set(SPARROW_IPC_COMPILE_DEFINITIONS "" CACHE STRING "List of public compile definitions of the sparrow-ipc target")
 
 set(SPARROW_IPC_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
@@ -82,10 +80,29 @@ MESSAGE(STATUS "🔧 Build tests: ${SPARROW_IPC_BUILD_TESTS}")
 OPTION(SPARROW_IPC_BUILD_DOCS  "Build sparrow-ipc documentation" OFF)
 MESSAGE(STATUS "🔧 Build docs: ${SPARROW_IPC_BUILD_DOCS}")
 
+OPTION(SPARROW_IPC_BUILD_EXAMPLES "Build sparrow-ipc examples" OFF)
+MESSAGE(STATUS "🔧 Build examples: ${SPARROW_IPC_BUILD_EXAMPLES}")
+
+OPTION(SPARROW_IPC_BUILD_INTEGRATION_TESTS "Build sparrow-ipc integration tests" OFF)
+MESSAGE(STATUS "🔧 Build integration tests: ${SPARROW_IPC_BUILD_INTEGRATION_TESTS}")
+
 # Code coverage
 # =============
 OPTION(SPARROW_IPC_ENABLE_COVERAGE "Enable sparrow-ipc test coverage" OFF)
 MESSAGE(STATUS "🔧 Enable coverage: ${SPARROW_IPC_ENABLE_COVERAGE}")
+
+include(external_dependencies)
+
+# Build
+# =====
+set(BINARY_BUILD_DIR "${CMAKE_BINARY_DIR}/bin/${CMAKE_BUILD_TYPE}")
+
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG "${BINARY_BUILD_DIR}")
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE "${BINARY_BUILD_DIR}")
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG "${BINARY_BUILD_DIR}")
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE "${BINARY_BUILD_DIR}")
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_DEBUG "${BINARY_BUILD_DIR}")
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_RELEASE "${BINARY_BUILD_DIR}")
 
 if(SPARROW_IPC_ENABLE_COVERAGE)
     include(code_coverage)
@@ -95,38 +112,54 @@ set(SPARROW_IPC_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
 set(SPARROW_IPC_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
 set(SPARROW_IPC_HEADERS
+    ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/any_output_stream.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/arrow_interface/arrow_array_schema_common_release.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/arrow_interface/arrow_array.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/arrow_interface/arrow_array/private_data.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/arrow_interface/arrow_schema.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/arrow_interface/arrow_schema/private_data.hpp
+    ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/chunk_memory_output_stream.hpp
+    ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/chunk_memory_serializer.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/config/config.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/config/sparrow_ipc_version.hpp
-    ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/deserialize_variable_size_binary_array.hpp
+    ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/compression.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/deserialize_fixedsizebinary_array.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/deserialize_primitive_array.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/deserialize_utils.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/deserialize_variable_size_binary_array.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/deserialize.hpp
+    ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/deserializer.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/encapsulated_message.hpp
+    ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/flatbuffer_utils.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/magic_values.hpp
+    ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/memory_output_stream.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/metadata.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/serialize_utils.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/serialize.hpp
+    ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/serializer.hpp
+    ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/stream_file_serializer.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/utils.hpp
 )
 
 set(SPARROW_IPC_SRC
-     ${SPARROW_IPC_SOURCE_DIR}/serialize_utils.cpp
+    ${SPARROW_IPC_SOURCE_DIR}/any_output_stream.cpp
     ${SPARROW_IPC_SOURCE_DIR}/arrow_interface/arrow_array.cpp
     ${SPARROW_IPC_SOURCE_DIR}/arrow_interface/arrow_array/private_data.cpp
     ${SPARROW_IPC_SOURCE_DIR}/arrow_interface/arrow_schema.cpp
     ${SPARROW_IPC_SOURCE_DIR}/arrow_interface/arrow_schema/private_data.cpp
+    ${SPARROW_IPC_SOURCE_DIR}/chunk_memory_serializer.cpp
+    ${SPARROW_IPC_SOURCE_DIR}/compression.cpp
+    ${SPARROW_IPC_SOURCE_DIR}/compression_impl.hpp
     ${SPARROW_IPC_SOURCE_DIR}/deserialize_fixedsizebinary_array.cpp
     ${SPARROW_IPC_SOURCE_DIR}/deserialize_utils.cpp
     ${SPARROW_IPC_SOURCE_DIR}/deserialize.cpp
     ${SPARROW_IPC_SOURCE_DIR}/encapsulated_message.cpp
+    ${SPARROW_IPC_SOURCE_DIR}/flatbuffer_utils.cpp
     ${SPARROW_IPC_SOURCE_DIR}/metadata.cpp
+    ${SPARROW_IPC_SOURCE_DIR}/serialize_utils.cpp
+    ${SPARROW_IPC_SOURCE_DIR}/serialize.cpp
+    ${SPARROW_IPC_SOURCE_DIR}/serializer.cpp
+    ${SPARROW_IPC_SOURCE_DIR}/stream_file_serializer.cpp
     ${SPARROW_IPC_SOURCE_DIR}/utils.cpp
 )
 
@@ -239,6 +272,9 @@ target_link_libraries(sparrow-ipc
     PUBLIC
         sparrow::sparrow
         flatbuffers::flatbuffers
+    PRIVATE
+        lz4::lz4
+        zstd::libzstd
         )
 
 # Ensure generated headers are available when building sparrow-ipc
@@ -257,6 +293,20 @@ endif()
 if(SPARROW_IPC_BUILD_DOCS)
     message(STATUS "📚 Create docs targets")
     add_subdirectory(docs)
+endif()
+
+# Examples
+# ========
+if(SPARROW_IPC_BUILD_EXAMPLES)
+    message(STATUS "🔨 Create examples targets")
+    add_subdirectory(examples)
+endif()
+
+# Integration tests
+# =================
+if(SPARROW_IPC_BUILD_INTEGRATION_TESTS)
+    message(STATUS "🔨 Create integration tests targets")
+    add_subdirectory(integration_tests)
 endif()
 
 # Installation
@@ -294,6 +344,25 @@ if (TARGET flatbuffers)
             # that also needs to be exported
             list(APPEND SPARROW_IPC_EXPORTED_TARGETS ProjectConfig)
         endif()
+    endif()
+endif()
+
+if (TARGET lz4)
+    get_target_property(is_imported lz4 IMPORTED)
+    if(NOT is_imported)
+        # This means `lz4` was fetched using FetchContent
+        # We need to export `lz4` target explicitly
+        list(APPEND SPARROW_IPC_EXPORTED_TARGETS lz4)
+    endif()
+endif()
+
+if (TARGET lz4_static)
+    get_target_property(is_imported lz4_static IMPORTED)
+    if(NOT is_imported)
+        # `lz4_static` is needed as this is the actual library
+        # and `lz4` is an interface pointing to it.
+        # If `lz4_shared` is used instead for some reason, modify this accordingly
+        list(APPEND SPARROW_IPC_EXPORTED_TARGETS lz4_static)
     endif()
 endif()
 

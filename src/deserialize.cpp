@@ -35,6 +35,7 @@ namespace sparrow_ipc
      * @param record_batch The Apache Arrow FlatBuffer RecordBatch containing the serialized data
      * @param schema The Apache Arrow FlatBuffer Schema defining the structure and types of the data
      * @param encapsulated_message The message containing the binary data buffers
+     * @param field_metadata Metadata for each field
      *
      * @return std::vector<sparrow::array> A vector of deserialized arrays, one for each field in the schema
      *
@@ -51,19 +52,25 @@ namespace sparrow_ipc
         const std::vector<std::optional<std::vector<sparrow::metadata_pair>>>& field_metadata
     )
     {
-        const size_t length = static_cast<size_t>(record_batch.length());
         size_t buffer_index = 0;
 
+        const size_t num_fields = schema.fields() == nullptr ? 0 : static_cast<size_t>(schema.fields()->size());
         std::vector<sparrow::array> arrays;
-        arrays.reserve(schema.fields()->size());
+        if (num_fields == 0)
+        {
+            return arrays;
+        }
+        arrays.reserve(num_fields);
         size_t field_idx = 0;
         for (const auto field : *(schema.fields()))
         {
             const ::flatbuffers::Vector<::flatbuffers::Offset<org::apache::arrow::flatbuf::KeyValue>>*
                 fb_custom_metadata = field->custom_metadata();
             const std::optional<std::vector<sparrow::metadata_pair>>& metadata = field_metadata[field_idx++];
-            const auto name = field->name()->string_view();
+            const std::string name = field->name() == nullptr ? "" : field->name()->str();
+            const bool nullable = field->nullable();
             const auto field_type = field->type_type();
+            // TODO rename all the deserialize_non_owning... fcts since this is not correct anymore
             const auto deserialize_non_owning_primitive_array_lambda = [&]<typename T>()
             {
                 return deserialize_non_owning_primitive_array<T>(
@@ -71,6 +78,7 @@ namespace sparrow_ipc
                     encapsulated_message.body(),
                     name,
                     metadata,
+                    nullable,
                     buffer_index
                 );
             };
@@ -144,6 +152,7 @@ namespace sparrow_ipc
                         encapsulated_message.body(),
                         name,
                         metadata,
+                        nullable,
                         buffer_index,
                         fixed_size_binary_field->byteWidth()
                     ));
@@ -156,6 +165,7 @@ namespace sparrow_ipc
                             encapsulated_message.body(),
                             name,
                             metadata,
+                            nullable,
                             buffer_index
                         )
                     );
@@ -167,6 +177,7 @@ namespace sparrow_ipc
                             encapsulated_message.body(),
                             name,
                             metadata,
+                            nullable,
                             buffer_index
                         )
                     );
@@ -178,6 +189,7 @@ namespace sparrow_ipc
                             encapsulated_message.body(),
                             name,
                             metadata,
+                            nullable,
                             buffer_index
                         )
                     );
@@ -189,6 +201,7 @@ namespace sparrow_ipc
                             encapsulated_message.body(),
                             name,
                             metadata,
+                            nullable,
                             buffer_index
                         )
                     );
@@ -267,27 +280,51 @@ namespace sparrow_ipc
     {
         const org::apache::arrow::flatbuf::Schema* schema = nullptr;
         std::vector<sparrow::record_batch> record_batches;
-        std::vector<std::string_view> field_names;
+        std::vector<std::string> field_names;
         std::vector<bool> fields_nullable;
         std::vector<sparrow::data_type> field_types;
         std::vector<std::optional<std::vector<sparrow::metadata_pair>>> fields_metadata;
         do
         {
+            // Check for end-of-stream marker here as data could contain only that (if no record batches present/written)
+            if (data.size() >= 8 && is_end_of_stream(data.subspan(0, 8)))
+            {
+                break;
+            }
+
             const auto [encapsulated_message, rest] = extract_encapsulated_message(data);
             const org::apache::arrow::flatbuf::Message* message = encapsulated_message.flat_buffer_message();
+
+            if (message == nullptr)
+            {
+                throw std::invalid_argument("Extracted flatbuffers message is null.");
+            }
+
             switch (message->header_type())
             {
                 case org::apache::arrow::flatbuf::MessageHeader::Schema:
                 {
                     schema = message->header_as_Schema();
-                    const size_t size = static_cast<size_t>(schema->fields()->size());
+                    const size_t size = schema->fields() == nullptr
+                                            ? 0
+                                            : static_cast<size_t>(schema->fields()->size());
                     field_names.reserve(size);
                     fields_nullable.reserve(size);
                     fields_metadata.reserve(size);
-
+                    if (schema->fields() == nullptr)
+                    {
+                        break;
+                    }
                     for (const auto field : *(schema->fields()))
                     {
-                        field_names.emplace_back(field->name()->string_view());
+                        if (field != nullptr && field->name() != nullptr)
+                        {
+                            field_names.emplace_back(field->name()->str());
+                        }
+                        else
+                        {
+                            field_names.emplace_back("_unnamed_");
+                        }
                         fields_nullable.push_back(field->nullable());
                         const ::flatbuffers::Vector<::flatbuffers::Offset<org::apache::arrow::flatbuf::KeyValue>>*
                             fb_custom_metadata = field->custom_metadata();
@@ -316,8 +353,10 @@ namespace sparrow_ipc
                         encapsulated_message,
                         fields_metadata
                     );
-                    std::vector<std::string> field_names_str(field_names.cbegin(), field_names.cend());
-                    record_batches.emplace_back(std::move(field_names_str), std::move(arrays));
+                    auto names_copy = field_names;  // TODO: Remove when issue with the to_vector of
+                                                    // record_batch is fixed
+                    sparrow::record_batch sp_record_batch(std::move(names_copy), std::move(arrays));
+                    record_batches.emplace_back(std::move(sp_record_batch));
                 }
                 break;
                 case org::apache::arrow::flatbuf::MessageHeader::Tensor:
@@ -328,11 +367,7 @@ namespace sparrow_ipc
                     throw std::runtime_error("Unknown message header type.");
             }
             data = rest;
-            if (is_end_of_stream(data.subspan(0, 8)))
-            {
-                break;
-            }
-        } while (true);
+        } while (!data.empty());
         return record_batches;
     }
 }

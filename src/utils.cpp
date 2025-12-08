@@ -5,12 +5,37 @@
 #include <string>
 #include <vector>
 
-#include "sparrow.hpp"
-
-namespace sparrow_ipc
+namespace sparrow_ipc::utils
 {
     namespace
     {
+        // Parse the format string
+        // The format string is expected to be "w:size", "+w:size", "d:precision,scale", etc
+        std::optional<int32_t> parse_format(std::string_view format_str, std::string_view sep)
+        {
+            // Find the position of the delimiter
+            const auto sep_pos = format_str.find(sep);
+            if (sep_pos == std::string_view::npos)
+            {
+                return std::nullopt;
+            }
+
+            std::string_view substr_str(format_str.data() + sep_pos + 1, format_str.size() - sep_pos - 1);
+
+            int32_t substr_size = 0;
+            const auto [ptr, ec] = std::from_chars(
+                substr_str.data(),
+                substr_str.data() + substr_str.size(),
+                substr_size
+            );
+
+            if (ec != std::errc() || ptr != substr_str.data() + substr_str.size())
+            {
+                return std::nullopt;
+            }
+            return substr_size;
+        }
+
         // Creates a Flatbuffers Decimal type from a format string
         // The format string is expected to be in the format "d:precision,scale"
         std::pair<org::apache::arrow::flatbuf::Type, flatbuffers::Offset<void>> get_flatbuffer_decimal_type(
@@ -19,21 +44,23 @@ namespace sparrow_ipc
             const int32_t bitWidth
         )
         {
-            const std::vector<std::string_view> words = utils::extract_words_after_colon(format_str);
-            if (words.size() < 2)
+            // Decimal requires precision and scale. We need to parse the format_str.
+            // Format: "d:precision,scale"
+            const auto scale = parse_format(format_str, ",");
+            if (!scale.has_value())
             {
                 throw std::runtime_error(
                     "Failed to parse Decimal " + std::to_string(bitWidth)
-                    + " from format string: " + std::string(format_str)
+                    + " scale from format string: " + std::string(format_str)
                 );
             }
-            const auto scale = utils::parse_to_int32(words[1]);
-            const auto precision = utils::parse_to_int32(words[0]);
-            if (!scale.has_value() || !precision.has_value())
+            const size_t comma_pos = format_str.find(',');
+            const auto precision = parse_format(format_str.substr(0, comma_pos), ":");
+            if (!precision.has_value())
             {
                 throw std::runtime_error(
                     "Failed to parse Decimal " + std::to_string(bitWidth)
-                    + " precision/scale from format string: " + std::string(format_str)
+                    + " precision from format string: " + std::string(format_str)
                 );
             }
             const auto decimal_type = org::apache::arrow::flatbuf::CreateDecimal(
@@ -380,14 +407,7 @@ namespace sparrow_ipc
                 {
                     // FixedSizeList requires listSize. We need to parse the format_str.
                     // Format: "+w:size"
-                    const auto words = utils::extract_words_after_colon(format_str);
-                    if (words.empty())
-                    {
-                        throw std::runtime_error(
-                            "Failed to parse FixedSizeList size from format string: " + std::string(format_str)
-                        );
-                    }
-                    const auto list_size = utils::parse_to_int32(words[0]);
+                    const auto list_size = parse_format(format_str, ":");
                     if (!list_size.has_value())
                     {
                         throw std::runtime_error(
@@ -455,15 +475,7 @@ namespace sparrow_ipc
                 {
                     // FixedSizeBinary requires byteWidth. We need to parse the format_str.
                     // Format: "w:size"
-                    const auto words = utils::extract_words_after_colon(format_str);
-                    if (words.empty())
-                    {
-                        throw std::runtime_error(
-                            "Failed to parse FixedWidthBinary size from format string: "
-                            + std::string(format_str)
-                        );
-                    }
-                    const auto byte_width = utils::parse_to_int32(words[0]);
+                    const auto byte_width = parse_format(format_str, ":");
                     if (!byte_width.has_value())
                     {
                         throw std::runtime_error(

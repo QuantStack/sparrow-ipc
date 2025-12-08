@@ -1,13 +1,12 @@
 #pragma once
 
 #include <optional>
-#include <string>
+#include <span>
+#include <vector>
 
 #include <sparrow/record_batch.hpp>
 
-#include "Message_generated.h"
 #include "sparrow_ipc/config/config.hpp"
-#include "sparrow_ipc/encapsulated_message.hpp"
 
 namespace sparrow_ipc
 {

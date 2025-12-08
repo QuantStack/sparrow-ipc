@@ -5,10 +5,19 @@ set(test_target "test_sparrow_ipc_lib")
 set(SPARROW_IPC_TESTS_SRC
     include/sparrow_ipc_tests_helpers.hpp
     main.cpp
+    test_any_output_stream.cpp
     test_arrow_array.cpp
     test_arrow_schema.cpp
+    test_chunk_memory_output_stream.cpp
+    test_chunk_memory_serializer.cpp
+    test_compression.cpp
     test_de_serialization_with_files.cpp
+    test_deserializer.cpp
+    $<$<NOT:$<BOOL:${SPARROW_IPC_BUILD_SHARED}>>:test_flatbuffer_utils.cpp>
+    test_memory_output_streams.cpp
     test_serialize_utils.cpp
+    test_serializer.cpp
+    test_stream_file_serializer.cpp
     test_utils.cpp
 )
 
@@ -23,8 +32,17 @@ target_link_libraries(${test_target}
 
 if(WIN32)
     find_package(date) # For copying DLLs
-    add_custom_command(
-        TARGET ${test_target} POST_BUILD
+
+    set(ZSTD_DLL_TARGET "")
+    if(TARGET libzstd_shared AND SPARROW_IPC_BUILD_SHARED) # Building deps from src case: shared target without namespace
+        set(ZSTD_DLL_TARGET libzstd_shared)
+    elseif(TARGET libzstd_static AND NOT SPARROW_IPC_BUILD_SHARED) # Building deps from src case: static target without namespace
+        set(ZSTD_DLL_TARGET libzstd_static)
+    endif()
+
+    set(DLL_COPY_COMMANDS "") # Initialize a list to hold all copy commands
+    # Add unconditional copy commands
+    list(APPEND DLL_COPY_COMMANDS
         COMMAND ${CMAKE_COMMAND} -E copy
             "$<TARGET_FILE:sparrow::sparrow>"
             "$<TARGET_FILE_DIR:${test_target}>"
@@ -37,7 +55,23 @@ if(WIN32)
         COMMAND ${CMAKE_COMMAND} -E copy
             "$<TARGET_FILE:date::date-tz>"
             "$<TARGET_FILE_DIR:${test_target}>"
-        COMMENT "Copying sparrow and sparrow-ipc DLLs to executable directory"
+    )
+
+    # Conditionally add ZSTD copy command
+    if(ZSTD_DLL_TARGET)
+        list(APPEND DLL_COPY_COMMANDS
+            COMMAND ${CMAKE_COMMAND} -E copy
+                "$<TARGET_FILE:${ZSTD_DLL_TARGET}>"
+                "$<TARGET_FILE_DIR:${test_target}>"
+        )
+    else()
+        message(WARNING "ZSTD DLL will not be copied for tests.")
+    endif()
+
+    add_custom_command(
+        TARGET ${test_target} POST_BUILD
+        ${DLL_COPY_COMMANDS}
+        COMMENT "Copying required DLLs to executable directory"
     )
 endif()
 

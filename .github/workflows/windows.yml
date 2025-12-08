@@ -19,7 +19,7 @@ jobs:
         build_shared: [ON, OFF]
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Create build environment
         uses: mamba-org/setup-micromamba@v2
@@ -40,7 +40,9 @@ jobs:
           -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX \
           -DCMAKE_PREFIX_PATH=$GLOB_PREFIX_PATH \
           -DSPARROW_IPC_BUILD_SHARED=${{ matrix.build_shared }} \
-          -DSPARROW_IPC_BUILD_TESTS=ON
+          -DSPARROW_IPC_BUILD_TESTS=ON \
+          -DSPARROW_IPC_BUILD_INTEGRATION_TESTS=ON \
+          -DSPARROW_IPC_BUILD_EXAMPLES=ON
 
       - name: Build sparrow-ipc
         working-directory: build
@@ -55,6 +57,30 @@ jobs:
         run: |
           cmake --build . --config ${{ matrix.build_type }} --target run_tests_with_junit_report
 
+      - name: Build example
+        working-directory: build
+        run: cmake --build . --config ${{ matrix.build_type }} --target write_and_read_streams
+
+      - name: Run example
+        working-directory: build
+        run: cmake --build . --config ${{ matrix.build_type }} --target run_example
+
+      - name: Build test_integration_tools
+        working-directory: build
+        run: cmake --build . --config ${{ matrix.build_type }} --target test_integration_tools
+
+      - name: Run test_integration_tools
+        working-directory: build
+        run: cmake --build . --config ${{ matrix.build_type }} --target run_test_integration_tools
+        
+      - name: Build deserializer example
+        working-directory: build
+        run: cmake --build . --config ${{ matrix.build_type }} --target deserializer_example
+
+      - name: Run deserializer example
+        working-directory: build
+        run: cmake --build . --config ${{ matrix.build_type }} --target run_deserializer_example
+
       - name: Install
         working-directory: build
         run: cmake --install . --config ${{ matrix.build_type }}
@@ -67,7 +93,7 @@ jobs:
         build_shared: [ON, OFF]
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Enable tests coverage
         if: matrix.build_type == 'Debug'
@@ -80,6 +106,8 @@ jobs:
           cmake -S ./ -B ./build \
           -DSPARROW_IPC_BUILD_SHARED=${{ matrix.build_shared }} \
           -DSPARROW_IPC_BUILD_TESTS=ON \
+          -DSPARROW_IPC_BUILD_EXAMPLES=ON \
+          -DSPARROW_IPC_BUILD_INTEGRATION_TESTS=ON \
           -DFETCH_DEPENDENCIES_WITH_CMAKE=MISSING \
           $TEST_COVERAGE_ACTIVATION
 
@@ -94,6 +122,30 @@ jobs:
       - name: Run tests
         working-directory: build
         run: cmake --build . --config ${{ matrix.build_type }} --target run_tests_with_junit_report
+
+      - name: Build example
+        working-directory: build
+        run: cmake --build . --config ${{ matrix.build_type }} --target write_and_read_streams
+
+      - name: Run example
+        working-directory: build
+        run: cmake --build . --config ${{ matrix.build_type }} --target run_example
+
+      - name: Build deserializer example
+        working-directory: build
+        run: cmake --build . --config ${{ matrix.build_type }} --target deserializer_example
+
+      - name: Run deserializer example
+        working-directory: build
+        run: cmake --build . --config ${{ matrix.build_type }} --target run_deserializer_example
+
+      - name: Build test_integration_tools
+        working-directory: build
+        run: cmake --build . --config ${{ matrix.build_type }} --target test_integration_tools
+
+      - name: Run test_integration_tools
+        working-directory: build
+        run: cmake --build . --config ${{ matrix.build_type }} --target run_test_integration_tools
 
       - name: Install
         working-directory: build
