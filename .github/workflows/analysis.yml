@@ -55,9 +55,6 @@ jobs:
       working-directory: build
       run: cmake --build . --target sparrow-ipc
 
-    - name: Verify generated files
-      run: ls -lR build/generated
-
     # Run Clang-Tidy and Clang-Format Analysis
     - name: Run C++ analysis
       uses: cpp-linter/cpp-linter-action@v2
