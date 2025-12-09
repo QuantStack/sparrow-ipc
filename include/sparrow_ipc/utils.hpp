@@ -2,9 +2,7 @@
 
 #include <cstdint>
 #include <optional>
-#include <string>
 #include <string_view>
-#include <utility>
 #include <vector>
 
 #include <sparrow/record_batch.hpp>
@@ -99,5 +97,24 @@ namespace sparrow_ipc::utils
     // Parse the format string
     // The format string is expected to be "w:size", "+w:size", "d:precision,scale", etc
     std::optional<int32_t> parse_format(std::string_view format_str, std::string_view sep);
+
+    /**
+     * @brief Parse decimal format strings.
+     *
+     * This function parses decimal format strings which can be in two formats:
+     * - "d:precision,scale" (e.g., "d:19,10")
+     * - "d:precision,scale,bitWidth" (e.g., "d:19,10,128")
+     *
+     * @param format_str The format string to parse
+     * @return std::optional<std::tuple<int32_t, int32_t, std::optional<int32_t>>>
+     *         A tuple containing (precision, scale, optional bitWidth), or std::nullopt if parsing fails
+     *
+     * @example
+     * parse_decimal_format("d:19,10") returns std::optional{std::tuple{19, 10, std::nullopt}}
+     * parse_decimal_format("d:19,10,128") returns std::optional{std::tuple{19, 10, std::optional{128}}}
+     * parse_decimal_format("invalid") returns std::nullopt
+     */
+    SPARROW_IPC_API std::optional<std::tuple<int32_t, int32_t, std::optional<int32_t>>> parse_decimal_format(std::string_view format_str);
+
     // size_t calculate_output_serialized_size(const sparrow::record_batch& record_batch);
 }

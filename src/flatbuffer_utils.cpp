@@ -370,7 +370,7 @@ namespace sparrow_ipc
     }
 
     // Creates a Flatbuffers Decimal type from a format string
-    // The format string is expected to be in the format "d:precision,scale"
+    // The format string is expected to be in the format "d:precision,scale" or "d:precision,scale,bitWidth"
     std::pair<org::apache::arrow::flatbuf::Type, flatbuffers::Offset<void>> get_flatbuffer_decimal_type(
         flatbuffers::FlatBufferBuilder& builder,
         std::string_view format_str,
@@ -378,29 +378,26 @@ namespace sparrow_ipc
     )
     {
         // Decimal requires precision and scale. We need to parse the format_str.
-        // Format: "d:precision,scale"
-        const auto scale = utils::parse_format(format_str, ",");
-        if (!scale.has_value())
+        // Format: "d:precision,scale" or "d:precision,scale,bitWidth"
+        const auto parsed = utils::parse_decimal_format(format_str);
+        if (!parsed.has_value())
         {
             throw std::runtime_error(
                 "Failed to parse Decimal " + std::to_string(bitWidth)
-                + " scale from format string: " + std::string(format_str)
+                + " format string: " + std::string(format_str)
             );
         }
-        const size_t comma_pos = format_str.find(',');
-        const auto precision = utils::parse_format(format_str.substr(0, comma_pos), ":");
-        if (!precision.has_value())
-        {
-            throw std::runtime_error(
-                "Failed to parse Decimal " + std::to_string(bitWidth)
-                + " precision from format string: " + std::string(format_str)
-            );
-        }
+
+        const auto& [precision, scale, parsed_bitwidth] = parsed.value();
+        
+        // Use the bitWidth from the format string if provided, otherwise use the parameter
+        const int32_t actual_bitwidth = parsed_bitwidth.value_or(bitWidth);
+        
         const auto decimal_type = org::apache::arrow::flatbuf::CreateDecimal(
             builder,
-            precision.value(),
-            scale.value(),
-            bitWidth
+            precision,
+            scale,
+            actual_bitwidth
         );
         return {org::apache::arrow::flatbuf::Type::Decimal, decimal_type.Union()};
     }

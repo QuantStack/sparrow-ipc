@@ -145,4 +145,114 @@ namespace sparrow_ipc
             CHECK_EQ(result.value(), 123);
         }
     }
+
+    TEST_CASE("parse_decimal_format")
+    {
+        SUBCASE("Basic format: d:19,10")
+        {
+            auto result = utils::parse_decimal_format("d:19,10");
+            REQUIRE(result.has_value());
+            const auto& [precision, scale, bitwidth] = result.value();
+            CHECK_EQ(precision, 19);
+            CHECK_EQ(scale, 10);
+            CHECK_FALSE(bitwidth.has_value());
+        }
+
+        SUBCASE("Extended format: d:19,10,128")
+        {
+            auto result = utils::parse_decimal_format("d:19,10,128");
+            REQUIRE(result.has_value());
+            const auto& [precision, scale, bitwidth] = result.value();
+            CHECK_EQ(precision, 19);
+            CHECK_EQ(scale, 10);
+            REQUIRE(bitwidth.has_value());
+            CHECK_EQ(bitwidth.value(), 128);
+        }
+
+        SUBCASE("Extended format: d:38,6,256")
+        {
+            auto result = utils::parse_decimal_format("d:38,6,256");
+            REQUIRE(result.has_value());
+            const auto& [precision, scale, bitwidth] = result.value();
+            CHECK_EQ(precision, 38);
+            CHECK_EQ(scale, 6);
+            REQUIRE(bitwidth.has_value());
+            CHECK_EQ(bitwidth.value(), 256);
+        }
+
+        SUBCASE("Basic format with zero scale: d:10,0")
+        {
+            auto result = utils::parse_decimal_format("d:10,0");
+            REQUIRE(result.has_value());
+            const auto& [precision, scale, bitwidth] = result.value();
+            CHECK_EQ(precision, 10);
+            CHECK_EQ(scale, 0);
+            CHECK_FALSE(bitwidth.has_value());
+        }
+
+        SUBCASE("Extended format with zero scale: d:10,0,64")
+        {
+            auto result = utils::parse_decimal_format("d:10,0,64");
+            REQUIRE(result.has_value());
+            const auto& [precision, scale, bitwidth] = result.value();
+            CHECK_EQ(precision, 10);
+            CHECK_EQ(scale, 0);
+            REQUIRE(bitwidth.has_value());
+            CHECK_EQ(bitwidth.value(), 64);
+        }
+
+        SUBCASE("Invalid - no colon")
+        {
+            auto result = utils::parse_decimal_format("d19,10");
+            CHECK_FALSE(result.has_value());
+        }
+
+        SUBCASE("Invalid - no comma")
+        {
+            auto result = utils::parse_decimal_format("d:19");
+            CHECK_FALSE(result.has_value());
+        }
+
+        SUBCASE("Invalid - missing precision")
+        {
+            auto result = utils::parse_decimal_format("d:,10");
+            CHECK_FALSE(result.has_value());
+        }
+
+        SUBCASE("Invalid - missing scale")
+        {
+            auto result = utils::parse_decimal_format("d:19,");
+            CHECK_FALSE(result.has_value());
+        }
+
+        SUBCASE("Invalid - missing bitwidth when provided")
+        {
+            auto result = utils::parse_decimal_format("d:19,10,");
+            CHECK_FALSE(result.has_value());
+        }
+
+        SUBCASE("Invalid - non-numeric precision")
+        {
+            auto result = utils::parse_decimal_format("d:abc,10");
+            CHECK_FALSE(result.has_value());
+        }
+
+        SUBCASE("Invalid - non-numeric scale")
+        {
+            auto result = utils::parse_decimal_format("d:19,abc");
+            CHECK_FALSE(result.has_value());
+        }
+
+        SUBCASE("Invalid - non-numeric bitwidth")
+        {
+            auto result = utils::parse_decimal_format("d:19,10,abc");
+            CHECK_FALSE(result.has_value());
+        }
+
+        SUBCASE("Invalid - empty string")
+        {
+            auto result = utils::parse_decimal_format("");
+            CHECK_FALSE(result.has_value());
+        }
+    }
 }
