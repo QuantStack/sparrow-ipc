@@ -18,6 +18,7 @@ namespace sparrow_ipc
         std::span<const uint8_t> body,
         std::string_view name,
         const std::optional<std::vector<sparrow::metadata_pair>>& metadata,
+        bool nullable,
         size_t& buffer_index,
         int32_t scale,
         int32_t precision
@@ -31,16 +32,22 @@ namespace sparrow_ipc
             format_str += "," + std::to_string(sizeof_decimal * 8);
         }
 
+        // Set up flags based on nullable
+        std::optional<std::unordered_set<sparrow::ArrowFlag>> flags;
+        if (nullable)
+        {
+            flags = std::unordered_set<sparrow::ArrowFlag>{sparrow::ArrowFlag::NULLABLE};
+        }
+
         ArrowSchema schema = make_non_owning_arrow_schema(
             format_str,
             name.data(),
             metadata,
-            std::nullopt,
+            flags,
             0,
             nullptr,
             nullptr
         );
-
 
         const auto compression = record_batch.compression();
         std::vector<arrow_array_private_data::optionally_owned_buffer> buffers;
@@ -55,8 +62,8 @@ namespace sparrow_ipc
         }
         else
         {
-            buffers.push_back(validity_buffer_span);
-            buffers.push_back(data_buffer_span);
+            buffers.emplace_back(validity_buffer_span);
+            buffers.emplace_back(data_buffer_span);
         }
 
         const auto [bitmap_ptr, null_count] = utils::get_bitmap_pointer_and_null_count(
