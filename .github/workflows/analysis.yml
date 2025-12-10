@@ -1,0 +1,72 @@
+name: cpp-linter-analysis
+
+on: [push, pull_request]
+
+defaults:
+  run:
+    shell: bash -e -l {0}
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+
+    steps:
+    # Set up Clang and LLVM
+    - name: Install LLVM and Clang
+      run: |
+        wget https://apt.llvm.org/llvm.sh
+        chmod +x llvm.sh
+        sudo ./llvm.sh 20
+        sudo apt-get install -y clang-tools-20
+        sudo update-alternatives --install /usr/bin/clang++         clang++         /usr/bin/clang++-20 200
+        sudo update-alternatives --install /usr/bin/clang           clang           /usr/bin/clang-20 200
+        sudo update-alternatives --install /usr/bin/clang-scan-deps clang-scan-deps /usr/bin/clang-scan-deps-20 200
+        sudo update-alternatives --set clang /usr/bin/clang-20
+        sudo update-alternatives --set clang++ /usr/bin/clang++-20
+        sudo update-alternatives --set clang-scan-deps /usr/bin/clang-scan-deps-20
+
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    # Set conda environment using setup-micromamba
+    - name: Set conda environment
+      uses: mamba-org/setup-micromamba@main
+      with:
+        environment-name: myenv
+        environment-file: environment-dev.yml
+        init-shell: bash
+        cache-downloads: true
+
+    # Run CMake configuration
+    - name: Configure using CMake
+      run: |
+        export CC=clang; export CXX=clang++
+        cmake -G Ninja \
+        -Bbuild \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX \
+        -DSPARROW_IPC_BUILD_TESTS=ON \
+        -DSPARROW_IPC_BUILD_INTEGRATION_TESTS=ON \
+        -DSPARROW_IPC_BUILD_EXAMPLES=ON \
+        -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+
+    # Build sparrow-ipc to have the generated flatbuffers files available
+    - name: Build sparrow-ipc
+      working-directory: build
+      run: cmake --build . --target sparrow-ipc
+
+    # Run Clang-Tidy and Clang-Format Analysis
+    - name: Run C++ analysis
+      uses: cpp-linter/cpp-linter-action@v2
+      id: linter
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        version: 20
+        files-changed-only: false  # check all files
+        database: 'build'
+        style: 'file'  # Use .clang-format config file
+        tidy-checks: '' # Use .clang-tidy config file
+        step-summary: true
+        ignore: build
+        extra-args: '-std=c++20 -I${{ github.workspace }}/build/generated'
