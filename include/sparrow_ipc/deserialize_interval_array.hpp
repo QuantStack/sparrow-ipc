@@ -1,10 +1,7 @@
 #pragma once
 
-#include <optional>
-#include <vector>
-
 #include <sparrow/arrow_interface/arrow_array_schema_proxy.hpp>
-#include <sparrow/primitive_array.hpp>
+#include <sparrow/interval_array.hpp>
 
 #include "Message_generated.h"
 #include "sparrow_ipc/deserialize_array_impl.hpp"
@@ -12,7 +9,7 @@
 namespace sparrow_ipc
 {
     template <typename T>
-    [[nodiscard]] sparrow::primitive_array<T> deserialize_non_owning_primitive_array(
+    [[nodiscard]] sparrow::interval_array<T> deserialize_non_owning_interval_array(
         const org::apache::arrow::flatbuf::RecordBatch& record_batch,
         std::span<const uint8_t> body,
         std::string_view name,
@@ -21,7 +18,7 @@ namespace sparrow_ipc
         size_t& buffer_index
     )
     {
-        return detail::deserialize_non_owning_simple_array<sparrow::primitive_array, T>(
+        return detail::deserialize_non_owning_simple_array<sparrow::interval_array, T>(
             record_batch,
             body,
             name,

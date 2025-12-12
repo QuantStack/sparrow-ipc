@@ -3,6 +3,7 @@
 #include <sparrow/types/data_type.hpp>
 
 #include "sparrow_ipc/deserialize_fixedsizebinary_array.hpp"
+#include "sparrow_ipc/deserialize_interval_array.hpp"
 #include "sparrow_ipc/deserialize_primitive_array.hpp"
 #include "sparrow_ipc/deserialize_variable_size_binary_array.hpp"
 #include "sparrow_ipc/encapsulated_message.hpp"
@@ -11,11 +12,23 @@
 
 namespace sparrow_ipc
 {
+    namespace
+    {
+        // Integer bit width constants
+        constexpr int32_t BIT_WIDTH_8 = 8;
+        constexpr int32_t BIT_WIDTH_16 = 16;
+        constexpr int32_t BIT_WIDTH_32 = 32;
+        constexpr int32_t BIT_WIDTH_64 = 64;
+
+        // End-of-stream marker size in bytes
+        constexpr size_t END_OF_STREAM_MARKER_SIZE = 8;
+    }
     const org::apache::arrow::flatbuf::RecordBatch*
     deserialize_record_batch_message(std::span<const uint8_t> data, size_t& current_offset)
     {
         current_offset += sizeof(uint32_t);
-        const auto batch_message = org::apache::arrow::flatbuf::GetMessage(data.data() + current_offset);
+        const auto message_data = data.subspan(current_offset);
+        const auto* batch_message = org::apache::arrow::flatbuf::GetMessage(message_data.data());
         if (batch_message->header_type() != org::apache::arrow::flatbuf::MessageHeader::RecordBatch)
         {
             throw std::runtime_error("Expected RecordBatch message, but got a different type.");
@@ -28,21 +41,21 @@ namespace sparrow_ipc
      *
      * This function processes each field in the schema and deserializes the corresponding
      * data from the RecordBatch into sparrow::array objects. It handles various Arrow data
-     * types including primitive types (bool, integers, floating point), binary data, and
-     * string data with their respective size variants.
+     * types including primitive types (bool, integers, floating point), binary data, string
+     * data, fixed-size binary data, and interval types.
      *
      * @param record_batch The Apache Arrow FlatBuffer RecordBatch containing the serialized data
      * @param schema The Apache Arrow FlatBuffer Schema defining the structure and types of the data
      * @param encapsulated_message The message containing the binary data buffers
-     * @param field_metadata Metadata for each field
+     * @param field_metadata Metadata associated with each field in the schema
      *
      * @return std::vector<sparrow::array> A vector of deserialized arrays, one for each field in the schema
      *
-     * @throws std::runtime_error If an unsupported data type, integer bit width, or floating point precision
-     * is encountered
+     * @throws std::runtime_error If an unsupported data type, integer bit width, floating point precision,
+     *         or interval unit is encountered
      *
-     * The function maintains a buffer index that is incremented as it processes each field
-     * to correctly map data buffers to their corresponding arrays.
+     * @note The function maintains a buffer index that is incremented as it processes each field
+     *       to correctly map data buffers to their corresponding arrays.
      */
     std::vector<sparrow::array> get_arrays_from_record_batch(
         const org::apache::arrow::flatbuf::RecordBatch& record_batch,
@@ -90,7 +103,7 @@ namespace sparrow_ipc
                     break;
                 case org::apache::arrow::flatbuf::Type::Int:
                 {
-                    const auto int_type = field->type_as_Int();
+                    const auto* int_type = field->type_as_Int();
                     const auto bit_width = int_type->bitWidth();
                     const bool is_signed = int_type->is_signed();
 
@@ -99,11 +112,11 @@ namespace sparrow_ipc
                         switch (bit_width)
                         {
                                 // clang-format off
-                                        case 8:  arrays.emplace_back(deserialize_non_owning_primitive_array_lambda.template operator()<int8_t>()); break;
-                                        case 16: arrays.emplace_back(deserialize_non_owning_primitive_array_lambda.template operator()<int16_t>()); break;
-                                        case 32: arrays.emplace_back(deserialize_non_owning_primitive_array_lambda.template operator()<int32_t>()); break;
-                                        case 64: arrays.emplace_back(deserialize_non_owning_primitive_array_lambda.template operator()<int64_t>()); break;
-                                        default: throw std::runtime_error("Unsupported integer bit width.");
+                                        case BIT_WIDTH_8:  arrays.emplace_back(deserialize_non_owning_primitive_array_lambda.template operator()<int8_t>()); break;
+                                        case BIT_WIDTH_16: arrays.emplace_back(deserialize_non_owning_primitive_array_lambda.template operator()<int16_t>()); break;
+                                        case BIT_WIDTH_32: arrays.emplace_back(deserialize_non_owning_primitive_array_lambda.template operator()<int32_t>()); break;
+                                        case BIT_WIDTH_64: arrays.emplace_back(deserialize_non_owning_primitive_array_lambda.template operator()<int64_t>()); break;
+                                        default: throw std::runtime_error("Unsupported integer bit width: " + std::to_string(bit_width));
                                 // clang-format on
                         }
                     }
@@ -112,11 +125,11 @@ namespace sparrow_ipc
                         switch (bit_width)
                         {
                                 // clang-format off
-                                        case 8:  arrays.emplace_back(deserialize_non_owning_primitive_array_lambda.template operator()<uint8_t>()); break;
-                                        case 16: arrays.emplace_back(deserialize_non_owning_primitive_array_lambda.template operator()<uint16_t>()); break;
-                                        case 32: arrays.emplace_back(deserialize_non_owning_primitive_array_lambda.template operator()<uint32_t>()); break;
-                                        case 64: arrays.emplace_back(deserialize_non_owning_primitive_array_lambda.template operator()<uint64_t>()); break;
-                                        default: throw std::runtime_error("Unsupported integer bit width.");
+                                        case BIT_WIDTH_8:  arrays.emplace_back(deserialize_non_owning_primitive_array_lambda.template operator()<uint8_t>()); break;
+                                        case BIT_WIDTH_16: arrays.emplace_back(deserialize_non_owning_primitive_array_lambda.template operator()<uint16_t>()); break;
+                                        case BIT_WIDTH_32: arrays.emplace_back(deserialize_non_owning_primitive_array_lambda.template operator()<uint32_t>()); break;
+                                        case BIT_WIDTH_64: arrays.emplace_back(deserialize_non_owning_primitive_array_lambda.template operator()<uint64_t>()); break;
+                                        default: throw std::runtime_error("Unsupported integer bit width: " + std::to_string(bit_width));
                                 // clang-format on
                         }
                     }
@@ -124,7 +137,7 @@ namespace sparrow_ipc
                 break;
                 case org::apache::arrow::flatbuf::Type::FloatingPoint:
                 {
-                    const auto float_type = field->type_as_FloatingPoint();
+                    const auto* float_type = field->type_as_FloatingPoint();
                     switch (float_type->precision())
                     {
                             // clang-format off
@@ -138,14 +151,17 @@ namespace sparrow_ipc
                                         arrays.emplace_back(deserialize_non_owning_primitive_array_lambda.template operator()<double>());
                                         break;
                                     default:
-                                        throw std::runtime_error("Unsupported floating point precision.");
+                                        throw std::runtime_error(
+                                            "Unsupported floating point precision: "
+                                            + std::to_string(static_cast<int>(float_type->precision()))
+                                        );
                             // clang-format on
                     }
                     break;
                 }
                 case org::apache::arrow::flatbuf::Type::FixedSizeBinary:
                 {
-                    const auto fixed_size_binary_field = field->type_as_FixedSizeBinary();
+                    const auto* fixed_size_binary_field = field->type_as_FixedSizeBinary();
                     arrays.emplace_back(deserialize_non_owning_fixedwidthbinary(
                         record_batch,
                         encapsulated_message.body(),
@@ -205,8 +221,61 @@ namespace sparrow_ipc
                         )
                     );
                     break;
+                case org::apache::arrow::flatbuf::Type::Interval:
+                {
+                    const auto* interval_type = field->type_as_Interval();
+                    const org::apache::arrow::flatbuf::IntervalUnit interval_unit = interval_type->unit();
+                    switch (interval_unit)
+                    {
+                        case org::apache::arrow::flatbuf::IntervalUnit::YEAR_MONTH:
+                            arrays.emplace_back(
+                                deserialize_non_owning_interval_array<sparrow::chrono::months>(
+                                    record_batch,
+                                    encapsulated_message.body(),
+                                    name,
+                                    metadata,
+                                    nullable,
+                                    buffer_index
+                                )
+                            );
+                            break;
+                        case org::apache::arrow::flatbuf::IntervalUnit::DAY_TIME:
+                            arrays.emplace_back(
+                                deserialize_non_owning_interval_array<sparrow::days_time_interval>(
+                                    record_batch,
+                                    encapsulated_message.body(),
+                                    name,
+                                    metadata,
+                                    nullable,
+                                    buffer_index
+                                )
+                            );
+                            break;
+                        case org::apache::arrow::flatbuf::IntervalUnit::MONTH_DAY_NANO:
+                            arrays.emplace_back(
+                                deserialize_non_owning_interval_array<sparrow::month_day_nanoseconds_interval>(
+                                    record_batch,
+                                    encapsulated_message.body(),
+                                    name,
+                                    metadata,
+                                    nullable,
+                                    buffer_index
+                                )
+                            );
+                            break;
+                        default:
+                            throw std::runtime_error(
+                                "Unsupported interval unit: "
+                                + std::to_string(static_cast<int>(interval_unit))
+                            );
+                    }
+                }
+                break;
                 default:
-                    throw std::runtime_error("Unsupported type.");
+                    throw std::runtime_error(
+                        "Unsupported field type: " + std::to_string(static_cast<int>(field_type))
+                        + " for field '" + name + "'"
+                    );
             }
         }
         return arrays;
@@ -220,10 +289,12 @@ namespace sparrow_ipc
         std::vector<bool> fields_nullable;
         std::vector<sparrow::data_type> field_types;
         std::vector<std::optional<std::vector<sparrow::metadata_pair>>> fields_metadata;
-        do
+
+        while (!data.empty())
         {
-            // Check for end-of-stream marker here as data could contain only that (if no record batches present/written)
-            if (data.size() >= 8 && is_end_of_stream(data.subspan(0, 8)))
+            // Check for end-of-stream marker
+            if (data.size() >= END_OF_STREAM_MARKER_SIZE
+                && is_end_of_stream(data.subspan(0, END_OF_STREAM_MARKER_SIZE)))
             {
                 break;
             }
@@ -276,12 +347,12 @@ namespace sparrow_ipc
                 {
                     if (schema == nullptr)
                     {
-                        throw std::runtime_error("Schema message is missing.");
+                        throw std::runtime_error("RecordBatch encountered before Schema message.");
                     }
-                    const auto record_batch = message->header_as_RecordBatch();
+                    const auto* record_batch = message->header_as_RecordBatch();
                     if (record_batch == nullptr)
                     {
-                        throw std::runtime_error("RecordBatch message is missing.");
+                        throw std::runtime_error("RecordBatch message header is null.");
                     }
                     std::vector<sparrow::array> arrays = get_arrays_from_record_batch(
                         *record_batch,
@@ -289,8 +360,7 @@ namespace sparrow_ipc
                         encapsulated_message,
                         fields_metadata
                     );
-                    auto names_copy = field_names;  // TODO: Remove when issue with the to_vector of
-                                                    // record_batch is fixed
+                    auto names_copy = field_names;
                     sparrow::record_batch sp_record_batch(std::move(names_copy), std::move(arrays));
                     record_batches.emplace_back(std::move(sp_record_batch));
                 }
@@ -298,12 +368,12 @@ namespace sparrow_ipc
                 case org::apache::arrow::flatbuf::MessageHeader::Tensor:
                 case org::apache::arrow::flatbuf::MessageHeader::DictionaryBatch:
                 case org::apache::arrow::flatbuf::MessageHeader::SparseTensor:
-                    throw std::runtime_error("Not supported");
+                    throw std::runtime_error("Unsupported message type: Tensor, DictionaryBatch, or SparseTensor");
                 default:
                     throw std::runtime_error("Unknown message header type.");
             }
             data = rest;
-        } while (!data.empty());
+        }
         return record_batches;
     }
 }

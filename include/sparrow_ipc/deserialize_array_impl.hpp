@@ -1,0 +1,98 @@
+#pragma once
+
+#include <optional>
+#include <unordered_set>
+#include <vector>
+
+#include <sparrow/arrow_interface/arrow_array_schema_proxy.hpp>
+
+#include "Message_generated.h"
+#include "sparrow_ipc/arrow_interface/arrow_array.hpp"
+#include "sparrow_ipc/arrow_interface/arrow_schema.hpp"
+#include "sparrow_ipc/deserialize_utils.hpp"
+
+namespace sparrow_ipc::detail
+{
+    /**
+     * @brief Generic implementation for deserializing non-owning arrays with simple layout.
+     *
+     * This function provides the common deserialization logic for array types that have
+     * a validity buffer and a single data buffer (e.g., primitive_array, interval_array).
+     *
+     * @tparam ArrayType The array type template (e.g., sparrow::primitive_array)
+     * @tparam T The element type
+     *
+     * @param record_batch The FlatBuffer RecordBatch containing metadata
+     * @param body The raw buffer data
+     * @param name The array column name
+     * @param metadata Optional metadata pairs
+     * @param nullable Whether the array is nullable
+     * @param buffer_index The current buffer index (incremented by this function)
+     *
+     * @return The deserialized array of type ArrayType<T>
+     */
+    template <template<typename...> class ArrayType, typename T>
+    [[nodiscard]] ArrayType<T> deserialize_non_owning_simple_array(
+        const org::apache::arrow::flatbuf::RecordBatch& record_batch,
+        std::span<const uint8_t> body,
+        std::string_view name,
+        const std::optional<std::vector<sparrow::metadata_pair>>& metadata,
+        bool nullable,
+        size_t& buffer_index
+    )
+    {
+        const std::string_view format = data_type_to_format(
+            sparrow::detail::get_data_type_from_array<ArrayType<T>>::get()
+        );
+        
+        // Set up flags based on nullable
+        std::optional<std::unordered_set<sparrow::ArrowFlag>> flags;
+        if (nullable)
+        {
+            flags = std::unordered_set<sparrow::ArrowFlag>{sparrow::ArrowFlag::NULLABLE};
+        }
+        
+        ArrowSchema schema = make_non_owning_arrow_schema(
+            format,
+            name.data(),
+            metadata,
+            flags,
+            0,
+            nullptr,
+            nullptr
+        );
+
+        const auto compression = record_batch.compression();
+        std::vector<arrow_array_private_data::optionally_owned_buffer> buffers;
+
+        auto validity_buffer_span = utils::get_buffer(record_batch, body, buffer_index);
+        auto data_buffer_span = utils::get_buffer(record_batch, body, buffer_index);
+
+        if (compression)
+        {
+            buffers.push_back(utils::get_decompressed_buffer(validity_buffer_span, compression));
+            buffers.push_back(utils::get_decompressed_buffer(data_buffer_span, compression));
+        }
+        else
+        {
+            buffers.emplace_back(validity_buffer_span);
+            buffers.emplace_back(data_buffer_span);
+        }
+
+        // TODO bitmap_ptr is not used anymore... Leave it for now, and remove later if no need confirmed
+        const auto [bitmap_ptr, null_count] = utils::get_bitmap_pointer_and_null_count(validity_buffer_span, record_batch.length());
+
+        ArrowArray array = make_arrow_array<arrow_array_private_data>(
+            record_batch.length(),
+            null_count,
+            0,
+            0,
+            nullptr,
+            nullptr,
+            std::move(buffers)
+        );
+
+        sparrow::arrow_proxy ap{std::move(array), std::move(schema)};
+        return ArrayType<T>{std::move(ap)};
+    }
+}
