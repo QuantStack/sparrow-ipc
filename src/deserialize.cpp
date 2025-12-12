@@ -82,7 +82,7 @@ namespace sparrow_ipc
             const std::string name = field->name() == nullptr ? "" : field->name()->str();
             const bool nullable = field->nullable();
             const auto field_type = field->type_type();
-
+            // TODO rename all the deserialize_non_owning... fcts since this is not correct anymore
             const auto deserialize_non_owning_primitive_array_lambda = [&]<typename T>()
             {
                 return deserialize_non_owning_primitive_array<T>(
