@@ -3,6 +3,7 @@
 #include <sparrow/types/data_type.hpp>
 
 #include "sparrow_ipc/deserialize_fixedsizebinary_array.hpp"
+#include "sparrow_ipc/deserialize_null_array.hpp"
 #include "sparrow_ipc/deserialize_interval_array.hpp"
 #include "sparrow_ipc/deserialize_primitive_array.hpp"
 #include "sparrow_ipc/deserialize_variable_size_binary_array.hpp"
@@ -271,6 +272,16 @@ namespace sparrow_ipc
                     }
                 }
                 break;
+                case org::apache::arrow::flatbuf::Type::Null:
+                    arrays.emplace_back(deserialize_non_owning_null(
+                        record_batch,
+                        encapsulated_message.body(),
+                        name,
+                        metadata,
+                        nullable,
+                        buffer_index
+                    ));
+                    break;
                 default:
                     throw std::runtime_error(
                         "Unsupported field type: " + std::to_string(static_cast<int>(field_type))
