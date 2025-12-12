@@ -4,16 +4,24 @@
 
 namespace sparrow_ipc::utils
 {
-    std::optional<int32_t> parse_format(std::string_view format_str, std::string_view sep)
+    std::optional<std::string_view> parse_after_separator(std::string_view format_str, std::string_view sep)
     {
-        // Find the position of the delimiter
         const auto sep_pos = format_str.find(sep);
         if (sep_pos == std::string_view::npos)
         {
             return std::nullopt;
         }
+        return format_str.substr(sep_pos + sep.length());
+    }
 
-        std::string_view substr_str(format_str.data() + sep_pos + 1, format_str.size() - sep_pos - 1);
+    std::optional<int32_t> parse_format(std::string_view format_str, std::string_view sep)
+    {
+        const auto substr_opt = parse_after_separator(format_str, sep);
+        if (!substr_opt)
+        {
+            return std::nullopt;
+        }
+        const auto& substr_str = substr_opt.value();
 
         int32_t substr_size = 0;
         const auto [ptr, ec] = std::from_chars(

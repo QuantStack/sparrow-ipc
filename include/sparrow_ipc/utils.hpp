@@ -11,7 +11,10 @@
 namespace sparrow_ipc::utils
 {
     // Aligns a value to the next multiple of 8, as required by the Arrow IPC format for message bodies
-    SPARROW_IPC_API size_t align_to_8(const size_t n);
+    inline size_t align_to_8(const size_t n)
+    {
+        return (n + 7) & -8;
+    }
 
     /**
      * @brief Extracts words after ':' separated by ',' from a string.
@@ -93,11 +96,10 @@ namespace sparrow_ipc::utils
         return true;
     }
 
+    std::optional<std::string_view> parse_after_separator(std::string_view format_str, std::string_view sep);
     // Parse the format string
     // The format string is expected to be "w:size", "+w:size", "d:precision,scale", etc
     std::optional<int32_t> parse_format(std::string_view format_str, std::string_view sep);
-    // Used to parse timezone
-    std::optional<std::string_view> parse_format_string(std::string_view format_str, std::string_view sep);
     // size_t calculate_output_serialized_size(const sparrow::record_batch& record_batch);
 
     /**

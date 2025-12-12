@@ -8,6 +8,7 @@
 #include "sparrow_ipc/deserialize_interval_array.hpp"
 #include "sparrow_ipc/deserialize_null_array.hpp"
 #include "sparrow_ipc/deserialize_primitive_array.hpp"
+#include "sparrow_ipc/deserialize_time_related_arrays.hpp"
 #include "sparrow_ipc/deserialize_variable_size_binary_array.hpp"
 #include "sparrow_ipc/encapsulated_message.hpp"
 #include "sparrow_ipc/magic_values.hpp"
