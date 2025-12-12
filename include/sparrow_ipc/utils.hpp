@@ -96,6 +96,8 @@ namespace sparrow_ipc::utils
     // Parse the format string
     // The format string is expected to be "w:size", "+w:size", "d:precision,scale", etc
     std::optional<int32_t> parse_format(std::string_view format_str, std::string_view sep);
+    // Used to parse timezone
+    std::optional<std::string_view> parse_format_string(std::string_view format_str, std::string_view sep);
     // size_t calculate_output_serialized_size(const sparrow::record_batch& record_batch);
 
     /**

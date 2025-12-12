@@ -29,6 +29,16 @@ namespace sparrow_ipc::utils
         return substr_size;
     }
 
+    std::optional<std::string_view> parse_format_string(std::string_view format_str, std::string_view sep)
+    {
+        const size_t sep_pos = format_str.find(sep);
+        if (sep_pos == std::string_view::npos)
+        {
+            return std::nullopt;
+        }
+        return format_str.substr(sep_pos + sep.length());
+    }
+
     size_t align_to_8(const size_t n)
     {
         return (n + 7) & -8;

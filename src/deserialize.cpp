@@ -98,6 +98,56 @@ namespace sparrow_ipc
                     buffer_index
                 );
             };
+
+            const auto deserialize_non_owning_date_array_lambda = [&]<typename T>()
+            {
+                return deserialize_non_owning_date_array<T>(
+                    record_batch,
+                    encapsulated_message.body(),
+                    name,
+                    metadata,
+                    nullable,
+                    buffer_index
+                );
+            };
+
+            const auto deserialize_non_owning_timestamp_array_lambda = [&]<typename T>(const std::string& timezone)
+            {
+                return deserialize_non_owning_timestamp_array<T>(
+                    record_batch,
+                    encapsulated_message.body(),
+                    name,
+                    metadata,
+                    nullable,
+                    buffer_index,
+                    timezone
+                );
+            };
+
+            const auto deserialize_non_owning_timestamp_without_timezone_array_lambda = [&]<typename T>()
+            {
+                return deserialize_non_owning_timestamp_without_timezone_array<T>(
+                    record_batch,
+                    encapsulated_message.body(),
+                    name,
+                    metadata,
+                    nullable,
+                    buffer_index
+                );
+            };
+
+            const auto deserialize_non_owning_time_array_lambda = [&]<typename T>()
+            {
+                return deserialize_non_owning_time_array<T>(
+                    record_batch,
+                    encapsulated_message.body(),
+                    name,
+                    metadata,
+                    nullable,
+                    buffer_index
+                );
+            };
+
             switch (field_type)
             {
                 case org::apache::arrow::flatbuf::Type::Bool:
@@ -336,6 +386,85 @@ namespace sparrow_ipc
                     }
                 }
                 break;
+                case org::apache::arrow::flatbuf::Type::Timestamp:
+                {
+                    const auto timestamp_type = field->type_as_Timestamp();
+                    const auto time_unit = timestamp_type->unit();
+                    const bool has_timezone = timestamp_type->timezone() != nullptr;
+
+                    if (has_timezone)
+                    {
+                        const std::string timezone = timestamp_type->timezone()->str();
+                        switch (time_unit)
+                        {
+                            case org::apache::arrow::flatbuf::TimeUnit::SECOND:
+                                arrays.emplace_back(deserialize_non_owning_timestamp_array_lambda.template operator()<sparrow::timestamp_second>(timezone));
+                                break;
+                            case org::apache::arrow::flatbuf::TimeUnit::MILLISECOND:
+                                arrays.emplace_back(deserialize_non_owning_timestamp_array_lambda.template operator()<sparrow::timestamp_millisecond>(timezone));
+                                break;
+                            case org::apache::arrow::flatbuf::TimeUnit::MICROSECOND:
+                                arrays.emplace_back(deserialize_non_owning_timestamp_array_lambda.template operator()<sparrow::timestamp_microsecond>(timezone));
+                                break;
+                            case org::apache::arrow::flatbuf::TimeUnit::NANOSECOND:
+                                arrays.emplace_back(deserialize_non_owning_timestamp_array_lambda.template operator()<sparrow::timestamp_nanosecond>(timezone));
+                                break;
+                        }
+                    }
+                    else
+                    {
+                        switch (time_unit)
+                        {
+                            case org::apache::arrow::flatbuf::TimeUnit::SECOND:
+                                arrays.emplace_back(deserialize_non_owning_timestamp_without_timezone_array_lambda.template operator()<sparrow::zoned_time_without_timezone_seconds>());
+                                break;
+                            case org::apache::arrow::flatbuf::TimeUnit::MILLISECOND:
+                                arrays.emplace_back(deserialize_non_owning_timestamp_without_timezone_array_lambda.template operator()<sparrow::zoned_time_without_timezone_milliseconds>());
+                                break;
+                            case org::apache::arrow::flatbuf::TimeUnit::MICROSECOND:
+                                arrays.emplace_back(deserialize_non_owning_timestamp_without_timezone_array_lambda.template operator()<sparrow::zoned_time_without_timezone_microseconds>());
+                                break;
+                            case org::apache::arrow::flatbuf::TimeUnit::NANOSECOND:
+                                arrays.emplace_back(deserialize_non_owning_timestamp_without_timezone_array_lambda.template operator()<sparrow::zoned_time_without_timezone_nanoseconds>());
+                                break;
+                        }
+                    }
+                    break;
+                }
+                case org::apache::arrow::flatbuf::Type::Date:
+                {
+                    const auto date_type = field->type_as_Date();
+                    const auto date_unit = date_type->unit();
+                    switch (date_unit)
+                    {
+                        case org::apache::arrow::flatbuf::DateUnit::DAY:
+                            arrays.emplace_back(deserialize_non_owning_date_array_lambda.template operator()<sparrow::date_days>());
+                            break;
+                        case org::apache::arrow::flatbuf::DateUnit::MILLISECOND:
+                            arrays.emplace_back(deserialize_non_owning_date_array_lambda.template operator()<sparrow::date_milliseconds>());
+                            break;
+                    }
+                    break;
+                }
+                case org::apache::arrow::flatbuf::Type::Time:
+                {
+                    const auto time_type = field->type_as_Time();
+                    const auto time_unit = time_type->unit();
+                    switch (time_unit)
+                    {
+                        case org::apache::arrow::flatbuf::TimeUnit::SECOND:
+                            arrays.emplace_back(deserialize_non_owning_time_array_lambda.template operator()<sparrow::chrono::time_seconds>());
+                            break;
+                        case org::apache::arrow::flatbuf::TimeUnit::MILLISECOND:
+                            arrays.emplace_back(deserialize_non_owning_time_array_lambda.template operator()<sparrow::chrono::time_milliseconds>());
+                            break;
+                        case org::apache::arrow::flatbuf::TimeUnit::MICROSECOND:
+                            arrays.emplace_back(deserialize_non_owning_time_array_lambda.template operator()<sparrow::chrono::time_microseconds>());
+                            break;
+                        case org::apache::arrow::flatbuf::TimeUnit::NANOSECOND:
+                            arrays.emplace_back(deserialize_non_owning_time_array_lambda.template operator()<sparrow::chrono::time_nanoseconds>());
+                            break;
+                    }
                 case org::apache::arrow::flatbuf::Type::Null:
                     arrays.emplace_back(deserialize_non_owning_null(
                         record_batch,

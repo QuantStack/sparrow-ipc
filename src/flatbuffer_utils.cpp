@@ -136,33 +136,61 @@ namespace sparrow_ipc
             }
             case sparrow::data_type::TIMESTAMP_SECONDS:
             {
+                const auto timezone = utils::parse_format_string(format_str, ":");
+                flatbuffers::Offset<flatbuffers::String> timezone_offset = 0;
+                if (timezone.has_value() && !timezone.value().empty())
+                {
+                    timezone_offset = builder.CreateString(timezone.value());
+                }
                 const auto timestamp_type = org::apache::arrow::flatbuf::CreateTimestamp(
                     builder,
-                    org::apache::arrow::flatbuf::TimeUnit::SECOND
+                    org::apache::arrow::flatbuf::TimeUnit::SECOND,
+                    timezone_offset
                 );
                 return {org::apache::arrow::flatbuf::Type::Timestamp, timestamp_type.Union()};
             }
             case sparrow::data_type::TIMESTAMP_MILLISECONDS:
             {
+                const auto timezone = utils::parse_format_string(format_str, ":");
+                flatbuffers::Offset<flatbuffers::String> timezone_offset = 0;
+                if (timezone.has_value() && !timezone.value().empty())
+                {
+                    timezone_offset = builder.CreateString(timezone.value());
+                }
                 const auto timestamp_type = org::apache::arrow::flatbuf::CreateTimestamp(
                     builder,
-                    org::apache::arrow::flatbuf::TimeUnit::MILLISECOND
+                    org::apache::arrow::flatbuf::TimeUnit::MILLISECOND,
+                    timezone_offset
                 );
                 return {org::apache::arrow::flatbuf::Type::Timestamp, timestamp_type.Union()};
             }
             case sparrow::data_type::TIMESTAMP_MICROSECONDS:
             {
+                const auto timezone = utils::parse_format_string(format_str, ":");
+                flatbuffers::Offset<flatbuffers::String> timezone_offset = 0;
+                if (timezone.has_value() && !timezone.value().empty())
+                {
+                    timezone_offset = builder.CreateString(timezone.value());
+                }
                 const auto timestamp_type = org::apache::arrow::flatbuf::CreateTimestamp(
                     builder,
-                    org::apache::arrow::flatbuf::TimeUnit::MICROSECOND
+                    org::apache::arrow::flatbuf::TimeUnit::MICROSECOND,
+                    timezone_offset
                 );
                 return {org::apache::arrow::flatbuf::Type::Timestamp, timestamp_type.Union()};
             }
             case sparrow::data_type::TIMESTAMP_NANOSECONDS:
             {
+                const auto timezone = utils::parse_format_string(format_str, ":");
+                flatbuffers::Offset<flatbuffers::String> timezone_offset = 0;
+                if (timezone.has_value() && !timezone.value().empty())
+                {
+                    timezone_offset = builder.CreateString(timezone.value());
+                }
                 const auto timestamp_type = org::apache::arrow::flatbuf::CreateTimestamp(
                     builder,
-                    org::apache::arrow::flatbuf::TimeUnit::NANOSECOND
+                    org::apache::arrow::flatbuf::TimeUnit::NANOSECOND,
+                    timezone_offset
                 );
                 return {org::apache::arrow::flatbuf::Type::Timestamp, timestamp_type.Union()};
             }
