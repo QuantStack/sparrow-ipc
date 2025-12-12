@@ -21,7 +21,7 @@ namespace sparrow_ipc
         size_t& buffer_index
     )
     {
-        return detail::deserialize_non_owning_simple_array<sparrow::primitive_array, T>(
+        return sparrow_ipc::detail::deserialize_non_owning_simple_array<sparrow::primitive_array, T>(
             record_batch,
             body,
             name,
