@@ -466,6 +466,8 @@ namespace sparrow_ipc
                             arrays.emplace_back(deserialize_non_owning_time_array_lambda.template operator()<sparrow::chrono::time_nanoseconds>());
                             break;
                     }
+                    break;
+                }
                 case org::apache::arrow::flatbuf::Type::Null:
                     arrays.emplace_back(deserialize_non_owning_null(
                         record_batch,

@@ -1,6 +1,9 @@
 #pragma once
 
 #include <optional>
+#include <span>
+#include <string>
+#include <string_view>
 #include <unordered_set>
 #include <vector>
 
@@ -38,12 +41,13 @@ namespace sparrow_ipc::detail
         std::string_view name,
         const std::optional<std::vector<sparrow::metadata_pair>>& metadata,
         bool nullable,
-        size_t& buffer_index
+        size_t& buffer_index,
+        std::optional<std::string> format_override = std::nullopt
     )
     {
-        const std::string_view format = data_type_to_format(
-            sparrow::detail::get_data_type_from_array<ArrayType<T>>::get()
-        );
+        const std::string_view format = format_override.has_value()
+            ? *format_override
+            : data_type_to_format(sparrow::detail::get_data_type_from_array<ArrayType<T>>::get());
         
         // Set up flags based on nullable
         std::optional<std::unordered_set<sparrow::ArrowFlag>> flags;
