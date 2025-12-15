@@ -55,7 +55,8 @@ jobs:
       - name: Run tests
         working-directory: build
         run: |
-          cmake --build . --config ${{ matrix.build_type }} --target run_tests
+          ctest --output-on-failure
+          cat tests/Testing/Temporary/LastTest.log
 
       - name: Build example
         working-directory: build
@@ -121,7 +122,9 @@ jobs:
 
       - name: Run tests
         working-directory: build
-        run: cmake --build . --config ${{ matrix.build_type }} --target run_tests
+        run: |
+          ctest --output-on-failure
+          cat tests/Testing/Temporary/LastTest.log
 
       - name: Build example
         working-directory: build
