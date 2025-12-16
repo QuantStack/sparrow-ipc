@@ -282,6 +282,8 @@ target_link_libraries(sparrow-ipc
     PRIVATE
         lz4::lz4
         zstd::libzstd
+        date::date
+        date::date-tz
         )
 
 # Ensure generated headers are available when building sparrow-ipc
