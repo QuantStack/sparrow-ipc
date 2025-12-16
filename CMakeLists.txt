@@ -277,6 +277,24 @@ target_include_directories(sparrow-ipc
 
 
 find_package(date REQUIRED)
+if(date_FOUND)
+    message(STATUS "✅ Found date package: ${date_DIR}")
+else()
+    message(STATUS "❌ date package not found!")
+endif()
+
+if(date::date)
+    message(STATUS "✅ date::date available")
+else()
+    message(STATUS "❌ date::date available")
+endif()
+
+if(date::date-tz)
+    message(STATUS "✅ date::date-tz available")
+else()
+    message(STATUS "❌ date::date-tz available")
+endif()
+
 target_link_libraries(sparrow-ipc PUBLIC date::date date::date-tz)
 
 target_link_libraries(sparrow-ipc 
