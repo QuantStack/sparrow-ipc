@@ -393,7 +393,7 @@ namespace sparrow_ipc
                     CompressionCache cache;
 
                     // Prime the cache by calculating the size
-                    calculate_record_batch_message_size(record_batch, p.type, cache);
+                    (void)calculate_record_batch_message_size(record_batch, p.type, cache);
 
                     CHECK_FALSE(cache.empty()); // Ensure cache got populated
 
