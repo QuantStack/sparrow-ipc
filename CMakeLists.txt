@@ -275,7 +275,10 @@ target_include_directories(sparrow-ipc
     PRIVATE
         $<BUILD_INTERFACE:${FLATBUFFERS_GENERATED_DIR}>)
 
+
 find_package(date REQUIRED)
+target_link_libraries(sparrow-ipc PUBLIC date::date date::date-tz)
+
 target_link_libraries(sparrow-ipc 
     PUBLIC
         sparrow::sparrow
@@ -283,8 +286,6 @@ target_link_libraries(sparrow-ipc
     PRIVATE
         lz4::lz4
         zstd::libzstd
-        date::date
-        date::date-tz
         )
 
 # Ensure generated headers are available when building sparrow-ipc
