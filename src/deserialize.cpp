@@ -3,8 +3,9 @@
 #include <sparrow/types/data_type.hpp>
 
 #include "sparrow_ipc/deserialize_fixedsizebinary_array.hpp"
-#include "sparrow_ipc/deserialize_null_array.hpp"
+#include "sparrow_ipc/deserialize_duration_array.hpp"
 #include "sparrow_ipc/deserialize_interval_array.hpp"
+#include "sparrow_ipc/deserialize_null_array.hpp"
 #include "sparrow_ipc/deserialize_primitive_array.hpp"
 #include "sparrow_ipc/deserialize_variable_size_binary_array.hpp"
 #include "sparrow_ipc/encapsulated_message.hpp"
@@ -268,6 +269,68 @@ namespace sparrow_ipc
                             throw std::runtime_error(
                                 "Unsupported interval unit: "
                                 + std::to_string(static_cast<int>(interval_unit))
+                            );
+                    }
+                }
+                break;
+                case org::apache::arrow::flatbuf::Type::Duration:
+                {
+                    const auto* duration_type = field->type_as_Duration();
+                    const org::apache::arrow::flatbuf::TimeUnit time_unit = duration_type->unit();
+                    switch (time_unit)
+                    {
+                        case org::apache::arrow::flatbuf::TimeUnit::SECOND:
+                            arrays.emplace_back(
+                                deserialize_non_owning_duration_array<std::chrono::seconds>(
+                                    record_batch,
+                                    encapsulated_message.body(),
+                                    name,
+                                    metadata,
+                                    nullable,
+                                    buffer_index
+                                )
+                            );
+                            break;
+                        case org::apache::arrow::flatbuf::TimeUnit::MILLISECOND:
+                            arrays.emplace_back(
+                                deserialize_non_owning_duration_array<std::chrono::milliseconds>(
+                                    record_batch,
+                                    encapsulated_message.body(),
+                                    name,
+                                    metadata,
+                                    nullable,
+                                    buffer_index
+                                )
+                            );
+                            break;
+                        case org::apache::arrow::flatbuf::TimeUnit::MICROSECOND:
+                            arrays.emplace_back(
+                                deserialize_non_owning_duration_array<std::chrono::microseconds>(
+                                    record_batch,
+                                    encapsulated_message.body(),
+                                    name,
+                                    metadata,
+                                    nullable,
+                                    buffer_index
+                                )
+                            );
+                            break;
+                        case org::apache::arrow::flatbuf::TimeUnit::NANOSECOND:
+                            arrays.emplace_back(
+                                deserialize_non_owning_duration_array<std::chrono::nanoseconds>(
+                                    record_batch,
+                                    encapsulated_message.body(),
+                                    name,
+                                    metadata,
+                                    nullable,
+                                    buffer_index
+                                )
+                            );
+                            break;
+                        default:
+                            throw std::runtime_error(
+                                "Unsupported duration time unit: "
+                                + std::to_string(static_cast<int>(time_unit))
                             );
                     }
                 }
