@@ -60,10 +60,10 @@ namespace sparrow_ipc::utils
     * @param compression The compression algorithm to use. If nullptr, no decompression is performed.
     *
     * @return A `std::variant` containing either:
-    *         - A `std::vector<std::uint8_t>` with the decompressed data, or
+    *         - A `sparrow::buffer<std::uint8_t>` with the decompressed data, or
     *         - A `std::span<const std::uint8_t>` providing a view of the original `buffer_span` if no decompression occurred.
     */
-    [[nodiscard]] std::variant<std::vector<std::uint8_t>, std::span<const std::uint8_t>> get_decompressed_buffer(
+    [[nodiscard]] std::variant<sparrow::buffer<std::uint8_t>, std::span<const std::uint8_t>> get_decompressed_buffer(
         std::span<const uint8_t> buffer_span,
         const org::apache::arrow::flatbuf::BodyCompression* compression
     );

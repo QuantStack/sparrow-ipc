@@ -63,7 +63,9 @@ namespace sparrow_ipc
         else
         {
             buffers.emplace_back(validity_buffer_span);
-            buffers.emplace_back(data_buffer_span);
+            sparrow::buffer<std::uint8_t> data_buffer_copy(data_buffer_span.size(), sparrow::buffer<std::uint8_t>::default_allocator());
+            std::memcpy(data_buffer_copy.data(), data_buffer_span.data(), data_buffer_span.size());
+            buffers.emplace_back(std::move(data_buffer_copy));
         }
 
         const auto [bitmap_ptr, null_count] = utils::get_bitmap_pointer_and_null_count(
