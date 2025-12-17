@@ -3,6 +3,8 @@
 [![GHA Linux](https://github.com/quantstack/sparrow-ipc/actions/workflows/linux.yml/badge.svg)](https://github.com/quantstack/sparrow-ipc/actions/workflows/linux.yml)
 [![GHA OSX](https://github.com/quantstack/sparrow-ipc/actions/workflows/osx.yml/badge.svg)](https://github.com/quantstack/sparrow-ipc/actions/workflows/osx.yml)
 [![GHA Windows](https://github.com/quantstack/sparrow-ipc/actions/workflows/windows.yml/badge.svg)](https://github.com/quantstack/sparrow-ipc/actions/workflows/windows.yml)
+[![GHA Docs](https://github.com/quantstack/sparrow-ipc/actions/workflows/docs.yaml/badge.svg)](https://github.com/quantstack/sparrow-ipc/actions/workflows/docs.yaml)
+[![Integration tests](https://github.com/quantstack/sparrow-ipc/actions/workflows/integration_tests.yaml/badge.svg?branch=main)](https://github.com/quantstack/sparrow-ipc/actions/workflows/integration_tests.yaml)
 
 **!!!Sparrow-IPC is still under development and is not ready for production use!!!**
 
@@ -198,7 +200,7 @@ The documentation (currently being written) can be found at https://quantstack.g
 
 ## Acknowledgements
 
-This project is developed by [QuantStack](quantstack.net), building on the foundations laid by the sparrow library and the Apache Arrow project.
+This project is developed by [QuantStack](https://quantstack.net/), building on the foundations laid by the sparrow library and the Apache Arrow project.
 
 ## License
 
