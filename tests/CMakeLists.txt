@@ -31,8 +31,6 @@ target_link_libraries(${test_target}
 )
 
 if(WIN32)
-    find_package(date) # For copying DLLs
-
     set(ZSTD_DLL_TARGET "")
     if(TARGET libzstd_shared AND SPARROW_IPC_BUILD_SHARED) # Building deps from src case: shared target without namespace
         set(ZSTD_DLL_TARGET libzstd_shared)
@@ -52,10 +50,17 @@ if(WIN32)
         COMMAND ${CMAKE_COMMAND} -E copy
             "$<TARGET_FILE:sparrow::json_reader>"
             "$<TARGET_FILE_DIR:${test_target}>"
-        COMMAND ${CMAKE_COMMAND} -E copy
-            "$<TARGET_FILE:date::date-tz>"
-            "$<TARGET_FILE_DIR:${test_target}>"
     )
+
+    if(${USE_DATE_POLYFILL})
+        find_package(date REQUIRED) # For copying DLLs
+ 
+        list(APPEND DLL_COPY_COMMANDS
+            COMMAND ${CMAKE_COMMAND} -E copy
+                "$<TARGET_FILE:date::date-tz>"
+                "$<TARGET_FILE_DIR:${test_target}>"
+        )
+    endif()
 
     # Conditionally add ZSTD copy command
     if(ZSTD_DLL_TARGET)

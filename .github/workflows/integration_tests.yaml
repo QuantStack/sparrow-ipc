@@ -25,7 +25,8 @@ jobs:
             -DCMAKE_BUILD_TYPE:STRING=RELEASE \
             -DSPARROW_IPC_BUILD_INTEGRATION_TESTS=ON \
             -DFETCH_DEPENDENCIES_WITH_CMAKE=MISSING \
-            -DSPARROW_IPC_BUILD_SHARED=OFF
+            -DSPARROW_IPC_BUILD_SHARED=OFF \
+            -DUSE_DATE_POLYFILL=ON
 
       - name: Build arrow_file_to_stream target
         working-directory: build

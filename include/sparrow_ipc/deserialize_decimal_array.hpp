@@ -58,13 +58,30 @@ namespace sparrow_ipc
         if (compression)
         {
             buffers.push_back(utils::get_decompressed_buffer(validity_buffer_span, compression));
-            buffers.push_back(utils::get_decompressed_buffer(data_buffer_span, compression));
+            
+            // For decimal types, we need to ensure proper alignment of the decompressed data.
+            // The decompressed buffer itself is aligned, but we need to copy it to ensure
+            // the decimal values (especially int128 and int256) start at a properly aligned address.
+            auto decompressed_data = utils::get_decompressed_buffer(data_buffer_span, compression);
+            std::visit([&buffers](auto&& arg) {
+                using variant_type = std::decay_t<decltype(arg)>;
+                if constexpr (std::is_same_v<variant_type, sparrow::buffer<std::uint8_t>>)
+                {
+                    // Already a buffer, move it
+                    buffers.emplace_back(std::move(arg));
+                }
+                else
+                {
+                    // It's a span, copy to ensure alignment
+                    sparrow::buffer<std::uint8_t> aligned_buffer(arg.begin(), arg.end(), sparrow::buffer<std::uint8_t>::default_allocator());
+                    buffers.emplace_back(std::move(aligned_buffer));
+                }
+            }, std::move(decompressed_data));
         }
         else
         {
             buffers.emplace_back(validity_buffer_span);
-            sparrow::buffer<std::uint8_t> data_buffer_copy(data_buffer_span.size(), sparrow::buffer<std::uint8_t>::default_allocator());
-            std::memcpy(data_buffer_copy.data(), data_buffer_span.data(), data_buffer_span.size());
+            sparrow::buffer<std::uint8_t> data_buffer_copy(data_buffer_span.begin(), data_buffer_span.end(), sparrow::buffer<std::uint8_t>::default_allocator());
             buffers.emplace_back(std::move(data_buffer_copy));
         }
 

@@ -43,7 +43,8 @@ jobs:
           -DSPARROW_IPC_BUILD_SHARED=${{ matrix.build_shared }} \
           -DSPARROW_IPC_BUILD_TESTS=ON \
           -DSPARROW_IPC_BUILD_INTEGRATION_TESTS=ON \
-          -DSPARROW_IPC_BUILD_EXAMPLES=ON
+          -DSPARROW_IPC_BUILD_EXAMPLES=ON \
+          -DUSE_DATE_POLYFILL=ON
 
       - name: Build sparrow-ipc
         working-directory: build
@@ -109,7 +110,8 @@ jobs:
           -DSPARROW_IPC_BUILD_TESTS=ON \
           -DSPARROW_IPC_BUILD_INTEGRATION_TESTS=ON \
           -DSPARROW_IPC_BUILD_EXAMPLES=ON \
-          -DFETCH_DEPENDENCIES_WITH_CMAKE=MISSING
+          -DFETCH_DEPENDENCIES_WITH_CMAKE=MISSING \
+          -DUSE_DATE_POLYFILL=ON
 
       - name: Build sparrow-ipc
         working-directory: build
