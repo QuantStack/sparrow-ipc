@@ -72,6 +72,7 @@ if(${SPARROW_IPC_BUILD_TESTS} OR ${SPARROW_IPC_BUILD_INTEGRATION_TESTS})
     set(CREATE_JSON_READER_TARGET ON)
 endif()
 
+# Be consistent with sparrow feedstock on conda-forge
 if(NOT WIN32)
     find_package_or_fetch(
         PACKAGE_NAME sparrow
