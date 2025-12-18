@@ -37,6 +37,10 @@ const std::vector<std::filesystem::path> files_paths_to_test = {
     tests_resources_files_path / "generated_duration",
     tests_resources_files_path / "generated_null",
     tests_resources_files_path / "generated_null_trivial",
+    tests_resources_files_path / "generated_decimal32",
+    tests_resources_files_path / "generated_decimal64",
+    tests_resources_files_path / "generated_decimal",
+    tests_resources_files_path / "generated_decimal256",
 };
 
 const std::vector<std::filesystem::path> files_paths_to_test_with_lz4_compression = {

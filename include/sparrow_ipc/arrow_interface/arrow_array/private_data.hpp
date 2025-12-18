@@ -5,13 +5,14 @@
 #include <variant>
 #include <vector>
 
+#include <sparrow/buffer/buffer.hpp>
+
 #include "sparrow_ipc/config/config.hpp"
 
 namespace sparrow_ipc
 {
     template <typename T>
-    concept ArrowPrivateData = requires(T& t)
-    {
+    concept ArrowPrivateData = requires(T& t) {
         { t.buffers_ptrs() } -> std::same_as<const void**>;
         { t.n_buffers() } -> std::convertible_to<std::size_t>;
     };
@@ -19,7 +20,8 @@ namespace sparrow_ipc
     class arrow_array_private_data
     {
     public:
-        using optionally_owned_buffer = std::variant<std::vector<uint8_t>, std::span<const uint8_t>>;
+
+        using optionally_owned_buffer = std::variant<sparrow::buffer<uint8_t>, std::span<const uint8_t>>;
         explicit arrow_array_private_data(std::vector<optionally_owned_buffer>&& buffers);
 
         [[nodiscard]] SPARROW_IPC_API const void** buffers_ptrs() noexcept;

@@ -1,9 +1,10 @@
+#include "sparrow_ipc/flatbuffer_utils.hpp"
+
 #include <numeric>
 #include <string>
 
 #include "compression_impl.hpp"
 #include "sparrow_ipc/magic_values.hpp"
-#include "sparrow_ipc/flatbuffer_utils.hpp"
 
 namespace sparrow_ipc
 {
@@ -371,7 +372,7 @@ namespace sparrow_ipc
     }
 
     // Creates a Flatbuffers Decimal type from a format string
-    // The format string is expected to be in the format "d:precision,scale"
+    // The format string is expected to be in the format "d:precision,scale" or "d:precision,scale,bitWidth
     std::pair<org::apache::arrow::flatbuf::Type, flatbuffers::Offset<void>> get_flatbuffer_decimal_type(
         flatbuffers::FlatBufferBuilder& builder,
         std::string_view format_str,
@@ -379,29 +380,25 @@ namespace sparrow_ipc
     )
     {
         // Decimal requires precision and scale. We need to parse the format_str.
-        // Format: "d:precision,scale"
-        const auto scale = utils::parse_format(format_str, ",");
-        if (!scale.has_value())
+        // Format: "d:precision,scale" or "d:precision,scale,bitWidth"
+        const auto parsed = utils::parse_decimal_format(format_str);
+        if (!parsed.has_value())
         {
             throw std::runtime_error(
                 "Failed to parse Decimal " + std::to_string(bitWidth)
-                + " scale from format string: " + std::string(format_str)
+                + " format string: " + std::string(format_str)
             );
         }
-        const size_t comma_pos = format_str.find(',');
-        const auto precision = utils::parse_format(format_str.substr(0, comma_pos), ":");
-        if (!precision.has_value())
-        {
-            throw std::runtime_error(
-                "Failed to parse Decimal " + std::to_string(bitWidth)
-                + " precision from format string: " + std::string(format_str)
-            );
-        }
+
+        const auto& [precision, scale, parsed_bitwidth] = parsed.value();
+
+        // Use the bitWidth from the format string if provided, otherwise use the parameter
+        const int32_t actual_bitwidth = parsed_bitwidth.value_or(bitWidth);
         const auto decimal_type = org::apache::arrow::flatbuf::CreateDecimal(
             builder,
-            precision.value(),
-            scale.value(),
-            bitWidth
+            precision,
+            scale,
+            actual_bitwidth
         );
         return {org::apache::arrow::flatbuf::Type::Decimal, decimal_type.Union()};
     }
@@ -426,12 +423,16 @@ namespace sparrow_ipc
         return builder.CreateVector(kv_offsets);
     }
 
-    ::flatbuffers::Offset<org::apache::arrow::flatbuf::Field>
-    create_field(flatbuffers::FlatBufferBuilder& builder, const ArrowSchema& arrow_schema, std::optional<std::string_view> name_override)
+    ::flatbuffers::Offset<org::apache::arrow::flatbuf::Field> create_field(
+        flatbuffers::FlatBufferBuilder& builder,
+        const ArrowSchema& arrow_schema,
+        std::optional<std::string_view> name_override
+    )
     {
-        flatbuffers::Offset<flatbuffers::String> fb_name_offset = name_override.has_value()
-                                                                      ? builder.CreateString(name_override.value())
-                                                                      : (arrow_schema.name == nullptr ? 0 : builder.CreateString(arrow_schema.name));
+        flatbuffers::Offset<flatbuffers::String>
+            fb_name_offset = name_override.has_value()
+                                 ? builder.CreateString(name_override.value())
+                                 : (arrow_schema.name == nullptr ? 0 : builder.CreateString(arrow_schema.name));
         const auto [type_enum, type_offset] = get_flatbuffer_type(builder, arrow_schema.format);
         auto fb_metadata_offset = create_metadata(builder, arrow_schema);
         const auto children = create_children(builder, arrow_schema);
@@ -538,16 +539,28 @@ namespace sparrow_ipc
         int64_t& offset
     )
     {
-        details::fill_buffers_impl(arrow_proxy, flatbuf_buffers, offset, [](const auto& buffer) {
-            return static_cast<int64_t>(buffer.size());
-        });
+        details::fill_buffers_impl(
+            arrow_proxy,
+            flatbuf_buffers,
+            offset,
+            [](const auto& buffer)
+            {
+                return static_cast<int64_t>(buffer.size());
+            }
+        );
     }
 
     std::vector<org::apache::arrow::flatbuf::Buffer> get_buffers(const sparrow::record_batch& record_batch)
     {
-        return details::get_buffers_impl(record_batch, [](const sparrow::arrow_proxy& proxy, std::vector<org::apache::arrow::flatbuf::Buffer>& buffers, int64_t& offset) {
-            fill_buffers(proxy, buffers, offset);
-        });
+        return details::get_buffers_impl(
+            record_batch,
+            [](const sparrow::arrow_proxy& proxy,
+               std::vector<org::apache::arrow::flatbuf::Buffer>& buffers,
+               int64_t& offset)
+            {
+                fill_buffers(proxy, buffers, offset);
+            }
+        );
     }
 
     void fill_compressed_buffers(
@@ -559,24 +572,42 @@ namespace sparrow_ipc
     )
     {
         details::fill_buffers_impl(
-            arrow_proxy, flatbuf_compressed_buffers, offset, [&](const auto& buffer) {
-                return get_compressed_size(compression_type, std::span<const uint8_t>(buffer.data(), buffer.size()), cache);
-            });
+            arrow_proxy,
+            flatbuf_compressed_buffers,
+            offset,
+            [&](const auto& buffer)
+            {
+                return get_compressed_size(
+                    compression_type,
+                    std::span<const uint8_t>(buffer.data(), buffer.size()),
+                    cache
+                );
+            }
+        );
     }
 
-    std::vector<org::apache::arrow::flatbuf::Buffer>
-    get_compressed_buffers(const sparrow::record_batch& record_batch,
-                           const CompressionType compression_type,
-                           CompressionCache& cache)
+    std::vector<org::apache::arrow::flatbuf::Buffer> get_compressed_buffers(
+        const sparrow::record_batch& record_batch,
+        const CompressionType compression_type,
+        CompressionCache& cache
+    )
     {
-        return details::get_buffers_impl(record_batch, [&](const sparrow::arrow_proxy& proxy, std::vector<org::apache::arrow::flatbuf::Buffer>& buffers, int64_t& offset) {
-            fill_compressed_buffers(proxy, buffers, offset, compression_type, cache);
-        });
+        return details::get_buffers_impl(
+            record_batch,
+            [&](const sparrow::arrow_proxy& proxy,
+                std::vector<org::apache::arrow::flatbuf::Buffer>& buffers,
+                int64_t& offset)
+            {
+                fill_compressed_buffers(proxy, buffers, offset, compression_type, cache);
+            }
+        );
     }
 
-    int64_t calculate_body_size(const sparrow::arrow_proxy& arrow_proxy,
-                                std::optional<CompressionType> compression,
-                                std::optional<std::reference_wrapper<CompressionCache>> cache)
+    int64_t calculate_body_size(
+        const sparrow::arrow_proxy& arrow_proxy,
+        std::optional<CompressionType> compression,
+        std::optional<std::reference_wrapper<CompressionCache>> cache
+    )
     {
         int64_t total_size = 0;
         if (compression.has_value())
@@ -587,7 +618,11 @@ namespace sparrow_ipc
             }
             for (const auto& buffer : arrow_proxy.buffers())
             {
-                total_size += utils::align_to_8(get_compressed_size(compression.value(), std::span<const uint8_t>(buffer.data(), buffer.size()), cache.value().get()));
+                total_size += utils::align_to_8(get_compressed_size(
+                    compression.value(),
+                    std::span<const uint8_t>(buffer.data(), buffer.size()),
+                    cache.value().get()
+                ));
             }
         }
         else
@@ -605,9 +640,11 @@ namespace sparrow_ipc
         return total_size;
     }
 
-    int64_t calculate_body_size(const sparrow::record_batch& record_batch,
-                                std::optional<CompressionType> compression,
-                                std::optional<std::reference_wrapper<CompressionCache>> cache)
+    int64_t calculate_body_size(
+        const sparrow::record_batch& record_batch,
+        std::optional<CompressionType> compression,
+        std::optional<std::reference_wrapper<CompressionCache>> cache
+    )
     {
         auto cols = record_batch.columns();
         return std::accumulate(
@@ -622,9 +659,11 @@ namespace sparrow_ipc
         );
     }
 
-    flatbuffers::FlatBufferBuilder get_record_batch_message_builder(const sparrow::record_batch& record_batch,
-                                                                  std::optional<CompressionType> compression,
-                                                                  std::optional<std::reference_wrapper<CompressionCache>> cache)
+    flatbuffers::FlatBufferBuilder get_record_batch_message_builder(
+        const sparrow::record_batch& record_batch,
+        std::optional<CompressionType> compression,
+        std::optional<std::reference_wrapper<CompressionCache>> cache
+    )
     {
         flatbuffers::FlatBufferBuilder record_batch_builder;
         flatbuffers::Offset<org::apache::arrow::flatbuf::BodyCompression> compression_offset = 0;
@@ -636,7 +675,11 @@ namespace sparrow_ipc
                 throw std::invalid_argument("Compression type set but no cache is given.");
             }
             compressed_buffers = get_compressed_buffers(record_batch, compression.value(), cache.value().get());
-            compression_offset = org::apache::arrow::flatbuf::CreateBodyCompression(record_batch_builder, details::to_fb_compression_type(compression.value()), org::apache::arrow::flatbuf::BodyCompressionMethod::BUFFER);
+            compression_offset = org::apache::arrow::flatbuf::CreateBodyCompression(
+                record_batch_builder,
+                details::to_fb_compression_type(compression.value()),
+                org::apache::arrow::flatbuf::BodyCompressionMethod::BUFFER
+            );
         }
         const auto& buffers = compressed_buffers ? *compressed_buffers : get_buffers(record_batch);
         const std::vector<org::apache::arrow::flatbuf::FieldNode> nodes = create_fieldnodes(record_batch);
@@ -648,7 +691,7 @@ namespace sparrow_ipc
             nodes_offset,
             buffers_offset,
             compression_offset,
-            0   // TODO :variadic buffer Counts
+            0  // TODO :variadic buffer Counts
         );
 
         const int64_t body_size = calculate_body_size(record_batch, compression, cache);

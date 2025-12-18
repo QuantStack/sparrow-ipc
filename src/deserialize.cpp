@@ -2,9 +2,11 @@
 
 #include <sparrow/types/data_type.hpp>
 
+#include "sparrow_ipc/deserialize_decimal_array.hpp"
 #include "sparrow_ipc/deserialize_fixedsizebinary_array.hpp"
 #include "sparrow_ipc/deserialize_duration_array.hpp"
 #include "sparrow_ipc/deserialize_interval_array.hpp"
+#include "sparrow_ipc/deserialize_null_array.hpp"
 #include "sparrow_ipc/deserialize_null_array.hpp"
 #include "sparrow_ipc/deserialize_primitive_array.hpp"
 #include "sparrow_ipc/deserialize_variable_size_binary_array.hpp"
@@ -25,6 +27,7 @@ namespace sparrow_ipc
         // End-of-stream marker size in bytes
         constexpr size_t END_OF_STREAM_MARKER_SIZE = 8;
     }
+
     const org::apache::arrow::flatbuf::RecordBatch*
     deserialize_record_batch_message(std::span<const uint8_t> data, size_t& current_offset)
     {
@@ -267,8 +270,7 @@ namespace sparrow_ipc
                             break;
                         default:
                             throw std::runtime_error(
-                                "Unsupported interval unit: "
-                                + std::to_string(static_cast<int>(interval_unit))
+                                "Unsupported interval unit: " + std::to_string(static_cast<int>(interval_unit))
                             );
                     }
                 }
@@ -345,6 +347,73 @@ namespace sparrow_ipc
                         buffer_index
                     ));
                     break;
+                case org::apache::arrow::flatbuf::Type::Decimal:
+                {
+                    const auto decimal_field = field->type_as_Decimal();
+                    const auto scale = decimal_field->scale();
+                    const auto precision = decimal_field->precision();
+                    if (decimal_field->bitWidth() == 32)
+                    {
+                        arrays.emplace_back(
+                            deserialize_non_owning_decimal<sparrow::decimal<int32_t>>(
+                                record_batch,
+                                encapsulated_message.body(),
+                                name,
+                                metadata,
+                                nullable,
+                                buffer_index,
+                                scale,
+                                precision
+                            )
+                        );
+                    }
+                    else if (decimal_field->bitWidth() == 64)
+                    {
+                        arrays.emplace_back(
+                            deserialize_non_owning_decimal<sparrow::decimal<int64_t>>(
+                                record_batch,
+                                encapsulated_message.body(),
+                                name,
+                                metadata,
+                                nullable,
+                                buffer_index,
+                                scale,
+                                precision
+                            )
+                        );
+                    }
+                    else if (decimal_field->bitWidth() == 128)
+                    {
+                        arrays.emplace_back(
+                            deserialize_non_owning_decimal<sparrow::decimal<sparrow::int128_t>>(
+                                record_batch,
+                                encapsulated_message.body(),
+                                name,
+                                metadata,
+                                nullable,
+                                buffer_index,
+                                scale,
+                                precision
+                            )
+                        );
+                    }
+                    else if (decimal_field->bitWidth() == 256)
+                    {
+                        arrays.emplace_back(
+                            deserialize_non_owning_decimal<sparrow::decimal<sparrow::int256_t>>(
+                                record_batch,
+                                encapsulated_message.body(),
+                                name,
+                                metadata,
+                                nullable,
+                                buffer_index,
+                                scale,
+                                precision
+                            )
+                        );
+                    }
+                    break;
+                }
                 default:
                     throw std::runtime_error(
                         "Unsupported field type: " + std::to_string(static_cast<int>(field_type))
@@ -442,7 +511,9 @@ namespace sparrow_ipc
                 case org::apache::arrow::flatbuf::MessageHeader::Tensor:
                 case org::apache::arrow::flatbuf::MessageHeader::DictionaryBatch:
                 case org::apache::arrow::flatbuf::MessageHeader::SparseTensor:
-                    throw std::runtime_error("Unsupported message type: Tensor, DictionaryBatch, or SparseTensor");
+                    throw std::runtime_error(
+                        "Unsupported message type: Tensor, DictionaryBatch, or SparseTensor"
+                    );
                 default:
                     throw std::runtime_error("Unknown message header type.");
             }
