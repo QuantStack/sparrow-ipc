@@ -71,11 +71,23 @@ set(SPARROW_BUILD_SHARED ${SPARROW_IPC_BUILD_SHARED})
 if(${SPARROW_IPC_BUILD_TESTS} OR ${SPARROW_IPC_BUILD_INTEGRATION_TESTS})
     set(CREATE_JSON_READER_TARGET ON)
 endif()
-find_package_or_fetch(
-    PACKAGE_NAME sparrow
-    GIT_REPOSITORY https://github.com/man-group/sparrow.git
-    TAG 2.0.0
-)
+
+if(NOT WIN32)
+    find_package_or_fetch(
+        PACKAGE_NAME sparrow
+        GIT_REPOSITORY https://github.com/man-group/sparrow.git
+        TAG 2.0.0
+        CMAKE_ARGS
+            "USE_DATE_POLYFILL=ON"
+    )
+else()
+    find_package_or_fetch(
+        PACKAGE_NAME sparrow
+        GIT_REPOSITORY https://github.com/man-group/sparrow.git
+        TAG 2.0.0
+    )
+endif()
+
 unset(CREATE_JSON_READER_TARGET)
 
 if(NOT TARGET sparrow::sparrow)
