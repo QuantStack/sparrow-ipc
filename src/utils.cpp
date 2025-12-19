@@ -47,11 +47,6 @@ namespace sparrow_ipc::utils
         return format_str.substr(sep_pos + sep.length());
     }
 
-    size_t align_to_8(const size_t n)
-    {
-        return (n + 7) & -8;
-    }
-
     std::optional<std::tuple<int32_t, int32_t, std::optional<int32_t>>> parse_decimal_format(std::string_view format_str)
     {
         // Format can be "d:precision,scale" or "d:precision,scale,bitWidth"
