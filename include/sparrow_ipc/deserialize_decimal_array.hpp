@@ -3,6 +3,7 @@
 #include <span>
 
 #include <sparrow/arrow_interface/arrow_array_schema_proxy.hpp>
+#include <sparrow/buffer/buffer.hpp>
 #include <sparrow/decimal_array.hpp>
 
 #include "Message_generated.h"
