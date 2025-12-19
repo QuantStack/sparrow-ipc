@@ -35,7 +35,7 @@ namespace sparrow_ipc::utils
         return body.subspan(buffer_metadata->offset(), buffer_metadata->length());
     }
 
-    std::variant<std::vector<uint8_t>, std::span<const uint8_t>> get_decompressed_buffer(
+    std::variant<sparrow::buffer<uint8_t>, std::span<const uint8_t>> get_decompressed_buffer(
         std::span<const uint8_t> buffer_span,
         const org::apache::arrow::flatbuf::BodyCompression* compression
     )

@@ -7,6 +7,8 @@
 #include <variant>
 #include <vector>
 
+#include <sparrow/buffer/buffer.hpp>
+
 #include "sparrow_ipc/config/config.hpp"
 
 namespace sparrow_ipc
@@ -21,39 +23,43 @@ namespace sparrow_ipc
 
     class SPARROW_IPC_API CompressionCache
     {
-        public:
-            CompressionCache();
-            ~CompressionCache();
+    public:
 
-            CompressionCache(CompressionCache&&) noexcept;
-            CompressionCache& operator=(CompressionCache&&) noexcept;
+        CompressionCache();
+        ~CompressionCache();
 
-            CompressionCache(const CompressionCache&) = delete;
-            CompressionCache& operator=(const CompressionCache&) = delete;
+        CompressionCache(CompressionCache&&) noexcept;
+        CompressionCache& operator=(CompressionCache&&) noexcept;
 
-            std::optional<std::span<const std::uint8_t>> find(const void* data_ptr, const size_t data_size);
-            std::span<const std::uint8_t> store(const void* data_ptr, const size_t data_size, std::vector<std::uint8_t>&& data);
+        CompressionCache(const CompressionCache&) = delete;
+        CompressionCache& operator=(const CompressionCache&) = delete;
 
-            [[nodiscard]] size_t size() const;
-            [[nodiscard]] size_t count(const void* data_ptr, const size_t data_size) const;
-            [[nodiscard]] bool empty() const;
-            void clear();
+        std::optional<std::span<const std::uint8_t>> find(const void* data_ptr, const size_t data_size);
+        std::span<const std::uint8_t>
+        store(const void* data_ptr, const size_t data_size, std::vector<std::uint8_t>&& data);
 
-        private:
-            std::unique_ptr<CompressionCacheImpl> m_pimpl;
+        [[nodiscard]] size_t size() const;
+        [[nodiscard]] size_t count(const void* data_ptr, const size_t data_size) const;
+        [[nodiscard]] bool empty() const;
+        void clear();
+
+    private:
+
+        std::unique_ptr<CompressionCacheImpl> m_pimpl;
     };
 
     [[nodiscard]] SPARROW_IPC_API std::span<const std::uint8_t> compress(
         const CompressionType compression_type,
         const std::span<const std::uint8_t>& data,
-        CompressionCache& cache);
+        CompressionCache& cache
+    );
 
     [[nodiscard]] SPARROW_IPC_API size_t get_compressed_size(
         const CompressionType compression_type,
         const std::span<const std::uint8_t>& data,
-        CompressionCache& cache);
+        CompressionCache& cache
+    );
 
-    [[nodiscard]] SPARROW_IPC_API std::variant<std::vector<std::uint8_t>, std::span<const std::uint8_t>> decompress(
-        const CompressionType compression_type,
-        std::span<const std::uint8_t> data);
+    [[nodiscard]] SPARROW_IPC_API std::variant<sparrow::buffer<std::uint8_t>, std::span<const std::uint8_t>>
+    decompress(const CompressionType compression_type, std::span<const std::uint8_t> data);
 }

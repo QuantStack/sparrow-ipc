@@ -156,7 +156,7 @@ namespace sparrow_ipc
     namespace
     {
         using compress_func = std::function<std::vector<uint8_t>(std::span<const uint8_t>)>;
-        using decompress_func = std::function<std::vector<uint8_t>(std::span<const uint8_t>, int64_t)>;
+        using decompress_func = std::function<sparrow::buffer<uint8_t>(std::span<const uint8_t>, int64_t)>;
 
         std::vector<std::uint8_t> lz4_compress_with_header(std::span<const std::uint8_t> data)
         {
@@ -173,9 +173,9 @@ namespace sparrow_ipc
             return result;
         }
 
-        std::vector<std::uint8_t> lz4_decompress(std::span<const std::uint8_t> data, const std::int64_t decompressed_size)
+        sparrow::buffer<std::uint8_t> lz4_decompress(std::span<const std::uint8_t> data, const std::int64_t decompressed_size)
         {
-            std::vector<std::uint8_t> decompressed_data(decompressed_size);
+            sparrow::buffer<std::uint8_t> decompressed_data(decompressed_size, sparrow::buffer<std::uint8_t>::default_allocator());
             LZ4F_dctx* dctx = nullptr;
             LZ4F_createDecompressionContext(&dctx, LZ4F_VERSION);
             size_t compressed_size_in_out = data.size();
@@ -204,9 +204,9 @@ namespace sparrow_ipc
             return result;
         }
 
-        std::vector<std::uint8_t> zstd_decompress(std::span<const std::uint8_t> data, const std::int64_t decompressed_size)
+        sparrow::buffer<std::uint8_t> zstd_decompress(std::span<const std::uint8_t> data, const std::int64_t decompressed_size)
         {
-            std::vector<std::uint8_t> decompressed_data(decompressed_size);
+            sparrow::buffer<std::uint8_t> decompressed_data(decompressed_size, sparrow::buffer<std::uint8_t>::default_allocator());
             const size_t result = ZSTD_decompress(decompressed_data.data(), decompressed_size, data.data(), data.size());
             if (ZSTD_isError(result) || (result != (size_t)decompressed_size))
             {
@@ -253,7 +253,7 @@ namespace sparrow_ipc
             return cache.store(buffer_ptr, buffer_size, std::move(result_vec));
         }
 
-        std::variant<std::vector<std::uint8_t>, std::span<const std::uint8_t>> decompress_with_header(std::span<const std::uint8_t> data, decompress_func decomp_func)
+        std::variant<sparrow::buffer<std::uint8_t>, std::span<const std::uint8_t>> decompress_with_header(std::span<const std::uint8_t> data, decompress_func decomp_func)
         {
             if (data.size() < details::CompressionHeaderSize)
             {
@@ -308,7 +308,7 @@ namespace sparrow_ipc
         return compress(compression_type, data, cache).size();
     }
 
-    std::variant<std::vector<std::uint8_t>, std::span<const std::uint8_t>> decompress(const CompressionType compression_type, std::span<const std::uint8_t> data)
+    std::variant<sparrow::buffer<std::uint8_t>, std::span<const std::uint8_t>> decompress(const CompressionType compression_type, std::span<const std::uint8_t> data)
     {
         if (data.empty())
         {
