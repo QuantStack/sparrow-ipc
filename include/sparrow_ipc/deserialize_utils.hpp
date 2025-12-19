@@ -2,10 +2,9 @@
 
 #include <span>
 #include <utility>
-#include <vector>
 
+#include <sparrow/buffer/buffer.hpp>
 #include <sparrow/buffer/dynamic_bitset/dynamic_bitset_view.hpp>
-#include <sparrow/u8_buffer.hpp>
 
 #include "Message_generated.h"
 
@@ -26,10 +25,8 @@ namespace sparrow_ipc::utils
      * @note If the bitmap buffer is empty, returns {nullptr, 0}
      * @note The returned pointer is a non-const cast of the original const data
      */
-    [[nodiscard]] std::pair<std::uint8_t*, int64_t> get_bitmap_pointer_and_null_count(
-        std::span<const uint8_t> validity_buffer_span,
-        const int64_t length
-    );
+    [[nodiscard]] std::pair<std::uint8_t*, int64_t>
+    get_bitmap_pointer_and_null_count(std::span<const uint8_t> validity_buffer_span, const int64_t length);
 
     /**
      * @brief Extracts a buffer from a RecordBatch's body.
@@ -51,19 +48,22 @@ namespace sparrow_ipc::utils
     );
 
     /**
-    * @brief Retrieves a decompressed buffer or a view of the original buffer.
-    *
-    * This function either decompresses the provided buffer span, if compression is specified,
-    * or returns a view of the original buffer without modification.
-    *
-    * @param buffer_span A span of raw buffer data to be decompressed, or returned as-is if no decompression is needed.
-    * @param compression The compression algorithm to use. If nullptr, no decompression is performed.
-    *
-    * @return A `std::variant` containing either:
-    *         - A `sparrow::buffer<std::uint8_t>` with the decompressed data, or
-    *         - A `std::span<const std::uint8_t>` providing a view of the original `buffer_span` if no decompression occurred.
-    */
-    [[nodiscard]] std::variant<sparrow::buffer<std::uint8_t>, std::span<const std::uint8_t>> get_decompressed_buffer(
+     * @brief Retrieves a decompressed buffer or a view of the original buffer.
+     *
+     * This function either decompresses the provided buffer span, if compression is specified,
+     * or returns a view of the original buffer without modification.
+     *
+     * @param buffer_span A span of raw buffer data to be decompressed, or returned as-is if no decompression
+     * is needed.
+     * @param compression The compression algorithm to use. If nullptr, no decompression is performed.
+     *
+     * @return A `std::variant` containing either:
+     *         - A `sparrow::buffer<std::uint8_t>` with the decompressed data, or
+     *         - A `std::span<const std::uint8_t>` providing a view of the original `buffer_span` if no
+     * decompression occurred.
+     */
+    [[nodiscard]] std::variant<sparrow::buffer<std::uint8_t>, std::span<const std::uint8_t>>
+    get_decompressed_buffer(
         std::span<const uint8_t> buffer_span,
         const org::apache::arrow::flatbuf::BodyCompression* compression
     );

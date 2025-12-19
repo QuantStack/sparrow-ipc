@@ -1,6 +1,5 @@
 #include "sparrow_ipc/deserialize.hpp"
 
-#include <sparrow/buffer/buffer.hpp>
 #include <sparrow/types/data_type.hpp>
 
 #include "sparrow_ipc/deserialize_decimal_array.hpp"
