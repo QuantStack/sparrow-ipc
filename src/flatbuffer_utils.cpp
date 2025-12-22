@@ -8,6 +8,28 @@
 
 namespace sparrow_ipc
 {
+    namespace
+    {
+        std::pair<org::apache::arrow::flatbuf::Type, flatbuffers::Offset<void>>
+        get_flatbuffer_timestamp_type(
+            flatbuffers::FlatBufferBuilder& builder,
+            std::string_view format_str,
+            org::apache::arrow::flatbuf::TimeUnit time_unit)
+        {
+            const auto timezone = utils::parse_after_separator(format_str, ":");
+            flatbuffers::Offset<flatbuffers::String> timezone_offset = 0;
+            if (timezone.has_value() && !timezone.value().empty())
+            {
+                timezone_offset = builder.CreateString(timezone.value());
+            }
+            const auto timestamp_type = org::apache::arrow::flatbuf::CreateTimestamp(
+                builder,
+                time_unit,
+                timezone_offset);
+            return {org::apache::arrow::flatbuf::Type::Timestamp, timestamp_type.Union()};
+        }
+    }
+
     std::pair<org::apache::arrow::flatbuf::Type, flatbuffers::Offset<void>>
     get_flatbuffer_type(flatbuffers::FlatBufferBuilder& builder, std::string_view format_str)
     {
@@ -136,35 +158,35 @@ namespace sparrow_ipc
             }
             case sparrow::data_type::TIMESTAMP_SECONDS:
             {
-                const auto timestamp_type = org::apache::arrow::flatbuf::CreateTimestamp(
+                return get_flatbuffer_timestamp_type(
                     builder,
+                    format_str,
                     org::apache::arrow::flatbuf::TimeUnit::SECOND
                 );
-                return {org::apache::arrow::flatbuf::Type::Timestamp, timestamp_type.Union()};
             }
             case sparrow::data_type::TIMESTAMP_MILLISECONDS:
             {
-                const auto timestamp_type = org::apache::arrow::flatbuf::CreateTimestamp(
+                return get_flatbuffer_timestamp_type(
                     builder,
+                    format_str,
                     org::apache::arrow::flatbuf::TimeUnit::MILLISECOND
                 );
-                return {org::apache::arrow::flatbuf::Type::Timestamp, timestamp_type.Union()};
             }
             case sparrow::data_type::TIMESTAMP_MICROSECONDS:
             {
-                const auto timestamp_type = org::apache::arrow::flatbuf::CreateTimestamp(
+                return get_flatbuffer_timestamp_type(
                     builder,
+                    format_str,
                     org::apache::arrow::flatbuf::TimeUnit::MICROSECOND
                 );
-                return {org::apache::arrow::flatbuf::Type::Timestamp, timestamp_type.Union()};
             }
             case sparrow::data_type::TIMESTAMP_NANOSECONDS:
             {
-                const auto timestamp_type = org::apache::arrow::flatbuf::CreateTimestamp(
+                return get_flatbuffer_timestamp_type(
                     builder,
+                    format_str,
                     org::apache::arrow::flatbuf::TimeUnit::NANOSECOND
                 );
-                return {org::apache::arrow::flatbuf::Type::Timestamp, timestamp_type.Union()};
             }
             case sparrow::data_type::DURATION_SECONDS:
             {
