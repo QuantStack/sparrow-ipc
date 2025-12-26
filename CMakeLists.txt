@@ -126,7 +126,7 @@ set(SPARROW_IPC_HEADERS
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/deserialize_array_impl.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/deserialize_decimal_array.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/deserialize_duration_array.hpp
-    ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/deserialize_fixedsizebinary_array.hpp
+    ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/deserialize_fixed_size_binary_array.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/deserialize_interval_array.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/deserialize_null_array.hpp
     ${SPARROW_IPC_INCLUDE_DIR}/sparrow_ipc/deserialize_primitive_array.hpp
@@ -149,6 +149,7 @@ set(SPARROW_IPC_HEADERS
 
 set(SPARROW_IPC_SRC
     ${SPARROW_IPC_SOURCE_DIR}/any_output_stream.cpp
+    ${SPARROW_IPC_SOURCE_DIR}/array_deserializer_impl.hpp
     ${SPARROW_IPC_SOURCE_DIR}/arrow_interface/arrow_array.cpp
     ${SPARROW_IPC_SOURCE_DIR}/arrow_interface/arrow_array/private_data.cpp
     ${SPARROW_IPC_SOURCE_DIR}/arrow_interface/arrow_schema.cpp
@@ -156,7 +157,7 @@ set(SPARROW_IPC_SRC
     ${SPARROW_IPC_SOURCE_DIR}/chunk_memory_serializer.cpp
     ${SPARROW_IPC_SOURCE_DIR}/compression.cpp
     ${SPARROW_IPC_SOURCE_DIR}/compression_impl.hpp
-    ${SPARROW_IPC_SOURCE_DIR}/deserialize_fixedsizebinary_array.cpp
+    ${SPARROW_IPC_SOURCE_DIR}/deserialize_fixed_size_binary_array.cpp
     ${SPARROW_IPC_SOURCE_DIR}/deserialize_null_array.cpp
     ${SPARROW_IPC_SOURCE_DIR}/deserialize_utils.cpp
     ${SPARROW_IPC_SOURCE_DIR}/deserialize.cpp
