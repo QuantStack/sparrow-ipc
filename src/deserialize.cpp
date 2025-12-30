@@ -10,6 +10,7 @@
 #include "sparrow_ipc/deserialize_primitive_array.hpp"
 #include "sparrow_ipc/deserialize_time_related_arrays.hpp"
 #include "sparrow_ipc/deserialize_variable_size_binary_array.hpp"
+#include "sparrow_ipc/deserialize_variable_size_binary_view_array.hpp"
 #include "sparrow_ipc/encapsulated_message.hpp"
 #include "sparrow_ipc/magic_values.hpp"
 #include "sparrow_ipc/metadata.hpp"
@@ -70,6 +71,8 @@ namespace sparrow_ipc
     )
     {
         size_t buffer_index = 0;
+        const auto* variadic_counts = record_batch.variadicBufferCounts();
+        size_t variadic_counts_idx = 0;
 
         const size_t num_fields = schema.fields() == nullptr ? 0 : static_cast<size_t>(schema.fields()->size());
         std::vector<sparrow::array> arrays;
@@ -276,6 +279,48 @@ namespace sparrow_ipc
                         )
                     );
                     break;
+                case org::apache::arrow::flatbuf::Type::BinaryView:
+                {
+                    int64_t data_buffers_size = 0;
+                    if (variadic_counts && variadic_counts_idx < variadic_counts->size())
+                    {
+                        data_buffers_size = variadic_counts->Get(variadic_counts_idx++);
+                    }
+
+                    arrays.emplace_back(
+                        deserialize_non_owning_variable_size_binary_view<sparrow::binary_view_array>(
+                            record_batch,
+                            encapsulated_message.body(),
+                            name,
+                            metadata,
+                            nullable,
+                            buffer_index,
+                            data_buffers_size
+                        )
+                    );
+                    break;
+                }
+                case org::apache::arrow::flatbuf::Type::Utf8View:
+                {
+                    int64_t data_buffers_size = 0;
+                    if (variadic_counts && variadic_counts_idx < variadic_counts->size())
+                    {
+                        data_buffers_size = variadic_counts->Get(variadic_counts_idx++);
+                    }
+
+                    arrays.emplace_back(
+                        deserialize_non_owning_variable_size_binary_view<sparrow::string_view_array>(
+                            record_batch,
+                            encapsulated_message.body(),
+                            name,
+                            metadata,
+                            nullable,
+                            buffer_index,
+                            data_buffers_size
+                        )
+                    );
+                    break;
+                }
                 case org::apache::arrow::flatbuf::Type::Interval:
                 {
                     const auto* interval_type = field->type_as_Interval();
