@@ -1,7 +1,8 @@
 #include "sparrow_ipc/flatbuffer_utils.hpp"
 
-#include <numeric>
 #include <string>
+
+#include <sparrow/utils/ranges.hpp>
 
 #include "compression_impl.hpp"
 #include "sparrow_ipc/magic_values.hpp"
@@ -668,10 +669,8 @@ namespace sparrow_ipc
         std::optional<std::reference_wrapper<CompressionCache>> cache
     )
     {
-        auto cols = record_batch.columns();
-        return std::accumulate(
-            cols.begin(),
-            cols.end(),
+        return sparrow::ranges::accumulate(
+            record_batch.columns(),
             int64_t{0},
             [&](int64_t acc, const sparrow::array& arr)
             {
